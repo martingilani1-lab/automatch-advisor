@@ -718,7 +718,7 @@ const dispPower = getPowerForFuel(c, userFuel);
               </div>
               { (c.towingCapacity || dispCons) && (
               <div className="cgrid" style={{ marginTop: 0 }}>
-                {dispCons && <div className="cgrid-item"><div className="cgrid-label">Consumption</div><div className="cgrid-val">{dispCons} {(c.fuel || []).some((f) => f.toLowerCase() === "electric") && dispCons > 10 ? "kWh/100" : "l/100"}{isUnpluggedPhev && <span style={{ fontSize: "0.6rem", color: "#ff9944", marginLeft: 4 }}>{"⚠️"} if charged</span>}</div></div>}
+                {dispCons && <div className="cgrid-item"><div className="cgrid-label">Consumption</div><div className="cgrid-val">{dispCons} {(c.fuel || []).some((f) => f.toLowerCase() === "electric") && userFuel === "electric" ? "kWh/100" : "l/100"}{isUnpluggedPhev && <span style={{ fontSize: "0.6rem", color: "#ff9944", marginLeft: 4 }}>{"⚠️"} if charged</span>}</div></div>}
                 {c.towingCapacity && <div className="cgrid-item"><div className="cgrid-label">Towing</div><div className="cgrid-val">{c.towingCapacity} kg</div></div>}
                 {c.groundClearance && <div className="cgrid-item"><div className="cgrid-label">Clearance</div><div className="cgrid-val">{c.groundClearance} mm</div></div>}
                 {dispPower && <div className="cgrid-item"><div className="cgrid-label">Power</div><div className="cgrid-val">{dispPower} kW</div></div>}
