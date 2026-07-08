@@ -102,6 +102,16 @@ export async function GET() {
   Object.keys(m).forEach(k => { out[k] = Math.round((m[k].sum / m[k].n) * 10) / 10; });
   return Object.keys(out).length ? out : null;
 })(),
+        powerByFuel: (() => {
+  const m: Record<string, number> = {};
+  vEngines.forEach((e: any) => {
+    const ft = (e.fuel_type || "").toLowerCase();
+    const v = Number(e.power_kw);
+    if (!ft || !v) return;
+    if (!m[ft] || v > m[ft]) m[ft] = v;
+  });
+  return Object.keys(m).length ? m : null;
+})(),
         pricing: {
           skPriceMin: v.price_range_min_eur,
           skPriceMax: v.price_range_max_eur,

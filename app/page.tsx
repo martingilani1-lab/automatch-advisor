@@ -27,6 +27,7 @@ interface CarData {
   faults?: { summary?: string; buyingTip?: string };
   _dims?: { practical: number; financial: number; preference: number; safety: number };
   pros?: string[]; cons?: string[]; consumptionByFuel?: Record<string, number> | null;
+  powerByFuel?: Record<string, number> | null;
 }
 interface ScoredCar { car: CarData; score: number; isBest: boolean }
 type Answers = Record<string, string | string[]>;
@@ -373,6 +374,13 @@ function getConsumptionForFuel(c: CarData, userFuel: string): number | null {
   return bf[userFuel] ?? c.avgConsumption ?? null;
 }
 
+function getPowerForFuel(c: CarData, userFuel: string): number | null {
+  const bf = c.powerByFuel;
+  if (!bf || !userFuel || userFuel === "open") return c.maxPowerKw ?? null;
+  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.maxPowerKw ?? null;
+  return bf[userFuel] ?? c.maxPowerKw ?? null;
+}
+
   // Fault mentions an engine family irrelevant to the user's fuel choice?
 function faultRelevant(issue: string, userFuel: string): boolean {
   if (!userFuel || userFuel === "open") return true;
@@ -681,6 +689,7 @@ export default function HomePage() {
           const relColor = RC[String(c.reliability)] || "#888";
           const userFuel = ans.fuel as string;
 const dispCons = getConsumptionForFuel(c, userFuel);
+const dispPower = getPowerForFuel(c, userFuel);
           const isUnpluggedPhev =
             (c.fuel || []).some((f) => f.toLowerCase() === "phev") &&
             (userFuel === "hybrid" || userFuel === "open") &&
@@ -712,7 +721,7 @@ const dispCons = getConsumptionForFuel(c, userFuel);
                 {dispCons && <div className="cgrid-item"><div className="cgrid-label">Consumption</div><div className="cgrid-val">{dispCons} {(c.fuel || []).some((f) => f.toLowerCase() === "electric") && dispCons > 10 ? "kWh/100" : "l/100"}{isUnpluggedPhev && <span style={{ fontSize: "0.6rem", color: "#ff9944", marginLeft: 4 }}>{"⚠️"} if charged</span>}</div></div>}
                 {c.towingCapacity && <div className="cgrid-item"><div className="cgrid-label">Towing</div><div className="cgrid-val">{c.towingCapacity} kg</div></div>}
                 {c.groundClearance && <div className="cgrid-item"><div className="cgrid-label">Clearance</div><div className="cgrid-val">{c.groundClearance} mm</div></div>}
-                {c.maxPowerKw && <div className="cgrid-item"><div className="cgrid-label">Power</div><div className="cgrid-val">{c.maxPowerKw} kW</div></div>}
+                {dispPower && <div className="cgrid-item"><div className="cgrid-label">Power</div><div className="cgrid-val">{dispPower} kW</div></div>}
                 {c.resaleValue && <div className="cgrid-item"><div className="cgrid-label">Resale</div><div className="cgrid-val">{({holds_well: "💎 Holds value", average: "Average", depreciates_fast: "📉 Drops fast"} as Record<string,string>)[c.resaleValue] || c.resaleValue}</div></div>}
               </div>
               )}

@@ -38,6 +38,7 @@ interface CarData {
   faults?: { summary?: string; buyingTip?: string };
   _dims?: { practical: number; financial: number; preference: number; safety: number };
   pros?: string[]; cons?: string[]; consumptionByFuel?: Record<string, number> | null;
+  powerByFuel?: Record<string, number> | null;
 }
 interface ScoredCar { car: CarData; score: number; isBest: boolean }
 type Answers = Record<string, string | string[]>;
@@ -132,6 +133,16 @@ async function fetchCarData(): Promise<CarData[]> {
         const out: Record<string, number> = {};
         Object.keys(m).forEach(k => { out[k] = Math.round((m[k].sum / m[k].n) * 10) / 10; });
         return Object.keys(out).length ? out : null;
+      })(),
+      powerByFuel: (() => {
+        const m: Record<string, number> = {};
+        vEngines.forEach((e: any) => {
+          const ft = (e.fuel_type || "").toLowerCase();
+          const v = Number(e.power_kw);
+          if (!ft || !v) return;
+          if (!m[ft] || v > m[ft]) m[ft] = v;
+        });
+        return Object.keys(m).length ? m : null;
       })(),
       pricing: {
         skPriceMin: v.price_range_min_eur,
@@ -648,7 +659,8 @@ if (mission === "drivers_car" && ["convertible", "coupe"].includes(c.body)) s +=
   if (mission === "drivers_car" || mission === "show_with_soul" || priorities.includes("driving_pleasure")) {
     const pwMax = c.maxPowerKw || 0;
     const pwMin = c.minPowerKw || pwMax;
-    const pw = (pwMax + pwMin) / 2; // Mid-lineup power — halo variants shouldn't score the whole model
+    const fuelPw = getPowerForFuel(c, a.fuel as string);
+    const pw = fuelPw ?? (pwMax + pwMin) / 2; // Fuel-specific power when known; else mid-lineup — halo variants shouldn't score the whole model
     const wt = c.weight || 1500;
     if (pw > 0 && wt > 0) {
       const hpPerTon = (pw * 1.36) / (wt / 1000); // kW to hp, kg to ton
@@ -715,6 +727,13 @@ function getConsumptionForFuel(c: CarData, userFuel: string): number | null {
   if (!bf || !userFuel || userFuel === "open") return c.avgConsumption ?? null;
   if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.avgConsumption ?? null;
   return bf[userFuel] ?? c.avgConsumption ?? null;
+}
+
+function getPowerForFuel(c: CarData, userFuel: string): number | null {
+  const bf = c.powerByFuel;
+  if (!bf || !userFuel || userFuel === "open") return c.maxPowerKw ?? null;
+  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.maxPowerKw ?? null;
+  return bf[userFuel] ?? c.maxPowerKw ?? null;
 }
 
 function scoreSafety(c: CarData, a: Answers): number {
