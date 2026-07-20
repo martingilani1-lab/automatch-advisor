@@ -29,7 +29,6 @@ This is a single-purpose Next.js App Router app: a car-buying advisor that walks
 - `cars/route.ts` (GET) — loads all vehicles + engines + transmissions and flattens/derives them into the `CarData` shape the frontend consumes (fuel types, best reliability, AWD flag, avg consumption, pricing, safety, etc.). This is the only endpoint the frontend uses to populate its car list.
 - `detail/route.ts` (POST, takes `{ vehicleId }`) — fetches full per-vehicle engine/transmission/fault detail (richer than the `cars` payload) for the expanded card view. Called lazily per-car from the frontend.
 - `recommend/route.ts` (POST, takes the quiz `Answers` object) — the live scoring endpoint. Fetches vehicles server-side (same fetch+transform pattern as `cars/route.ts`), runs the full recommendation pipeline (`hardFilter` → `score*` → `scoreCar` → `calcResults`), and returns the top 10 `ScoredCar[]`. This is the source of truth for recommendation behavior — `page.tsx` calls it directly.
-- `debug/route.ts` (GET) — introspection helper that dumps table counts, distinct brands, and sample rows/columns from Supabase. Useful for checking the current DB schema, not used by the UI.
 
 **Frontend** (`app/page.tsx`, single client component, ~1500 lines): the quiz and results UI live here; the scoring engine itself lives server-side in `app/api/recommend/route.ts` (see above).
 - `QUESTIONS` defines the 16-question quiz (`QuizQuestion[]`), driving a `phase` state machine: `hero → quiz → loading → results`.
