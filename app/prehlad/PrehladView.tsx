@@ -1,10 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
+import { carPriceMin, carRel, carStars, REL_RANK } from "@/app/lib/carFields";
+import {
+  FUEL_OPTIONS,
+  DRIVETRAIN_OPTIONS,
+  TRANSMISSION_TYPES,
+  matchesFuelGroup,
+  matchesTransmissionGroup,
+  matchesDrivetrainGroup,
+  matchesBrandGroup,
+  applyFilters,
+  facetCounts,
+  type FilterState,
+} from "@/app/lib/carFilters";
 import CarRow from "./CarRow";
+import FilterPanel from "./FilterPanel";
 
 interface CategoryTile { slug: string; emoji: string; label: string; desc: string }
 
@@ -21,17 +35,43 @@ const CATEGORIES: CategoryTile[] = [
 ];
 
 const CATEGORY_SLUGS = new Set(CATEGORIES.map((c) => c.slug));
+const SORT_OPTIONS = [
+  { value: "price_asc", label: "Price ↑" },
+  { value: "price_desc", label: "Price ↓" },
+  { value: "reliability", label: "Reliability" },
+  { value: "safety", label: "Safety" },
+  { value: "year", label: "Year" },
+];
+
+function parseList(v: string | null): string[] {
+  return v ? v.split(",").filter(Boolean) : [];
+}
 
 export default function PrehladView() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const rawCat = searchParams.get("cat");
   const activeCat = rawCat && CATEGORY_SLUGS.has(rawCat) ? rawCat : null;
 
+  const filters: FilterState = useMemo(() => ({
+    fuel: parseList(searchParams.get("fuel")),
+    transmission: parseList(searchParams.get("transmission")),
+    drivetrain: parseList(searchParams.get("drivetrain")),
+    brand: parseList(searchParams.get("brand")),
+    priceMin: searchParams.get("priceMin") ? Number(searchParams.get("priceMin")) : null,
+    priceMax: searchParams.get("priceMax") ? Number(searchParams.get("priceMax")) : null,
+  }), [searchParams]);
+
+  const sort = searchParams.get("sort") || "price_asc";
+  const [showFilters, setShowFilters] = useState(false);
+
   // ONE fetch on mount — /api/cars with no category param returns all 334 cars,
   // each already tagged server-side with `categories: string[]` (every slug
-  // whose CATEGORY_PREDICATES entry it satisfies). Tile counts and category
-  // selection both just read that tag client-side; there is no per-category
-  // fetch and no re-fetch when switching categories.
+  // whose CATEGORY_PREDICATES entry it satisfies). Tile counts, category
+  // selection, and every filter/sort below all read off this one array —
+  // there is no per-category fetch and no re-fetch on filter/sort changes.
   const [allCars, setAllCars] = useState<CarData[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -49,11 +89,82 @@ export default function PrehladView() {
   }, []);
 
   const activeMeta = activeCat ? CATEGORIES.find((c) => c.slug === activeCat) : null;
-  const activeList = activeCat ? allCars.filter((c) => (c.categories || []).includes(activeCat)) : [];
-  // Multi-powertrain models (208, 500, Kona...) in the electric category blend
-  // petrol + electric engines into avgConsumption/maxPowerKw — meaningless on a
-  // row. Force the electric-specific reading via consumptionByFuel/powerByFuel.
-  const fuelContext = activeCat === "electric" ? "electric" : "";
+
+  const categoryList = useMemo(
+    () => (activeCat ? allCars.filter((c) => (c.categories || []).includes(activeCat)) : []),
+    [allCars, activeCat]
+  );
+
+  const brandOptions = useMemo(
+    () => [...new Set(categoryList.map((c) => c.make).filter(Boolean))].sort().map((make) => ({ slug: make, label: make })),
+    [categoryList]
+  );
+
+  // Facet counts: the count for an option in group X is computed against the
+  // current filter set with group X's own selections excluded — otherwise
+  // checking an option would immediately zero out its own sibling counts.
+  const fuelCounts = useMemo(
+    () => facetCounts(applyFilters(categoryList, filters, "fuel"), FUEL_OPTIONS, matchesFuelGroup),
+    [categoryList, filters]
+  );
+  const transmissionCounts = useMemo(
+    () => facetCounts(applyFilters(categoryList, filters, "transmission"), TRANSMISSION_TYPES, matchesTransmissionGroup),
+    [categoryList, filters]
+  );
+  const drivetrainCounts = useMemo(
+    () => facetCounts(applyFilters(categoryList, filters, "drivetrain"), DRIVETRAIN_OPTIONS, matchesDrivetrainGroup),
+    [categoryList, filters]
+  );
+  const brandCounts = useMemo(
+    () => facetCounts(applyFilters(categoryList, filters, "brand"), brandOptions, matchesBrandGroup),
+    [categoryList, filters, brandOptions]
+  );
+
+  const filteredList = useMemo(() => applyFilters(categoryList, filters), [categoryList, filters]);
+
+  const sortedList = useMemo(() => {
+    const list = [...filteredList];
+    if (sort === "price_asc") list.sort((a, b) => carPriceMin(a) - carPriceMin(b));
+    else if (sort === "price_desc") list.sort((a, b) => carPriceMin(b) - carPriceMin(a));
+    else if (sort === "reliability") list.sort((a, b) => (REL_RANK[carRel(b)] ?? 0) - (REL_RANK[carRel(a)] ?? 0));
+    else if (sort === "safety") list.sort((a, b) => (carStars(b) ?? 0) - (carStars(a) ?? 0));
+    else if (sort === "year") list.sort((a, b) => (b.yearTo ?? 0) - (a.yearTo ?? 0));
+    return list;
+  }, [filteredList, sort]);
+
+  // Multi-powertrain models (208, 500, Kona...) blend all their engines' figures
+  // into avgConsumption/maxPowerKw — meaningless on a row once a fuel is known.
+  // Force the per-fuel reading whenever exactly one fuel is selected, or the
+  // category itself is "electric" (the step-3 fix, unchanged when no fuel filter narrows it further).
+  const fuelContext = filters.fuel.length === 1 ? filters.fuel[0] : (activeCat === "electric" ? "electric" : "");
+
+  const activeFilterCount =
+    filters.fuel.length + filters.transmission.length + filters.drivetrain.length + filters.brand.length +
+    (filters.priceMin != null ? 1 : 0) + (filters.priceMax != null ? 1 : 0);
+
+  function updateParams(mutate: (p: URLSearchParams) => void) {
+    const params = new URLSearchParams(searchParams.toString());
+    mutate(params);
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function toggleListParam(key: string, value: string) {
+    updateParams((params) => {
+      const current = new Set(parseList(params.get(key)));
+      if (current.has(value)) current.delete(value); else current.add(value);
+      if (current.size > 0) params.set(key, [...current].join(",")); else params.delete(key);
+    });
+  }
+
+  function setNumberParam(key: string, value: string) {
+    updateParams((params) => {
+      if (value) params.set(key, value); else params.delete(key);
+    });
+  }
+
+  function setSort(value: string) {
+    updateParams((params) => { params.set("sort", value); });
+  }
 
   return (
     <main className="w">
@@ -97,14 +208,52 @@ export default function PrehladView() {
       {activeCat && (<>
         <div className="results-hdr">
           <h3>{activeMeta?.emoji} {activeMeta?.label}</h3>
-          <div className="tg">{loaded ? `${activeList.length} cars` : "Loading…"}</div>
+          <div className="tg">{loaded ? `${sortedList.length} cars` : "Loading…"}</div>
         </div>
 
         {!loaded && <div className="load-msg">{"⟳"} Loading cars...</div>}
 
-        {loaded && activeList.map((car) => (
-          <CarRow key={car.id} car={car} fuelContext={fuelContext} />
-        ))}
+        {loaded && (<>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <button
+              className="opt-btn"
+              style={{ width: "auto", flex: "1 1 auto", marginBottom: 0, textAlign: "center" }}
+              onClick={() => setShowFilters((s) => !s)}
+            >
+              {showFilters ? "▴" : "▾"} Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            </button>
+            <select className="sort-select" value={sort} onChange={(e) => setSort(e.target.value)}>
+              {SORT_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+
+          {showFilters && (
+            <FilterPanel
+              fuelOptions={FUEL_OPTIONS} fuelCounts={fuelCounts} fuelSelected={filters.fuel}
+              onToggleFuel={(s) => toggleListParam("fuel", s)}
+              transmissionOptions={TRANSMISSION_TYPES} transmissionCounts={transmissionCounts} transmissionSelected={filters.transmission}
+              onToggleTransmission={(s) => toggleListParam("transmission", s)}
+              drivetrainOptions={DRIVETRAIN_OPTIONS} drivetrainCounts={drivetrainCounts} drivetrainSelected={filters.drivetrain}
+              onToggleDrivetrain={(s) => toggleListParam("drivetrain", s)}
+              brandOptions={brandOptions} brandCounts={brandCounts} brandSelected={filters.brand}
+              onToggleBrand={(s) => toggleListParam("brand", s)}
+              priceMin={filters.priceMin} priceMax={filters.priceMax}
+              onChangePriceMin={(v) => setNumberParam("priceMin", v)}
+              onChangePriceMax={(v) => setNumberParam("priceMax", v)}
+            />
+          )}
+
+          {sortedList.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#6b6b72" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>{"\u{1F50D}"}</div>
+              <p>No cars match these filters. Try loosening them.</p>
+            </div>
+          )}
+
+          {sortedList.map((car) => (
+            <CarRow key={car.id} car={car} fuelContext={fuelContext} />
+          ))}
+        </>)}
 
         <Link
           href="/prehlad"

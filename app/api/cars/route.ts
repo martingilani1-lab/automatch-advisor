@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ESTATE_STYLES } from "../recommend/route";
+import {
+  FUEL_OPTIONS,
+  DRIVETRAIN_OPTIONS,
+  TRANSMISSION_TYPES,
+  matchesFuelGroup,
+  matchesTransmissionGroup,
+  matchesDrivetrainGroup,
+} from "@/app/lib/carFilters";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,28 +57,11 @@ const CATEGORY_PREDICATES: Record<string, (c: BaseCarData) => boolean> = {
   electric: (c) => c.fuel.includes("electric"),
 };
 
-const FUEL_WHITELIST = ["petrol", "diesel", "electric", "hybrid", "phev"];
-const DRIVETRAIN_WHITELIST = ["AWD", "FWD", "RWD"];
-const TRANSMISSION_WHITELIST = ["manual", "automatic"];
+const FUEL_WHITELIST = FUEL_OPTIONS.map((o) => o.slug);
+const DRIVETRAIN_WHITELIST = DRIVETRAIN_OPTIONS.map((o) => o.slug);
+const TRANSMISSION_WHITELIST = TRANSMISSION_TYPES.map((o) => o.slug);
 const SORT_WHITELIST = ["price_asc", "price_desc", "reliability", "safety", "year"];
 const RELIABILITY_RANK: Record<string, number> = { Excellent: 4, Good: 3, Average: 2, Poor: 1 };
-
-function matchesFuel(c: CarData, fuel: string): boolean {
-  if (fuel === "hybrid") return c.fuel.includes("hybrid") || c.fuel.includes("phev");
-  return c.fuel.includes(fuel);
-}
-
-// Same auto/manual convention as matchesTx() in recommend/route.ts, duplicated
-// here since browse must not import scoring logic.
-function matchesTransmission(c: CarData, pref: string): boolean {
-  const t = (c.transmissions || []).join(" ").toLowerCase();
-  if (pref === "manual") return t.includes("manual");
-  return /auto|dsg|cvt|dct|ecvt|amt|tronic|pdk/.test(t);
-}
-
-function matchesDrivetrain(c: CarData, drivetrain: string): boolean {
-  return (c.drivetrains || []).some((d: string) => d.toUpperCase() === drivetrain);
-}
 
 function buildCar(v: any, vEngines: any[], vTrans: any[]) {
   // Unique fuel types
@@ -189,11 +180,18 @@ function tagCategories(c: BaseCarData): string[] {
   return Object.keys(CATEGORY_PREDICATES).filter((slug) => CATEGORY_PREDICATES[slug](c));
 }
 
+// Comma-separated, whitelisted, unknown values dropped rather than erroring —
+// same convention as `brand` used consistently across every group now.
+function parseList(param: string | null, whitelist: string[], normalize: (s: string) => string): string[] {
+  if (!param) return [];
+  return param.split(",").map((s) => normalize(s.trim())).filter((s) => whitelist.includes(s));
+}
+
 function parseQuery(searchParams: URLSearchParams) {
   const category = searchParams.get("category");
-  const fuel = searchParams.get("fuel")?.toLowerCase();
-  const transmission = searchParams.get("transmission")?.toLowerCase();
-  const drivetrain = searchParams.get("drivetrain")?.toUpperCase();
+  const fuel = parseList(searchParams.get("fuel"), FUEL_WHITELIST, (s) => s.toLowerCase());
+  const transmission = parseList(searchParams.get("transmission"), TRANSMISSION_WHITELIST, (s) => s.toLowerCase());
+  const drivetrain = parseList(searchParams.get("drivetrain"), DRIVETRAIN_WHITELIST, (s) => s.toUpperCase());
   const brandParam = searchParams.get("brand");
   const priceMinParam = searchParams.get("priceMin");
   const priceMaxParam = searchParams.get("priceMax");
@@ -204,10 +202,10 @@ function parseQuery(searchParams: URLSearchParams) {
 
   return {
     category: category && CATEGORY_PREDICATES[category] ? category : null,
-    fuel: fuel && FUEL_WHITELIST.includes(fuel) ? fuel : null,
-    transmission: transmission && TRANSMISSION_WHITELIST.includes(transmission) ? transmission : null,
-    drivetrain: drivetrain && DRIVETRAIN_WHITELIST.includes(drivetrain) ? drivetrain : null,
-    brands: brandParam ? brandParam.split(",").map(b => b.trim().toLowerCase()).filter(Boolean) : null,
+    fuel,
+    transmission,
+    drivetrain,
+    brands: brandParam ? brandParam.split(",").map(b => b.trim().toLowerCase()).filter(Boolean) : [],
     priceMin,
     priceMax,
     sort: sortParam && SORT_WHITELIST.includes(sortParam) ? sortParam : null,
@@ -243,10 +241,10 @@ export async function GET(request: Request) {
     // the `categories` tag — the client filters on the tag, it never
     // re-evaluates CATEGORY_PREDICATES itself.
     if (q.category) cars = cars.filter((c) => c.categories.includes(q.category!));
-    if (q.fuel) cars = cars.filter((c) => matchesFuel(c, q.fuel!));
-    if (q.transmission) cars = cars.filter((c) => matchesTransmission(c, q.transmission!));
-    if (q.drivetrain) cars = cars.filter((c) => matchesDrivetrain(c, q.drivetrain!));
-    if (q.brands) cars = cars.filter((c) => q.brands!.includes((c.make || "").toLowerCase()));
+    if (q.fuel.length) cars = cars.filter((c) => matchesFuelGroup(c, q.fuel));
+    if (q.transmission.length) cars = cars.filter((c) => matchesTransmissionGroup(c, q.transmission));
+    if (q.drivetrain.length) cars = cars.filter((c) => matchesDrivetrainGroup(c, q.drivetrain));
+    if (q.brands.length) cars = cars.filter((c) => q.brands.includes((c.make || "").toLowerCase()));
     if (q.priceMin !== null) cars = cars.filter((c) => (c.pricing?.euPriceMax ?? 0) >= q.priceMin!);
     if (q.priceMax !== null) cars = cars.filter((c) => (c.pricing?.euPriceMin ?? 0) <= q.priceMax!);
 
