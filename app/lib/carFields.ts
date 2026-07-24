@@ -44,3 +44,22 @@ export function carFuelMatch(c: CarData, fuel: string): boolean {
     return ft.includes(fuel);
   });
 }
+
+// Multi-powertrain models (208, 500, Kona...) blend all their engines' figures
+// into avgConsumption/maxPowerKw, which is meaningless once you know which
+// fuel the buyer actually wants — these read the per-fuel figure instead when
+// one is known. Has a bug history (PHEV/per-fuel corruption); single source
+// of truth, do not re-duplicate.
+export function getConsumptionForFuel(c: CarData, userFuel: string): number | null {
+  const bf = c.consumptionByFuel;
+  if (!bf || !userFuel || userFuel === "open") return c.avgConsumption ?? null;
+  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.avgConsumption ?? null;
+  return bf[userFuel] ?? c.avgConsumption ?? null;
+}
+
+export function getPowerForFuel(c: CarData, userFuel: string): number | null {
+  const bf = c.powerByFuel;
+  if (!bf || !userFuel || userFuel === "open") return c.maxPowerKw ?? null;
+  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.maxPowerKw ?? null;
+  return bf[userFuel] ?? c.maxPowerKw ?? null;
+}

@@ -1,21 +1,5 @@
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax } from "@/app/lib/carFields";
-
-// Duplicated from app/page.tsx / app/api/recommend/route.ts on purpose — same
-// small-pure-helper convention already established there (see CLAUDE.md).
-function getConsumptionForFuel(c: CarData, userFuel: string): number | null {
-  const bf = c.consumptionByFuel;
-  if (!bf || !userFuel || userFuel === "open") return c.avgConsumption ?? null;
-  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.avgConsumption ?? null;
-  return bf[userFuel] ?? c.avgConsumption ?? null;
-}
-
-function getPowerForFuel(c: CarData, userFuel: string): number | null {
-  const bf = c.powerByFuel;
-  if (!bf || !userFuel || userFuel === "open") return c.maxPowerKw ?? null;
-  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.maxPowerKw ?? null;
-  return bf[userFuel] ?? c.maxPowerKw ?? null;
-}
+import { carPriceMin, carPriceMax, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 

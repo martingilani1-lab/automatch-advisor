@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { carStars, carAdult } from "@/app/lib/carFields";
+import { carStars, carAdult, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 
 
 // ════════════════════════════════════════════════════════════
@@ -369,19 +369,6 @@ function getResaleRelevance(a: Answers): number {
 const LIFTBACK_STYLES = ["liftback", "sportback", "fastback"];
 let _advancing = false;
 
-function getConsumptionForFuel(c: CarData, userFuel: string): number | null {
-  const bf = c.consumptionByFuel;
-  if (!bf || !userFuel || userFuel === "open") return c.avgConsumption ?? null;
-  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.avgConsumption ?? null;
-  return bf[userFuel] ?? c.avgConsumption ?? null;
-}
-
-function getPowerForFuel(c: CarData, userFuel: string): number | null {
-  const bf = c.powerByFuel;
-  if (!bf || !userFuel || userFuel === "open") return c.maxPowerKw ?? null;
-  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.maxPowerKw ?? null;
-  return bf[userFuel] ?? c.maxPowerKw ?? null;
-}
 
   // Fault mentions an engine family irrelevant to the user's fuel choice?
 function faultRelevant(issue: string, userFuel: string): boolean {
@@ -923,7 +910,4 @@ const dispPower = getPowerForFuel(c, userFuel);
 
     </div>
   );
-}
-function setShowScroll(arg0: boolean) {
-  throw new Error("Function not implemented.");
 }
