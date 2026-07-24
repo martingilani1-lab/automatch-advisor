@@ -284,7 +284,7 @@ function getResaleRelevance(a: Answers): number {
 
 // Pick the best body variant for this user's needs
 // Mutates c.body and c.boot so all downstream scoring just works
-const ESTATE_STYLES = [
+export const ESTATE_STYLES = [
   "estate", "combi", "variant", "touring", "tourer", "avant", "sw",
   "sports tourer", "sport tourer", "grandtour", "grand tour", "break",
   "shooting brake", "shootingbrake","shooting_brake", "sportbrake", "sport brake",

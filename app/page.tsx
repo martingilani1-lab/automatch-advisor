@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { carStars, carAdult } from "@/app/lib/carFields";
 
 
 // ════════════════════════════════════════════════════════════
@@ -328,7 +330,7 @@ const OF: Record<string, string> = { Japanese: "\u{1F1EF}\u{1F1F5}", Korean: "\u
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 const flLabel = (f: string) => ({ petrol: "\u26FD Petrol", diesel: "\u{1F6E2}\uFE0F Diesel", electric: "\u26A1 Electric", hybrid: "\u26A1 Hybrid", phev: "\u26A1 PHEV", lpg: "\u{1F4A7} LPG" }[f] || f);
-const blLabel = (b: string) => ({ hatchback: "Hatchback", estate: "Estate", suv: "SUV", mpv: "MPV", pickup: "Pickup", convertible: "Convertible", coupe: "Coupe" }[b] || b);
+const blLabel = (b: string) => ({ hatchback: "Hatchback", estate: "Estate", suv: "SUV", mpv: "MPV", pickup: "Pickup", convertible: "Convertible", coupe: "Coupe", sedan: "Sedan", crossover: "Crossover", city_car: "City Car", van: "Van", minivan: "MPV" }[b] || b);
 function getLinks(c: CarData) { const mk = c.make.toLowerCase().replace(/[^a-z0-9]/g, "-"), md = c.model.toLowerCase().replace(/[^a-z0-9]/g, "-"); return { as: `https://www.autoscout24.com/lst/${mk}/${md}`, ab: `https://www.autobazar.eu/inzeraty/${mk}-${md}/`, mo: `https://suchen.mobile.de/fahrzeuge/search.html?q=${encodeURIComponent(c.make + " " + c.model)}` }; }
 
 // ════════════════════════════════════════════════════════════
@@ -482,6 +484,152 @@ export default function HomePage() {
   const canNext = isMulti ? (Array.isArray(ans[q?.id]) && (ans[q?.id] as string[]).length === (q?.maxSelect || 2)) : !!ans[q?.id];
   const togglePin = (id: string) => setPinned((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
 
+  // Expanded "More info" panel — shared by results cards and browse cards.
+  // `userFuel` drives the engine/fuel-tag filtering; it's `ans.fuel` in results.
+  function renderMorePanel(c: CarData, userFuel: string) {
+    const fd = faultDB[c.id];
+    const isLoadingFault = loadFault[c.id];
+    const stars = carStars(c);
+    const adult = carAdult(c);
+    const child = c._n ? c.ncapChild : c.safety?.childOccupant;
+    const ped = c._n ? c.ncapPed : c.safety?.pedestrian;
+    const assist = c._n ? c.ncapAssist : c.safety?.safetyAssist;
+    const ncapYear = c._n ? c.ncapYear : c.safety?.ncapYear;
+    return (
+      <div className="more-panel">
+        {isLoadingFault && <div className="loading-spin"><div className="spin" /><span>Analysing {c.make} {c.model}...</span></div>}
+        {!isLoadingFault && fd && (<>
+          {/* Engines — filtered by fuel, highlighted by mission */}
+          {fd.e?.length > 0 && (
+            <div className="mp-section">
+              <div className="mp-title">{"\u{1F529}"} Engine Options</div>
+              <div className="mp-hint">Tap to expand. {"⭐"} = recommended for your profile.</div>
+              {fd.e.filter((e: any) => {
+                if (!userFuel || userFuel === "open") return true;
+                const ft = ((e.fuel_type || "") + " " + (e.engine || "")).toLowerCase();
+                if (userFuel === "petrol") return ft.includes("petrol") || ft.includes("tsi") || ft.includes("mpi") || ft.includes("fsi") || ft.includes("htp");
+                if (userFuel === "diesel") return ft.includes("diesel") || ft.includes("tdi") || ft.includes("sdi");
+                if (userFuel === "electric") return ft.includes("electric") || ft.includes("ev");
+                if (userFuel === "hybrid") return ft.includes("hybrid") || ft.includes("phev") || ft.includes("etec");
+                return true;
+              }).map((e: any, ei: number) => {
+                const k = `${c.id}-e${ei}`; const isE = openEng[k]; const rc = RC[e.reliability] || "#888";
+                const pw = e.power_kw || 0;
+                const maxPw = Math.max(...(fd.e.map((x: any) => x.power_kw || 0)));
+                const minPw = Math.min(...(fd.e.filter((x: any) => (x.power_kw || 0) > 0).map((x: any) => x.power_kw || 0)));
+                const isPerf = ans.mission === "drivers_car" || ans.mission === "show_with_soul" || (Array.isArray(ans.priorities) && ans.priorities.includes("driving_pleasure"));
+                const isHeavy = ans.space === "large" || ans.space === "maximum" || ans.mission === "weekend_adventure" || ans.towing === "medium" || ans.towing === "heavy";
+                const isEco = ans.mission === "commuter" || (Array.isArray(ans.priorities) && ans.priorities.includes("low_cost"));
+                const isRec = (isPerf && pw === maxPw) || (isHeavy && pw === maxPw) || (isEco && pw === minPw && minPw > 0);
+                return (
+                  <div key={k} className={`eng-card${isE ? " open" : ""}${isRec ? " eng-rec" : ""}`} onClick={() => setOpenEng((p) => ({ ...p, [k]: !p[k] }))}>
+                    <div className="eng-hdr"><div className="eng-left"><span className="eng-name">{e.engine}</span><div className="eng-tags"><span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{e.reliability}</span>{isRec && <span className="eng-badge" style={{ background: "rgba(232,255,71,.15)", color: "#e8ff47", border: "1px solid rgba(232,255,71,.3)" }}>{"⭐"} Recommended</span>}</div></div><span className="chevron">{isE ? "▲" : "▼"}</span></div>
+                    {isE && (<div className="eng-body">
+                      {e.faults?.length > 0 && <><div className="sub-label">{"⚠️"} Known faults</div>{e.faults.map((f: string, fi: number) => <div key={fi} className="fault-item">{"·"} {f}</div>)}</>}
+                      {e.pros?.length > 0 && <><div className="sub-label">{"✅"} Pros</div>{e.pros.map((p: string, pi: number) => <div key={pi} className="pro-item">{"·"} {p}</div>)}</>}
+                      {e.cons?.length > 0 && <><div className="sub-label">{"❌"} Cons</div>{e.cons.map((cn: string, ci: number) => <div key={ci} className="con-item">{"·"} {cn}</div>)}</>}
+                    </div>)}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Transmissions — filtered + highlighted */}
+          {fd.t?.length > 0 && (
+            <div className="mp-section">
+              <div className="mp-title">{"⚙️"} Transmissions</div>
+              {fd.t.filter((t: any) => {
+                const tp = ans.transmission as string;
+                if (!tp || tp === "no_pref" || tp === "prefer_manual" || tp === "prefer_auto") return true;
+                const tt = (t.trans_type || t.type || "").toLowerCase();
+                if (tp === "only_manual") return tt.includes("manual");
+                if (tp === "only_auto") return !tt.includes("manual");
+                return true;
+              }).map((t: any, ti: number) => {
+                const k = `${c.id}-t${ti}`; const isT = openEng[k]; const rc = RC[t.reliability] || "#888";
+                const name = (t.type || "").toLowerCase();
+                const userTx = ans.transmission as string;
+                const prefersAuto = userTx === "prefer_auto" || userTx === "only_auto";
+                const prefersManual = userTx === "prefer_manual" || userTx === "only_manual";
+                const isAuto = /auto|dsg|cvt|dct|ecvt|e-cvt|amt/.test(name);
+                const isManual = name.includes("manual");
+                const txRec = (prefersAuto && isAuto) || (prefersManual && isManual) || (!prefersAuto && !prefersManual && isAuto);
+                return (
+                  <div key={k} className={`tx-card${isT ? " open" : ""}${txRec ? " tx-rec" : ""}`} onClick={() => setOpenEng((p) => ({ ...p, [k]: !p[k] }))}>
+                    <div className="eng-hdr"><div className="eng-left"><span className="eng-name">{t.type}</span><span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{t.reliability}</span>{txRec && <span className="eng-badge" style={{ background: "rgba(232,255,71,.15)", color: "#e8ff47", border: "1px solid rgba(232,255,71,.3)" }}>{"⭐"} Rec</span>}</div><span className="chevron">{isT ? "▲" : "▼"}</span></div>
+                    {isT && <div className="eng-body">{t.detail && <div style={{ fontSize: ".78rem", color: "#9999aa", marginBottom: 4 }}>{t.detail}</div>}{t.tip && <div style={{ fontSize: ".78rem", color: "#e8ff47", marginTop: 4 }}>{"\u{1F4A1}"} {t.tip}</div>}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Vehicle Common Issues */}
+          {fd.c?.length > 0 && (
+            <div className="mp-section">
+              <div className="mp-title">{"⚠️"} Vehicle Common Issues</div>
+              {fd.c.map((f: any, fi: number) => {
+                const sc: Record<string, string> = { Critical: "#f44336", High: "#ff9800", Medium: "#e8ff47", Low: "#4caf50" };
+                const color = sc[f.severity] || "#888";
+                return (<div key={fi} className="fault-block"><div className="fault-hdr"><span className="fault-area">{f.area}</span><span className="fault-sev" style={{ background: color + "22", color, border: `1px solid ${color}44` }}>{f.severity}</span></div><div className="fault-detail">{f.detail}</div></div>);
+              })}
+            </div>
+          )}
+
+          {/* Pros & Cons */}
+          {(fd.pros?.length > 0 || fd.cons?.length > 0) && (
+            <div className="mp-section">
+              <div className="mp-title">{"\u{1F44D}\u{1F44E}"} Pros &amp; Cons</div>
+              <div className="pros-grid">
+                {fd.pros?.length > 0 && <div><div className="pc-label g">Pros</div>{fd.pros.map((p: string, i: number) => <div key={i} className="pc-item g">{"✓"} {p}</div>)}</div>}
+                {fd.cons?.length > 0 && <div><div className="pc-label r">Cons</div>{fd.cons.map((cn: string, i: number) => <div key={i} className="pc-item r">{"✗"} {cn}</div>)}</div>}
+              </div>
+            </div>
+          )}
+
+          {/* Safety */}
+          <div className="mp-section">
+            <div className="mp-title">{"\u{1F6E1}️"} Safety {"—"} Euro NCAP</div>
+            {stars != null ? (
+              <div className="ncap-detail">
+                <div className="ncap-stars-row">{[1,2,3,4,5].map((n) => <span key={n} className={`ns-lg${n <= (stars || 0) ? " on" : ""}`}>{"★"}</span>)}<span className="ns-label">{stars}/5{ncapYear ? ` · ${ncapYear}` : ""}</span></div>
+                {[{ l: "Adult", v: adult }, { l: "Child", v: child }, { l: "Pedestrian", v: ped }, { l: "Safety Assist", v: assist }].filter((b) => b.v != null).map((b) => (
+                  <div key={b.l} className="ncap-bar"><span className="ncap-bl">{b.l}</span><div className="ncap-track"><div className="ncap-fill" style={{ width: b.v + "%", background: (b.v || 0) >= 90 ? "#4caf50" : (b.v || 0) >= 75 ? "#e8ff47" : (b.v || 0) >= 60 ? "#ff9800" : "#f44336" }} /></div><span className="ncap-pv">{b.v}%</span></div>
+                ))}
+                <div className="ncap-verdict" style={{ color: (stars || 0) >= 5 ? "#4caf50" : (stars || 0) >= 4 ? "#e8ff47" : "#ff9800" }}>{(stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}</div>
+              </div>
+            ) : <div className="ncap-na">{"⚠️"} Not tested by Euro NCAP</div>}
+          </div>
+
+          {/* Equipment — highlighted */}
+          {((c.equipment && c.equipment.length > 0) || (fd.q?.length > 0)) && (
+            <div className="mp-section">
+              <div className="mp-title">{"\u{1F39B}️"} Equipment Levels</div>
+              {(c.equipment || fd.q || []).map((eq: any, eqi: number) => {
+                const total = (c.equipment || fd.q || []).length;
+                const eqPref = ans.equipment as string;
+                const isHighlighted = total <= 1 ||
+                  (eqPref === "full" && eqi >= Math.ceil(total / 2)) ||
+                  (eqPref === "tech" && eqi > 0 && eqi < total - 1) ||
+                  (eqPref === "basic" && eqi === 0) ||
+                  (eqPref === "value" && eqi === 0);
+                return (
+                  <div key={eqi} className={"eq-item" + (isHighlighted ? " eq-highlight" : "")}>
+                    <div className="eq-trim">{eq.trim}</div>
+                    <div className="eq-feats">{Array.isArray(eq.features) ? eq.features.join(" · ") : eq.features}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="buy-tip"><div className="bt-label">{"\u{1F4A1}"} Buying Tip</div><div className="bt-text">{fd.b || c.buyingTip || c.faults?.buyingTip || "Check service history."}</div></div>
+        </>)}
+      </div>
+    );
+  }
+
  function selectOption(qId: string, val: string, isMultiQ: boolean, maxSel: number) {
     if (isMultiQ) {
       setAns((prev) => {
@@ -559,6 +707,8 @@ export default function HomePage() {
           {!dbLoaded && !dbError && <div className="load-msg">{"\u27F3"} Loading car database...</div>}
           {dbLoaded && <div className="db-ok">{"\u2713"} {DB.length} cars loaded</div>}
           <button className="btn-go" disabled={!dbLoaded} onClick={() => setPhase("quiz")}>Find My Car {"\u2192"}</button>
+          <p style={{ marginTop: 26, marginBottom: 8, fontSize: ".8rem", color: "#6b6b72" }}>Already know roughly what you want?</p>
+          <Link href="/prehlad" className="btn-back" style={{ display: "block", textDecoration: "none", textAlign: "center" }}>{"\u{1F50E}"} Preh\u013ead {"\u2014"} browse &amp; compare</Link>
         </div>
       )}
 
@@ -683,7 +833,7 @@ export default function HomePage() {
         )}
 
         {results.map(({ car, score, isBest }, i) => {
-          const c = car; const fd = faultDB[c.id]; const isOpen = openMore[c.id];
+          const c = car; const isOpen = openMore[c.id];
           const isPinned = pinned.includes(c.id); const lnk = getLinks(c);
           const reason = getScoreReason(c, ans);
           const relColor = RC[String(c.reliability)] || "#888";
@@ -764,144 +914,13 @@ const dispPower = getPowerForFuel(c, userFuel);
               </div>
 
               {/* MORE INFO PANEL */}
-              {isOpen && (
-                <div className="more-panel">
-                  {loadFault[c.id] && <div className="loading-spin"><div className="spin" /><span>Analysing {c.make} {c.model}...</span></div>}
-                  {!loadFault[c.id] && fd && (<>
-                    {/* Engines — filtered by fuel, highlighted by mission */}
-                    {fd.e?.length > 0 && (
-                      <div className="mp-section">
-                        <div className="mp-title">{"\u{1F529}"} Engine Options</div>
-                        <div className="mp-hint">Tap to expand. {"\u2B50"} = recommended for your profile.</div>
-                        {fd.e.filter((e: any) => {
-                          if (!userFuel || userFuel === "open") return true;
-                          const ft = ((e.fuel_type || "") + " " + (e.engine || "")).toLowerCase();
-                          if (userFuel === "petrol") return ft.includes("petrol") || ft.includes("tsi") || ft.includes("mpi") || ft.includes("fsi") || ft.includes("htp");
-                          if (userFuel === "diesel") return ft.includes("diesel") || ft.includes("tdi") || ft.includes("sdi");
-                          if (userFuel === "electric") return ft.includes("electric") || ft.includes("ev");
-                          if (userFuel === "hybrid") return ft.includes("hybrid") || ft.includes("phev") || ft.includes("etec");
-                          return true;
-                        }).map((e: any, ei: number) => {
-                          const k = `${c.id}-e${ei}`; const isE = openEng[k]; const rc = RC[e.reliability] || "#888";
-                          const pw = e.power_kw || 0;
-                          const maxPw = Math.max(...(fd.e.map((x: any) => x.power_kw || 0)));
-                          const minPw = Math.min(...(fd.e.filter((x: any) => (x.power_kw || 0) > 0).map((x: any) => x.power_kw || 0)));
-                          const isPerf = ans.mission === "drivers_car" || ans.mission === "show_with_soul" || (Array.isArray(ans.priorities) && ans.priorities.includes("driving_pleasure"));
-                          const isHeavy = ans.space === "large" || ans.space === "maximum" || ans.mission === "weekend_adventure" || ans.towing === "medium" || ans.towing === "heavy";
-                          const isEco = ans.mission === "commuter" || (Array.isArray(ans.priorities) && ans.priorities.includes("low_cost"));
-                          const isRec = (isPerf && pw === maxPw) || (isHeavy && pw === maxPw) || (isEco && pw === minPw && minPw > 0);
-                          return (
-                            <div key={k} className={`eng-card${isE ? " open" : ""}${isRec ? " eng-rec" : ""}`} onClick={() => setOpenEng((p) => ({ ...p, [k]: !p[k] }))}>
-                              <div className="eng-hdr"><div className="eng-left"><span className="eng-name">{e.engine}</span><div className="eng-tags"><span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{e.reliability}</span>{isRec && <span className="eng-badge" style={{ background: "rgba(232,255,71,.15)", color: "#e8ff47", border: "1px solid rgba(232,255,71,.3)" }}>{"\u2B50"} Recommended</span>}</div></div><span className="chevron">{isE ? "\u25B2" : "\u25BC"}</span></div>
-                              {isE && (<div className="eng-body">
-                                {e.faults?.length > 0 && <><div className="sub-label">{"\u26A0\uFE0F"} Known faults</div>{e.faults.map((f: string, fi: number) => <div key={fi} className="fault-item">{"\u00B7"} {f}</div>)}</>}
-                                {e.pros?.length > 0 && <><div className="sub-label">{"\u2705"} Pros</div>{e.pros.map((p: string, pi: number) => <div key={pi} className="pro-item">{"\u00B7"} {p}</div>)}</>}
-                                {e.cons?.length > 0 && <><div className="sub-label">{"\u274C"} Cons</div>{e.cons.map((cn: string, ci: number) => <div key={ci} className="con-item">{"\u00B7"} {cn}</div>)}</>}
-                              </div>)}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Transmissions — filtered + highlighted */}
-                    {fd.t?.length > 0 && (
-                      <div className="mp-section">
-                        <div className="mp-title">{"\u2699\uFE0F"} Transmissions</div>
-                        {fd.t.filter((t: any) => {
-                          const tp = ans.transmission as string;
-                          if (!tp || tp === "no_pref" || tp === "prefer_manual" || tp === "prefer_auto") return true;
-                          const tt = (t.trans_type || t.type || "").toLowerCase();
-                          if (tp === "only_manual") return tt.includes("manual");
-                          if (tp === "only_auto") return !tt.includes("manual");
-                          return true;
-                        }).map((t: any, ti: number) => {
-                          const k = `${c.id}-t${ti}`; const isT = openEng[k]; const rc = RC[t.reliability] || "#888";
-                          const name = (t.type || "").toLowerCase();
-                          const userTx = ans.transmission as string;
-const prefersAuto = userTx === "prefer_auto" || userTx === "only_auto";
-const prefersManual = userTx === "prefer_manual" || userTx === "only_manual";
-const isAuto = /auto|dsg|cvt|dct|ecvt|e-cvt|amt/.test(name);
-const isManual = name.includes("manual");
-const txRec = (prefersAuto && isAuto) || (prefersManual && isManual) || (!prefersAuto && !prefersManual && isAuto);
-                          return (
-                            <div key={k} className={`tx-card${isT ? " open" : ""}${txRec ? " tx-rec" : ""}`} onClick={() => setOpenEng((p) => ({ ...p, [k]: !p[k] }))}>
-                              <div className="eng-hdr"><div className="eng-left"><span className="eng-name">{t.type}</span><span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{t.reliability}</span>{txRec && <span className="eng-badge" style={{ background: "rgba(232,255,71,.15)", color: "#e8ff47", border: "1px solid rgba(232,255,71,.3)" }}>{"\u2B50"} Rec</span>}</div><span className="chevron">{isT ? "\u25B2" : "\u25BC"}</span></div>
-                              {isT && <div className="eng-body">{t.detail && <div style={{ fontSize: ".78rem", color: "#9999aa", marginBottom: 4 }}>{t.detail}</div>}{t.tip && <div style={{ fontSize: ".78rem", color: "#e8ff47", marginTop: 4 }}>{"\u{1F4A1}"} {t.tip}</div>}</div>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Vehicle Common Issues */}
-                    {fd.c?.length > 0 && (
-                      <div className="mp-section">
-                        <div className="mp-title">{"\u26A0\uFE0F"} Vehicle Common Issues</div>
-                        {fd.c.map((f: any, fi: number) => {
-                          const sc: Record<string, string> = { Critical: "#f44336", High: "#ff9800", Medium: "#e8ff47", Low: "#4caf50" };
-                          const color = sc[f.severity] || "#888";
-                          return (<div key={fi} className="fault-block"><div className="fault-hdr"><span className="fault-area">{f.area}</span><span className="fault-sev" style={{ background: color + "22", color, border: `1px solid ${color}44` }}>{f.severity}</span></div><div className="fault-detail">{f.detail}</div></div>);
-                        })}
-                      </div>
-                    )}
-
-                    {/* Pros & Cons */}
-                    {(fd.pros?.length > 0 || fd.cons?.length > 0) && (
-                      <div className="mp-section">
-                        <div className="mp-title">{"\u{1F44D}\u{1F44E}"} Pros &amp; Cons</div>
-                        <div className="pros-grid">
-                          {fd.pros?.length > 0 && <div><div className="pc-label g">Pros</div>{fd.pros.map((p: string, i: number) => <div key={i} className="pc-item g">{"\u2713"} {p}</div>)}</div>}
-                          {fd.cons?.length > 0 && <div><div className="pc-label r">Cons</div>{fd.cons.map((cn: string, i: number) => <div key={i} className="pc-item r">{"\u2717"} {cn}</div>)}</div>}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Safety */}
-                    <div className="mp-section">
-                      <div className="mp-title">{"\u{1F6E1}\uFE0F"} Safety {"\u2014"} Euro NCAP</div>
-                      {c.ncapStars != null ? (
-                        <div className="ncap-detail">
-                          <div className="ncap-stars-row">{[1,2,3,4,5].map((n) => <span key={n} className={`ns-lg${n <= (c.ncapStars || 0) ? " on" : ""}`}>{"\u2605"}</span>)}<span className="ns-label">{c.ncapStars}/5{c.ncapYear ? ` \u00B7 ${c.ncapYear}` : ""}</span></div>
-                          {[{ l: "Adult", v: c.ncapAdult }, { l: "Child", v: c.ncapChild }, { l: "Pedestrian", v: c.ncapPed }, { l: "Safety Assist", v: c.ncapAssist }].filter((b) => b.v != null).map((b) => (
-                            <div key={b.l} className="ncap-bar"><span className="ncap-bl">{b.l}</span><div className="ncap-track"><div className="ncap-fill" style={{ width: b.v + "%", background: (b.v || 0) >= 90 ? "#4caf50" : (b.v || 0) >= 75 ? "#e8ff47" : (b.v || 0) >= 60 ? "#ff9800" : "#f44336" }} /></div><span className="ncap-pv">{b.v}%</span></div>
-                          ))}
-                          <div className="ncap-verdict" style={{ color: (c.ncapStars || 0) >= 5 ? "#4caf50" : (c.ncapStars || 0) >= 4 ? "#e8ff47" : "#ff9800" }}>{(c.ncapStars || 0) >= 5 ? "Outstanding safety" : (c.ncapStars || 0) >= 4 ? "Good \u2014 4 stars" : (c.ncapStars || 0) >= 3 ? "\u26A0\uFE0F Below average" : "\u26A0\uFE0F Poor rating"}</div>
-                        </div>
-                      ) : <div className="ncap-na">{"\u26A0\uFE0F"} Not tested by Euro NCAP</div>}
-                    </div>
-
-                    {/* Equipment — highlighted */}
-                    {((car.equipment && car.equipment.length > 0) || (fd.q?.length > 0)) && (
-                      <div className="mp-section">
-                        <div className="mp-title">{"\u{1F39B}\uFE0F"} Equipment Levels</div>
-                        {(car.equipment || fd.q || []).map((eq: any, eqi: number) => {
-                          const total = (car.equipment || fd.q || []).length;
-                          const eqPref = ans.equipment as string;
-                          const isHighlighted = total <= 1 ||
-                            (eqPref === "full" && eqi >= Math.ceil(total / 2)) ||
-                            (eqPref === "tech" && eqi > 0 && eqi < total - 1) ||
-                            (eqPref === "basic" && eqi === 0) ||
-                            (eqPref === "value" && eqi === 0);
-                          return (
-                            <div key={eqi} className={"eq-item" + (isHighlighted ? " eq-highlight" : "")}>
-                              <div className="eq-trim">{eq.trim}</div>
-                              <div className="eq-feats">{Array.isArray(eq.features) ? eq.features.join(" \u00B7 ") : eq.features}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div className="buy-tip"><div className="bt-label">{"\u{1F4A1}"} Buying Tip</div><div className="bt-text">{fd.b || c.buyingTip || c.faults?.buyingTip || "Check service history."}</div></div>
-                  </>)}
-                </div>
-              )}
+              {isOpen && renderMorePanel(c, userFuel)}
             </div>
           );
         })}
         <button className="restart" onClick={reset}>{"\u21BB"} Start Over</button>
       </>)}
+
     </div>
   );
 }
