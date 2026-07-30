@@ -53,6 +53,11 @@ These look like inconsistencies or magic numbers at a glance. They are deliberat
 - `origin_country` values are lowercase (e.g. `'german'`, not `'German'`) — matches `ORIGIN_FLAGS` keys in `app/api/cars/route.ts`.
 - Pickups have `NULL boot_capacity_liters` in the DB by design; scoring accounts for this via `effBoot` in `app/api/recommend/route.ts` (e.g. `body === "pickup" ? Math.max(boot, 1000) : boot`) rather than expecting real boot data for that body type.
 - Per-fuel-type data (e.g. consumption) follows the `consumptionByFuel` pattern established in `app/api/cars/route.ts` — an object keyed by lowercase fuel type, not a flat/averaged single value.
+- Car objects from `fetchCarData` are mutated in place by `norm()` (`_n` short-circuit) and `applyBestVariant()` (`body`/`boot`). Safe in production — fresh fetch per request — but any harness scoring multiple profiles from one fetch MUST deep-clone per profile or later profiles score against leftover state.
+
+## Known issues
+
+- **Reliability is optimistic for multi-engine models.** Reliability is computed as `bestRel` (best-rated engine's tier) in `/api/cars` and `/api/recommend`. For multi-engine models this is optimistic — e.g. BMW 1 Series (F20) engines rated [Good, Poor, Good] display as "Good", hiding the Poor variant. Affects quiz scoring AND display. Needs a dedicated pass with full 20-profile re-test. Do NOT quietly change `bestRel` without that re-test — the calibration depends on current behaviour. (The Prehľad browse card's reliability pill now shows the honest worst–best range once per-engine detail loads — see `CarDetail.tsx` — but this does not touch `bestRel` itself, the quiz card, or scoring.)
 
 ## Styling
 
