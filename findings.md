@@ -239,3 +239,100 @@ component + list view for `/prehlad`.
 - Quiz confirmed still working end to end post-cleanup (see Part 1).
 
 Stopped here per instructions — no filtering/sorting (step 4) implemented.
+
+## Path B (Browse) — Step 4 implementation
+
+Three parts, committed separately (`09191a1`, `5c85ba0`, `2a47b18`). Since
+steps 1–3 had never actually been committed yet, Part 1 is bundled into the
+same first commit as that foundational work — Parts 2 and 3 are each their
+own clean commit as asked.
+
+**Part 1 — fetch architecture fix.** `/api/cars` (bare, no `category` param)
+now tags every one of the 334 cars with a server-computed `categories:
+string[]` — every `CATEGORY_PREDICATES` slug it satisfies, computed once
+server-side. `PrehladView` does exactly **one** fetch on mount; tile counts
+and category selection both just filter `allCars` by the tag. No fetch on
+tile switch, no spinner after the first load. `?category=` (and
+`?fuel=`/`?transmission=`/`?drivetrain=`/`?brand=`/`?priceMin=`/`?priceMax=`/
+`?sort=`) still work server-side for direct API/curl use — verified counts
+match step 1/3 exactly (39/75/57/60/145/32/17/19/58) and the aggregate tag
+count from the single bulk fetch matches too. Also fixed a CLAUDE.md line
+left over from the old in-page `browse` phase (deleted in step 3) that was
+now describing dead code.
+
+**Part 2 — dedup.** `getConsumptionForFuel`/`getPowerForFuel` (bug history:
+PHEV/per-fuel corruption) existed in three copies — moved the canonical
+version into `app/lib/carFields.ts`, imported by both `page.tsx` and
+`CarRow.tsx`. Left `recommend/route.ts`'s copy alone, as instructed, since
+touching it means touching the scoring path. Deleted the dead
+`function setShowScroll` stub after `page.tsx`'s component closing brace
+(shadowed by the real `useState` setter, unreachable, threw if ever called).
+
+**Part 3 — filter sidebar + sort.** New `app/lib/carFilters.ts`, shared by
+the client panel and `/api/cars`'s query params (now multi-value/comma-
+separated for `fuel`/`transmission`/`drivetrain` too, matching `brand`'s
+existing convention) — one set of matching rules, no drift. Filters: fuel,
+transmission, drivetrain, budget (min/max), brand (multi-select, collapsed
+`<details>`, deliberately no badge/consequence line — that format didn't
+make sense for a bare brand name). Every fuel/transmission/drivetrain option
+renders as checkbox · label · optional badge · one-line consequence · live
+facet count; consequence copy was pulled from facts already established
+elsewhere in this codebase (the quiz's own fuel option descriptions,
+`recommend/route.ts`'s DCT-in-traffic and manual-vs-automatic-repair-cost
+comments) rather than invented fresh.
+
+Built a **judgment call** worth flagging explicitly: the transmission group
+needed real sub-options (the task's own "Torque converter [most durable]"
+example implied more than the old binary manual/automatic), so this
+introduces a best-effort taxonomy — manual, CVT, dual-clutch (DSG/DCT),
+automated manual (AMT), single-speed (EV), torque-converter (catch-all) —
+classified from the free-text `transmissions.specific_type` strings, since
+no `transmission_units` table exists. Verified against live data: all 5
+distinct real EV transmission strings ("Single-speed EV", "2-speed rear +
+single-speed front", etc.) correctly classify as `single_speed`, none fall
+through to the `torque_converter` catch-all.
+
+**Facet counts are correct but not "entirely" grey under fuel=electric** —
+verified directly against live `suv_crossover` data. With fuel=electric
+selected, `single_speed` correctly stays alive (34, matching the electric
+count exactly) while `cvt`/`amt` correctly zero out — but `dct` (3), `manual`
+(2), and `torque_converter` (1) stay slightly non-zero. Investigated: these
+are genuinely multi-powertrain crossovers (e.g. a 2008/Kona sold as both EV
+and petrol/diesel) whose `transmissions` array is a flat, engine-agnostic
+list per vehicle — it has no linkage back to which engine/fuel a given
+gearbox belongs to, so a multi-powertrain car's petrol-variant DSG still
+shows up even when only its electric variant is selected. This is the same
+root data limitation step 3 already fixed for consumption/power display
+(hence `fuelContext`), but there's no equivalent per-fuel field for
+transmissions to read instead — fixing it for real would mean linking
+transmissions to specific engines/fuel types server-side, which doesn't
+exist in the schema yet. Documented rather than silently forced to look
+"clean."
+
+Extended the step 3 per-fuel display fix: `fuelContext` now also activates
+whenever exactly one fuel filter is selected (not just the `electric`
+category) — verified `fuel=diesel` on `suv_crossover` changes the displayed
+consumption for multi-fuel models, e.g. BMW X1 (F48) blended `6.2` →
+diesel-forced `5.5`, Mercedes GLA (H247) blended `6.5` → diesel-forced `5.0`.
+
+Sidebar note: implemented as a collapsible panel (a "▾ Filters" toggle)
+rather than a literal side-by-side column — the whole app is a single
+narrow (`max-width: 520px`) column with no responsive breakpoints anywhere
+else, so a true two-column sidebar would be inconsistent with everything
+else in the app and there's no existing breakpoint infrastructure to hang
+it on. Flagging in case an actual wide-screen side-by-side layout is
+wanted — that would be new scope (breakpoints don't exist yet).
+
+Price sort note: `price_asc` still sorts on `euPriceMin` (the floor of each
+model's range) as instructed — left as-is, but the row's spec line already
+shows the full `€min–max` range (not just the floor), so it reads honestly.
+
+**Verification:** `npx tsc --noEmit` clean, `npm run build` passes
+(`/prehlad` still `○ Static`, Suspense boundary intact), lint clean on all
+new/changed Prehľad files (`route.ts`'s `any` errors are the same
+pre-existing repo-wide convention, not new). Facet counts, budget filter,
+and brand filter all independently verified against live `/api/cars` data
+via a throwaway script mirroring `carFilters.ts`'s logic exactly (deleted
+after use).
+
+Dev server left running per instructions: **http://localhost:3000/prehlad**
