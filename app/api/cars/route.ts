@@ -80,6 +80,23 @@ function buildCar(v: any, vEngines: any[], vTrans: any[]) {
   }, "average");
   const relMap: Record<string, string> = { excellent: "Excellent", good: "Good", average: "Average", below_average: "Poor" };
 
+  // Best-within-fuel reliability tier, keyed by fuel type — mirrors
+  // consumptionByFuel/powerByFuel below. bestRel above is the optimistic
+  // single value across ALL engines; this lets callers score/display the
+  // tier of the engine(s) matching the fuel the user actually wants.
+  const reliabilityByFuel = (() => {
+    const m: Record<string, string> = {};
+    vEngines.forEach((e: any) => {
+      const ft = (e.fuel_type || "").toLowerCase();
+      if (!ft) return;
+      const r = (e.reliability_rating || "average").toLowerCase();
+      if (!m[ft] || relOrder.indexOf(r) < relOrder.indexOf(m[ft])) m[ft] = r;
+    });
+    const out: Record<string, string> = {};
+    Object.keys(m).forEach((k) => { out[k] = relMap[m[k]] || "Average"; });
+    return Object.keys(out).length ? out : null;
+  })();
+
   // Distinct reliability tiers across the vehicle's engines, worst-first —
   // bestRel above is the optimistic single value (best engine's tier); this
   // is the honest spread so the browse card can show "Poor–Good" instead of
@@ -175,6 +192,7 @@ function buildCar(v: any, vEngines: any[], vTrans: any[]) {
     reliability: { overall: relMap[bestRel] || "Average", repairCost: "Moderate" },
     reliabilityTiers,
     reliabilityWorst,
+    reliabilityByFuel,
     safety: {
       stars: v.safety_rating,
       adultOccupant: v.ncap_adult_pct,

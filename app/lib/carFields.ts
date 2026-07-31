@@ -26,6 +26,7 @@ export interface CarData {
   // the optimistic single value; these let the browse card show the honest
   // "Poor–Good" spread instead. Absent on /api/recommend's normalised shape.
   reliabilityTiers?: string[]; reliabilityWorst?: string;
+  reliabilityByFuel?: Record<string, string> | null;
   _n?: boolean; budgetMin?: number; budgetMax?: number; mileageRange?: string;
   ncapStars?: number | null; ncapAdult?: number | null;
   pros?: string[]; cons?: string[]; consumptionByFuel?: Record<string, number> | null;
@@ -87,4 +88,15 @@ export function getPowerForFuel(c: CarData, userFuel: string): number | null {
   if (!bf || !userFuel || userFuel === "open") return c.maxPowerKw ?? null;
   if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? c.maxPowerKw ?? null;
   return bf[userFuel] ?? c.maxPowerKw ?? null;
+}
+
+// Fuel-contextual reliability tier — same fallback shape as getConsumptionForFuel/
+// getPowerForFuel above. Falls back through carRel() so it works on both RAW
+// (reliability.overall) and NORMALISED (flattened reliability string) car shapes.
+export function getReliabilityForFuel(c: CarData, userFuel: string): string {
+  const bf = c.reliabilityByFuel;
+  const fallback = carRel(c);
+  if (!bf || !userFuel || userFuel === "open") return fallback;
+  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? fallback;
+  return bf[userFuel] ?? fallback;
 }

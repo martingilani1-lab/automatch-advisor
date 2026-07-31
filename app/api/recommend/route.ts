@@ -30,7 +30,9 @@ interface CarData {
   transmissions?: any[]; maxPowerKw?: number | null; minPowerKw?: number | null;
   vehicleFaults?: { issue: string; severity: string }[];
   pricing?: { skPriceMin?: number; skPriceMax?: number; euPriceMin?: number; euPriceMax?: number; mileageAtMidBudget?: string };
-  reliability?: any; safety?: any; equipment?: any[];
+  reliability?: any; reliabilityByFuel?: Record<string, string> | null;
+  reliabilityTiers?: string[]; reliabilityWorst?: string;
+  safety?: any; equipment?: any[];
   _n?: boolean; budgetMin?: number; budgetMax?: number; mileageRange?: string;
   ncapStars?: number | null; ncapAdult?: number | null; ncapChild?: number | null;
   ncapPed?: number | null; ncapAssist?: number | null; ncapYear?: number | null;
@@ -75,6 +77,36 @@ async function fetchCarData(): Promise<CarData[]> {
       return relOrder.indexOf(r) < relOrder.indexOf(best) ? r : best;
     }, "average");
     const relMap: Record<string, string> = { excellent: "Excellent", good: "Good", average: "Average", below_average: "Poor" };
+
+    // Best-within-fuel reliability tier, keyed by fuel type — mirrors
+    // consumptionByFuel/powerByFuel below. bestRel above is the optimistic
+    // single value across ALL engines; this lets scoring read the tier of
+    // the engine(s) matching the fuel the user actually wants.
+    const reliabilityByFuel = (() => {
+      const m: Record<string, string> = {};
+      vEngines.forEach((e: any) => {
+        const ft = (e.fuel_type || "").toLowerCase();
+        if (!ft) return;
+        const r = (e.reliability_rating || "average").toLowerCase();
+        if (!m[ft] || relOrder.indexOf(r) < relOrder.indexOf(m[ft])) m[ft] = r;
+      });
+      const out: Record<string, string> = {};
+      Object.keys(m).forEach((k) => { out[k] = relMap[m[k]] || "Average"; });
+      return Object.keys(out).length ? out : null;
+    })();
+
+    // Distinct reliability tiers across the vehicle's engines, worst-first —
+    // bestRel above is the optimistic single value (best engine's tier); this
+    // is the honest spread for display (quiz card / browse card), mirrored
+    // verbatim from app/api/cars/route.ts's buildCar. Display only — scoring
+    // reads reliabilityByFuel/bestRel, never this.
+    const relTierSet = vEngines.length > 0
+      ? [...new Set(vEngines.map((e: any) => (e.reliability_rating || "average").toLowerCase()))]
+      : ["average"];
+    const reliabilityTiers = relTierSet
+      .sort((a, b) => relOrder.indexOf(b) - relOrder.indexOf(a))
+      .map((r) => relMap[r] || "Average");
+    const reliabilityWorst = reliabilityTiers[0];
 
     // Has AWD?
     const hasAWD = vEngines.some((e: any) => e.drivetrain === "AWD");
@@ -152,6 +184,9 @@ async function fetchCarData(): Promise<CarData[]> {
         mileageAtMidBudget: v.typical_milage_range || "",
       },
       reliability: { overall: relMap[bestRel] || "Average", repairCost: "Moderate" },
+      reliabilityByFuel,
+      reliabilityTiers,
+      reliabilityWorst,
       safety: {
         stars: v.safety_rating,
         adultOccupant: v.ncap_adult_pct,
@@ -620,13 +655,13 @@ function scoreFinancial(c: CarData, a: Answers): number {
   return Math.max(0, Math.min(35, s));
 }
 
-function scorePreference(c: CarData, a: Answers): number {
+function scorePreference(c: CarData, a: Answers, rel: string): number {
   let s = 6;
   const priorities = (Array.isArray(a.priorities) ? a.priorities : []) as string[];
   const mission = a.mission as string;
-  if (priorities.includes("durability") && c.reliability === "Excellent") s += 8;
-  else if (priorities.includes("durability") && c.reliability === "Good") s += 4;
-  else if (priorities.includes("durability") && c.reliability === "Poor") s -= 6;
+  if (priorities.includes("durability") && rel === "Excellent") s += 8;
+  else if (priorities.includes("durability") && rel === "Good") s += 4;
+  else if (priorities.includes("durability") && rel === "Poor") s -= 6;
   if (priorities.includes("driving_pleasure") && ["convertible", "coupe"].includes(c.body)) s += 6;
   if (priorities.includes("low_cost") && c.repair === "VeryLow") s += 6;
   if (priorities.includes("comfort") && c.longTrip) s += 5;
@@ -736,7 +771,19 @@ function getPowerForFuel(c: CarData, userFuel: string): number | null {
   return bf[userFuel] ?? c.maxPowerKw ?? null;
 }
 
-function scoreSafety(c: CarData, a: Answers): number {
+// Fuel-contextual reliability tier — same fallback shape as getConsumptionForFuel/
+// getPowerForFuel. Called with an already-norm()'d car, so c.reliability is the
+// flattened bestRel-derived string; the 'open'/unset path must return that exact
+// value unchanged (calibration depends on it staying byte-identical).
+function getReliabilityForFuel(c: CarData, userFuel: string): string {
+  const bf = c.reliabilityByFuel;
+  const fallback = String(c.reliability ?? "Average");
+  if (!bf || !userFuel || userFuel === "open") return fallback;
+  if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? fallback;
+  return bf[userFuel] ?? fallback;
+}
+
+function scoreSafety(c: CarData, a: Answers, rel: string): number {
   let s = 6;
   if ((c.ncapStars || 0) >= 5) s += 10; else if (c.ncapStars === 4) s += 6; else if (c.ncapStars === 3) s += 2; else if (c.ncapStars != null && c.ncapStars <= 2) s -= 6;
   if ((c.ncapAdult || 0) >= 90) s += 4; else if ((c.ncapAdult || 0) >= 80) s += 2;
@@ -746,7 +793,7 @@ function scoreSafety(c: CarData, a: Answers): number {
   // Family mission = safety matters more
   if (a.mission === "family" && (c.ncapStars || 0) >= 5) s += 4;
   if (a.mission === "family" && c.ncapStars != null && c.ncapStars <= 2) s -= 6;
-  if (c.reliability === "Excellent") s += 4; else if (c.reliability === "Good") s += 2; else if (c.reliability === "Poor") s -= 3;
+  if (rel === "Excellent") s += 4; else if (rel === "Good") s += 2; else if (rel === "Poor") s -= 3;
   return Math.max(0, Math.min(35, s));
 }
 
@@ -781,10 +828,14 @@ function scoreCar(car: CarData, a: Answers): number {
   const c = norm(car);
   applyBestVariant(c, a);
   if (!hardFilter(c, a)) return 0;
+  // Effective reliability tier for THIS car under the user's chosen fuel —
+  // computed once here and threaded through every scoring spot below so the
+  // 'open'/unset-fuel path stays byte-identical to plain bestRel behaviour.
+  const rel = getReliabilityForFuel(c, a.fuel as string);
   const practical = scorePractical(c, a);
   const financial = scoreFinancial(c, a);
-  const preference = scorePreference(c, a);
-  const safety = scoreSafety(c, a);
+  const preference = scorePreference(c, a, rel);
+  const safety = scoreSafety(c, a, rel);
   let w = { ...(MISSION_WEIGHTS[a.mission as string] || { practical: 0.25, financial: 0.25, preference: 0.25, safety: 0.25 }) };
 
   // Budget-aware weight scaling
@@ -827,8 +878,8 @@ function scoreCar(car: CarData, a: Answers): number {
   const priorities = (Array.isArray(a.priorities) ? a.priorities : []) as string[];
 
   // Reliability + durability priority
-  if (c.reliability === "Excellent" && priorities.includes("durability")) bonus += 5;
-  if (c.reliability === "Poor" && priorities.includes("durability")) bonus -= 5;
+  if (rel === "Excellent" && priorities.includes("durability")) bonus += 5;
+  if (rel === "Poor" && priorities.includes("durability")) bonus -= 5;
 
   if (priorities.includes("comfort") && c.body === "pickup") bonus -= 5;
 
@@ -850,8 +901,8 @@ function scoreCar(car: CarData, a: Answers): number {
   if (a.mission === "work_horse" && ["coupe", "convertible", "city_car"].includes(body)) bonus -= 6;
 
   // Professional driver — reliability is everything
-  if (a.mission === "professional_driver" && c.reliability === "Excellent") bonus += 5;
-  if (a.mission === "professional_driver" && c.reliability === "Poor") bonus -= 5;
+  if (a.mission === "professional_driver" && rel === "Excellent") bonus += 5;
+  if (a.mission === "professional_driver" && rel === "Poor") bonus -= 5;
 
   // Head turner + premium
   if (a.mission === "head_turner" && (c.luxury || 0) >= 2) bonus += 5;

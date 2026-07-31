@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { carStars, carAdult, getConsumptionForFuel, getPowerForFuel, originLine, bodyLabel as blLabel, fuelLabel as flLabel } from "@/app/lib/carFields";
+import { carStars, carAdult, getConsumptionForFuel, getPowerForFuel, REL_RANK, REL_SCALE_TITLE, originLine, bodyLabel as blLabel, fuelLabel as flLabel } from "@/app/lib/carFields";
 
 
 // ════════════════════════════════════════════════════════════
@@ -21,7 +21,7 @@ interface CarData {
   transmissions?: any[]; maxPowerKw?: number | null; minPowerKw?: number | null;
   vehicleFaults?: { issue: string; severity: string }[];
   pricing?: { skPriceMin?: number; skPriceMax?: number; euPriceMin?: number; euPriceMax?: number; mileageAtMidBudget?: string };
-  reliability?: any; safety?: any; equipment?: any[];
+  reliability?: any; reliabilityTiers?: string[]; reliabilityWorst?: string; safety?: any; equipment?: any[];
   _n?: boolean; budgetMin?: number; budgetMax?: number; mileageRange?: string;
   ncapStars?: number | null; ncapAdult?: number | null; ncapChild?: number | null;
   ncapPed?: number | null; ncapAssist?: number | null; ncapYear?: number | null;
@@ -824,6 +824,18 @@ export default function HomePage() {
           const isPinned = pinned.includes(c.id); const lnk = getLinks(c);
           const reason = getScoreReason(c, ans);
           const relColor = RC[String(c.reliability)] || "#888";
+          // Reliability range: reliabilityTiers/reliabilityWorst come straight off
+          // /api/recommend (see route.ts) — c.reliability (bestRel-derived) is the
+          // optimistic single value (best engine's tier), not a floor. When the
+          // engines actually span tiers, show the honest range instead (worst-first,
+          // coloured to the worst) — same treatment as the Prehľad browse card
+          // (CarDetail.tsx). Display only — scoring is untouched.
+          const relTiers = c.reliabilityTiers ?? [];
+          const isRelSpread = relTiers.length > 1;
+          const relLabel = isRelSpread ? `${relTiers[0]}–${relTiers[relTiers.length - 1]}` : String(c.reliability);
+          const relColorFinal = isRelSpread ? (RC[c.reliabilityWorst || relTiers[0]] || "#888") : relColor;
+          const relTitle = isRelSpread ? `${REL_SCALE_TITLE}\n${relTiers.join(" · ")}` : REL_SCALE_TITLE;
+          const relDotsRel = isRelSpread ? (c.reliabilityWorst || relTiers[0]) : String(c.reliability);
           const userFuel = ans.fuel as string;
 const dispCons = getConsumptionForFuel(c, userFuel);
 const dispPower = getPowerForFuel(c, userFuel);
@@ -872,6 +884,12 @@ const dispPower = getPowerForFuel(c, userFuel);
                 return true;
               }).map((f) => <span key={f} className="cfuel-tag">{flLabel(f)}</span>)}</div>
               <div className="safety-row">
+                <span className="rel-pill" title={relTitle} style={{ background: relColorFinal + "22", color: relColorFinal, border: `1px solid ${relColorFinal}44` }}>
+                  {relLabel}
+                  <span className="rel-dots">
+                    {[1, 2, 3, 4].map((n) => <span key={n} className={`rel-dot${n <= (REL_RANK[relDotsRel] ?? 0) + 1 ? " on" : ""}`} />)}
+                  </span>
+                </span>
                 <span className="safety-label">Safety</span>
                 {c.ncapStars != null
                   ? [1,2,3,4,5].map((n) => <span key={n} className={`nstar${n <= (c.ncapStars || 0) ? " on" : ""}`}>{"\u2605"}</span>)
