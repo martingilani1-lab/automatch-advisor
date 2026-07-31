@@ -55,20 +55,56 @@ export function classifyTransmissionTypes(c: CarData): string[] {
   return [...slugs];
 }
 
-function matchesFuelOption(fuelEntry: string, optionSlug: string): boolean {
+export function matchesFuelOption(fuelEntry: string, optionSlug: string): boolean {
   if (optionSlug === "hybrid") return fuelEntry === "hybrid" || fuelEntry === "phev";
   return fuelEntry === optionSlug;
 }
 
-export function matchesFuelGroup(c: CarData, selected: string[]): boolean {
-  if (selected.length === 0) return true;
-  return (c.fuel || []).some((entry) => selected.some((sel) => matchesFuelOption(entry, sel)));
+// FUEL <-> TRANSMISSION compatibility rule (audit: 2026-07-31 score-audit
+// session, "transmission/fuel facet leak"). c.transmissions is every gearbox
+// on the vehicle, flattened with no link to which engine each one belongs to
+// (see the flat vTrans.map() in app/api/cars/route.ts) — a multi-powertrain
+// model (e.g. Hyundai Kona, Peugeot 208/2008 II) can match fuel=electric AND
+// transmission=manual/dct/torque_converter even though those gearboxes only
+// ever paired with the petrol/diesel variant. Audited all 334 cars: the leak
+// is structural (electric variant + ICE variant on the same model row) and
+// is NOT confined to manual — it affects every non-single_speed family
+// equally. Deliberately NOT fixed via transmissions.engine_id (a single FK
+// can't model the real many-to-many engine<->gearbox relationship, and this
+// rule doesn't need it) — fixed instead as a directional compatibility rule:
+//   - single_speed is EV-only tech (0 exceptions found across all 334 cars,
+//     including all 51 pure-electric models) — selecting it restricts the
+//     fuel side to electric only.
+//   - electric, selected ALONE (no other fuel), restricts the transmission
+//     side to single_speed only — a car's electric variant's gearbox is
+//     always single_speed in this data.
+// hybrid/phev/petrol/diesel are deliberately left unconstrained — the audit
+// found zero real manual-mild-hybrids in the data (every manual+hybrid/PHEV
+// car is a multi-powertrain model whose manual belongs to its petrol side,
+// which is exactly the legitimate case this must NOT hide) and there's no
+// hidden case that requires touching them.
+function isElectricOnlyFuelSelection(selectedFuels: string[]): boolean {
+  return selectedFuels.length === 1 && selectedFuels[0] === "electric";
+}
+function isSingleSpeedSelected(selectedTransmissions: string[]): boolean {
+  return selectedTransmissions.includes("single_speed");
 }
 
-export function matchesTransmissionGroup(c: CarData, selected: string[]): boolean {
+export function matchesFuelGroup(c: CarData, selected: string[], selectedTransmissions: string[] = []): boolean {
+  if (selected.length === 0) return true;
+  const fuels = isSingleSpeedSelected(selectedTransmissions)
+    ? (c.fuel || []).filter((f) => f === "electric")
+    : (c.fuel || []);
+  return fuels.some((entry) => selected.some((sel) => matchesFuelOption(entry, sel)));
+}
+
+export function matchesTransmissionGroup(c: CarData, selected: string[], selectedFuels: string[] = []): boolean {
   if (selected.length === 0) return true;
   const types = classifyTransmissionTypes(c);
-  return selected.some((sel) => types.includes(sel));
+  const compatibleTypes = isElectricOnlyFuelSelection(selectedFuels)
+    ? types.filter((t) => t === "single_speed")
+    : types;
+  return selected.some((sel) => compatibleTypes.includes(sel));
 }
 
 export function matchesDrivetrainGroup(c: CarData, selected: string[]): boolean {
@@ -105,8 +141,8 @@ export type FilterGroup = "fuel" | "transmission" | "drivetrain" | "brand" | "bu
 // look wrong to anyone who checks them.
 export function applyFilters(cars: CarData[], f: FilterState, exclude?: FilterGroup): CarData[] {
   let list = cars;
-  if (exclude !== "fuel") list = list.filter((c) => matchesFuelGroup(c, f.fuel));
-  if (exclude !== "transmission") list = list.filter((c) => matchesTransmissionGroup(c, f.transmission));
+  if (exclude !== "fuel") list = list.filter((c) => matchesFuelGroup(c, f.fuel, f.transmission));
+  if (exclude !== "transmission") list = list.filter((c) => matchesTransmissionGroup(c, f.transmission, f.fuel));
   if (exclude !== "drivetrain") list = list.filter((c) => matchesDrivetrainGroup(c, f.drivetrain));
   if (exclude !== "brand") list = list.filter((c) => matchesBrandGroup(c, f.brand));
   if (exclude !== "budget") list = list.filter((c) => matchesBudget(c, f.priceMin, f.priceMax));

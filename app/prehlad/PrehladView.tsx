@@ -111,11 +111,11 @@ export default function PrehladView() {
   // current filter set with group X's own selections excluded — otherwise
   // checking an option would immediately zero out its own sibling counts.
   const fuelCounts = useMemo(
-    () => facetCounts(applyFilters(categoryList, filters, "fuel"), FUEL_OPTIONS, matchesFuelGroup),
+    () => facetCounts(applyFilters(categoryList, filters, "fuel"), FUEL_OPTIONS, (c, selected) => matchesFuelGroup(c, selected, filters.transmission)),
     [categoryList, filters]
   );
   const transmissionCounts = useMemo(
-    () => facetCounts(applyFilters(categoryList, filters, "transmission"), TRANSMISSION_TYPES, matchesTransmissionGroup),
+    () => facetCounts(applyFilters(categoryList, filters, "transmission"), TRANSMISSION_TYPES, (c, selected) => matchesTransmissionGroup(c, selected, filters.fuel)),
     [categoryList, filters]
   );
   const drivetrainCounts = useMemo(

@@ -280,8 +280,8 @@ export async function GET(request: Request) {
     // as an array so nothing downstream that reads c.categories breaks).
     // The client filters on the tag, it never re-resolves this itself.
     if (q.category) cars = cars.filter((c) => c.categories.includes(q.category!));
-    if (q.fuel.length) cars = cars.filter((c) => matchesFuelGroup(c, q.fuel));
-    if (q.transmission.length) cars = cars.filter((c) => matchesTransmissionGroup(c, q.transmission));
+    if (q.fuel.length) cars = cars.filter((c) => matchesFuelGroup(c, q.fuel, q.transmission));
+    if (q.transmission.length) cars = cars.filter((c) => matchesTransmissionGroup(c, q.transmission, q.fuel));
     if (q.drivetrain.length) cars = cars.filter((c) => matchesDrivetrainGroup(c, q.drivetrain));
     if (q.brands.length) cars = cars.filter((c) => q.brands.includes((c.make || "").toLowerCase()));
     if (q.priceMin !== null) cars = cars.filter((c) => (c.pricing?.euPriceMax ?? 0) >= q.priceMin!);
