@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { carStars, carAdult, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
+import { carStars, carAdult, getConsumptionForFuel, getPowerForFuel, originLine, bodyLabel as blLabel, fuelLabel as flLabel } from "@/app/lib/carFields";
 
 
 // ════════════════════════════════════════════════════════════
@@ -329,8 +329,6 @@ const RC: Record<string, string> = { Excellent: "#6bdb8a", Good: "#e8ff47", Aver
 const OF: Record<string, string> = { Japanese: "\u{1F1EF}\u{1F1F5}", Korean: "\u{1F1F0}\u{1F1F7}", "Czech/German": "\u{1F1E8}\u{1F1FF}", German: "\u{1F1E9}\u{1F1EA}", French: "\u{1F1EB}\u{1F1F7}", Swedish: "\u{1F1F8}\u{1F1EA}", "Swedish/Chinese": "\u{1F1F8}\u{1F1EA}", American: "\u{1F1FA}\u{1F1F8}", "American/European": "\u{1F1FA}\u{1F1F8}", "Romanian/French": "\u{1F1F7}\u{1F1F4}", British: "\u{1F1EC}\u{1F1E7}", Chinese: "\u{1F1E8}\u{1F1F3}", "Chinese (SAIC)": "\u{1F1E8}\u{1F1F3}", "Spanish/German": "\u{1F1EA}\u{1F1F8}" };
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
-const flLabel = (f: string) => ({ petrol: "\u26FD Petrol", diesel: "\u{1F6E2}\uFE0F Diesel", electric: "\u26A1 Electric", hybrid: "\u26A1 Hybrid", phev: "\u26A1 PHEV", lpg: "\u{1F4A7} LPG" }[f] || f);
-const blLabel = (b: string) => ({ hatchback: "Hatchback", estate: "Estate", suv: "SUV", mpv: "MPV", pickup: "Pickup", convertible: "Convertible", coupe: "Coupe", sedan: "Sedan", crossover: "Crossover", city_car: "City Car", van: "Van", minivan: "MPV" }[b] || b);
 function getLinks(c: CarData) { const mk = c.make.toLowerCase().replace(/[^a-z0-9]/g, "-"), md = c.model.toLowerCase().replace(/[^a-z0-9]/g, "-"); return { as: `https://www.autoscout24.com/lst/${mk}/${md}`, ab: `https://www.autobazar.eu/inzeraty/${mk}-${md}/`, mo: `https://suchen.mobile.de/fahrzeuge/search.html?q=${encodeURIComponent(c.make + " " + c.model)}` }; }
 
 // ════════════════════════════════════════════════════════════
@@ -693,9 +691,11 @@ export default function HomePage() {
           {dbError && <div className="err-msg">{"\u26A0\uFE0F"} Could not load database.</div>}
           {!dbLoaded && !dbError && <div className="load-msg">{"\u27F3"} Loading car database...</div>}
           {dbLoaded && <div className="db-ok">{"\u2713"} {DB.length} cars loaded</div>}
-          <button className="btn-go" disabled={!dbLoaded} onClick={() => setPhase("quiz")}>Find My Car {"\u2192"}</button>
           <p style={{ marginTop: 26, marginBottom: 8, fontSize: ".8rem", color: "#6b6b72" }}>Already know roughly what you want?</p>
-          <Link href="/prehlad" className="btn-back" style={{ display: "block", textDecoration: "none", textAlign: "center" }}>{"\u{1F50E}"} Preh\u013ead {"\u2014"} browse &amp; compare</Link>
+          <div className="hero-cta">
+            <button className="btn-go" disabled={!dbLoaded} onClick={() => setPhase("quiz")}>Find My Car →</button>
+            <Link href="/prehlad" className="btn-ghost">Browse & Compare</Link>
+          </div>
         </div>
       )}
 
@@ -836,14 +836,12 @@ const dispPower = getPowerForFuel(c, userFuel);
               <div className="card-top">
                 <div className="card-badges">
                   <span className="num-badge">{isBest ? "\u2605 #1" : `#${i + 1}`}</span>
-                  <span className="rel-pill" style={{ background: relColor + "22", color: relColor, border: `1px solid ${relColor}44` }}>{String(c.reliability)}</span>
-                  <span className="origin-tag">{car.originFlag || "\u{1F30D}"} {(car.origin || "").charAt(0).toUpperCase() + (car.origin || "").slice(1)}</span>
                 </div>
                 <div className="match-pct">{score}%</div>
               </div>
               <div className="cmake">{c.make}</div>
               <div className="cmodel">{c.model}</div>
-              <div className="cgen">{c.gen} {"\u00B7"} {c.years}</div>
+              <div className="cgen">{originLine(c)}</div>
               <div className="mbar"><div className="mfill" style={{ width: score + "%" }} /></div>
               <div className="score-reason">{"\u{1F4A1}"} {reason}</div>
               <div className="cgrid">

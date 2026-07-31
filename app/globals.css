@@ -12,6 +12,11 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .btn-go{background:#e8ff47;color:#0e0e0f;border:none;border-radius:6px;padding:15px 40px;font-weight:700;font-size:1rem;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
 .btn-go:hover{background:#d4eb3a;transform:translateY(-1px);box-shadow:0 4px 20px rgba(232,255,71,.2)}
 .btn-go:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none}
+.btn-go, .btn-ghost { box-sizing: border-box; width: 100%; display: block; text-align: center; text-decoration: none; }
+.btn-ghost { background: transparent; color: #e8ff47; border: 1px solid #2a2a2e; border-radius: 6px; padding: 15px 40px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all .2s; font-family: 'DM Sans', sans-serif; }
+.btn-ghost:hover { border-color: #e8ff47; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,255,71,.12); }
+.btn-ghost:disabled, .btn-ghost[aria-disabled="true"] { opacity: .4; cursor: default; transform: none; box-shadow: none; }
+.hero-cta { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 340px; margin: 0 auto; }
 .load-msg{color:#e8ff47;font-size:.85rem;margin-bottom:14px;animation:pulse 1.5s infinite}
 .err-msg{color:#ff6b35;font-size:.85rem;margin-bottom:14px}
 .db-ok{color:#6bdb8a;font-size:.8rem;margin-bottom:14px}
@@ -63,7 +68,10 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .card-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .num-badge{background:rgba(232,255,71,.12);color:#e8ff47;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:4px}
 .rel-pill{font-size:.66rem;font-weight:600;padding:3px 8px;border-radius:4px}
-.origin-tag{font-size:.72rem;color:#6b6b72}
+.rel-dots{display:inline-flex;gap:2px;margin-left:5px;vertical-align:middle}
+.rel-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18)}
+.rel-dot.on{background:currentColor}
+.trust-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .match-pct{font-size:1.1rem;font-weight:700;color:#e8ff47}
 .cmake{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#e8ff47;line-height:1.1}
 .cmodel{font-size:1.15rem;font-weight:700;line-height:1.2}
@@ -166,11 +174,20 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
 .tile-count{font-size:.72rem;color:#6b6b72}
 
-/* Prehľad browse page — row list (rows, not cards; spec line aligns in monospace) */
-.car-row{display:flex;gap:12px;align-items:center;background:#181818;border:1px solid #2a2a2e;border-radius:10px;padding:12px;margin-bottom:8px}
-.row-photo{width:64px;height:48px;flex-shrink:0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;opacity:.4;background-image:repeating-linear-gradient(45deg,#1c1c1e,#1c1c1e 6px,#28282c 6px,#28282c 12px)}
-.row-main{flex:1;min-width:0}
-.row-spec{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.72rem;color:#9999aa;white-space:pre;overflow-x:auto;margin-top:4px}
+/* Prehľad browse page — row list. A CSS grid, not a flex row: column widths
+   are fixed here (shared by every row) so cells line up vertically down the
+   list, independent of any single row's content. Each data cell truncates
+   with an ellipsis (min-width:0 lets a grid cell shrink below its content's
+   natural width) instead of scrolling — a horizontally-scrolling row can
+   never align with its neighbours by definition. */
+.car-row{display:flex;gap:12px;align-items:center;background:#181818;border:1px solid #2a2a2e;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .12s}
+.car-row:hover{border-color:#3a3a3e}
+.row-photo{width:38px;height:48px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;opacity:.4;background-image:repeating-linear-gradient(45deg,#1c1c1e,#1c1c1e 6px,#28282c 6px,#28282c 12px);flex-shrink:0}
+.row-main{min-width:0;flex:1}
+.row-main>.cmake,.row-main>.cmodel,.row-main>.cgen{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.row-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.row-price{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.8rem;color:#e8ff47;font-weight:600;white-space:nowrap}
 
 /* Prehľad browse page — sort control */
 .sort-select{background:#1c1c1e;border:1px solid #2a2a2e;border-radius:6px;padding:0 10px;color:#f0f0f0;font-size:.85rem;font-family:'DM Sans',sans-serif}
@@ -197,6 +214,17 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .filter-brand{margin-top:4px}
 .filter-brand summary{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b6b72;cursor:pointer;padding:6px 0}
 .filter-opt-compact{padding:4px 0;font-size:.78rem}
+
+/* Prehľad — full-screen vehicle detail view (opened by clicking a row) */
+.detail-view{animation:slideUp .2s ease}
+.detail-header{margin-bottom:4px}
+.variety-teaser{display:block;width:100%;text-align:left;background:none;border:none;padding:0;margin-top:10px;font-size:.72rem;color:#9999aa;cursor:pointer;font-family:'DM Sans',sans-serif;line-height:1.5}
+.variety-teaser:hover{color:#ccc}
+.vt-cta{color:#e8ff47;font-weight:600}
+.tab-bar{display:flex;gap:4px;border-bottom:1px solid #2a2a2e;margin:18px 0 14px;overflow-x:auto}
+.tab{background:none;border:none;padding:8px 14px;font-size:.82rem;font-weight:600;color:#6b6b72;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:color .12s}
+.tab:hover{color:#aaa}
+.tab.active{color:#e8ff47;border-bottom-color:#e8ff47}
 
 /* Scroll indicator — turn signal chevrons */
 .scroll-hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:50;animation:fadeInUp .4s ease;pointer-events:auto;cursor:pointer}

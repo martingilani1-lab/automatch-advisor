@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { ESTATE_STYLES } from "../recommend/route";
 import {
   FUEL_OPTIONS,
   DRIVETRAIN_OPTIONS,
@@ -24,38 +23,44 @@ const ORIGIN_FLAGS: Record<string, string> = {
 };
 
 // ════════════════════════════════════════════════════════════
-// BROWSE (Path B) — category predicates over the joined CarData shape.
-// Separate from ESTATE_STYLES' consumer in recommend/route.ts (applyBestVariant),
-// which mutates scoring state — browse only ever reads, never mutates.
+// BROWSE (Path B) — body-type PARTITION: each car lands in exactly ONE tile.
+// Resolution: primary_body (hand-curated override column on `vehicles`,
+// NULL for most rows today — see migration 20260730120000) falls back to
+// body_type, then maps to one of 10 tile slugs below. Replaces the old
+// overlapping CATEGORY_PREDICATES model (a car could land in many
+// categories, summing to 502 tags across 334 cars). Browse only ever reads
+// this; scoring's own body-type handling in recommend/route.ts is untouched.
 // ════════════════════════════════════════════════════════════
 
-const BROWSE_ESTATE_STYLES = [...ESTATE_STYLES, "sport_turismo", "cross_turismo"];
-
-function normStyle(s: string): string {
-  return (s || "").toLowerCase().replace(/_/g, " ");
-}
-
-function hasVariantStyle(car: BaseCarData, patterns: string[]): boolean {
-  const variants = car.bodyVariants;
-  if (!Array.isArray(variants)) return false;
-  const normPatterns = patterns.map(normStyle);
-  return variants.some((v: any) => {
-    const style = normStyle(v?.style || "");
-    return normPatterns.some((p) => style.includes(p));
-  });
-}
-
-const CATEGORY_PREDICATES: Record<string, (c: BaseCarData) => boolean> = {
-  city_small: (c) => ["city_car", "hatchback"].includes(c.body) && typeof c.length === "number" && c.length < 4200,
-  hatchback: (c) => c.body === "hatchback",
-  estate: (c) => c.body === "estate" || hasVariantStyle(c, BROWSE_ESTATE_STYLES),
-  sedan_liftback: (c) => c.body === "sedan" || hasVariantStyle(c, ["liftback", "sportback", "fastback", "gran_coupe"]),
-  suv_crossover: (c) => ["suv", "crossover"].includes(c.body),
-  seven_seats: (c) => (c.seats || 0) >= 7 || c.body === "minivan" || hasVariantStyle(c, ["suv_7seat", "mpv_7seat", "lounge_7seat", "van_9seat"]),
-  pickup_work: (c) => ["pickup", "van"].includes(c.body),
-  coupe_convertible: (c) => c.body === "coupe" || hasVariantStyle(c, ["convertible", "cabriolet", "targa"]),
-  electric: (c) => c.fuel.includes("electric"),
+const BODY_TILE_MAP: Record<string, string> = {
+  city_car: "city",
+  hatchback: "hatchback",
+  liftback: "liftback",
+  sedan: "sedan",
+  estate: "combi",
+  suv: "suv_crossover",
+  crossover: "suv_crossover",
+  minivan: "minivan",
+  pickup: "pickup",
+  van: "van",
+  coupe: "coupe_convertible",
+  convertible: "coupe_convertible",
 };
+
+const TILE_WHITELIST = Object.freeze([
+  "city", "hatchback", "liftback", "sedan", "combi",
+  "suv_crossover", "minivan", "pickup", "van", "coupe_convertible",
+]) as readonly string[];
+
+function resolveCategory(v: any): string {
+  const resolvedBody = v.primary_body || v.body_type || "hatchback";
+  const tile = BODY_TILE_MAP[resolvedBody];
+  if (!tile) {
+    console.warn(`[/api/cars] unmapped body "${resolvedBody}" for vehicle ${v.id} — defaulting to hatchback tile`);
+    return "hatchback";
+  }
+  return tile;
+}
 
 const FUEL_WHITELIST = FUEL_OPTIONS.map((o) => o.slug);
 const DRIVETRAIN_WHITELIST = DRIVETRAIN_OPTIONS.map((o) => o.slug);
@@ -74,6 +79,18 @@ function buildCar(v: any, vEngines: any[], vTrans: any[]) {
     return relOrder.indexOf(r) < relOrder.indexOf(best) ? r : best;
   }, "average");
   const relMap: Record<string, string> = { excellent: "Excellent", good: "Good", average: "Average", below_average: "Poor" };
+
+  // Distinct reliability tiers across the vehicle's engines, worst-first —
+  // bestRel above is the optimistic single value (best engine's tier); this
+  // is the honest spread so the browse card can show "Poor–Good" instead of
+  // just "Good" for a multi-engine model whose engines don't all agree.
+  const relTierSet = vEngines.length > 0
+    ? [...new Set(vEngines.map((e: any) => (e.reliability_rating || "average").toLowerCase()))]
+    : ["average"];
+  const reliabilityTiers = relTierSet
+    .sort((a, b) => relOrder.indexOf(b) - relOrder.indexOf(a))
+    .map((r) => relMap[r] || "Average");
+  const reliabilityWorst = reliabilityTiers[0];
 
   // Has AWD?
   const hasAWD = vEngines.some((e: any) => e.drivetrain === "AWD");
@@ -98,6 +115,11 @@ function buildCar(v: any, vEngines: any[], vTrans: any[]) {
     gen: v.production_years || "",
     years: v.production_years || "",
     yearTo,
+    // Counts only — full per-engine/gearbox detail still lives behind /api/detail.
+    // Exposed here so the browse card's variety teaser ("2 engines · 2 gearboxes")
+    // is complete on first paint, without waiting on the per-vehicle detail fetch.
+    engineCount: vEngines.length,
+    transmissionCount: vTrans.length,
     body: v.body_type || "hatchback",
     segment: v.segment || "",
     fuel: fuelTypes.length > 0 ? fuelTypes : ["petrol"],
@@ -151,6 +173,8 @@ function buildCar(v: any, vEngines: any[], vTrans: any[]) {
       mileageAtMidBudget: v.typical_milage_range || "",
     },
     reliability: { overall: relMap[bestRel] || "Average", repairCost: "Moderate" },
+    reliabilityTiers,
+    reliabilityWorst,
     safety: {
       stars: v.safety_rating,
       adultOccupant: v.ncap_adult_pct,
@@ -176,10 +200,6 @@ function buildCar(v: any, vEngines: any[], vTrans: any[]) {
 type BaseCarData = ReturnType<typeof buildCar>;
 type CarData = BaseCarData & { categories: string[] };
 
-function tagCategories(c: BaseCarData): string[] {
-  return Object.keys(CATEGORY_PREDICATES).filter((slug) => CATEGORY_PREDICATES[slug](c));
-}
-
 // Comma-separated, whitelisted, unknown values dropped rather than erroring —
 // same convention as `brand` used consistently across every group now.
 function parseList(param: string | null, whitelist: string[], normalize: (s: string) => string): string[] {
@@ -201,7 +221,7 @@ function parseQuery(searchParams: URLSearchParams) {
   const priceMax = priceMaxParam !== null && !Number.isNaN(Number(priceMaxParam)) ? Number(priceMaxParam) : null;
 
   return {
-    category: category && CATEGORY_PREDICATES[category] ? category : null,
+    category: category && TILE_WHITELIST.includes(category) ? category : null,
     fuel,
     transmission,
     drivetrain,
@@ -234,12 +254,13 @@ export async function GET(request: Request) {
       const vEngines = engines.filter((e: any) => e.vehicle_id === v.id);
       const vTrans = transmissions.filter((t: any) => t.vehicle_id === v.id);
       const base = buildCar(v, vEngines, vTrans);
-      return { ...base, categories: tagCategories(base) };
+      return { ...base, categories: [resolveCategory(v)] };
     });
 
-    // Predicates run once here, server-side, and are exposed to the client as
-    // the `categories` tag — the client filters on the tag, it never
-    // re-evaluates CATEGORY_PREDICATES itself.
+    // Resolved once here, server-side, and exposed to the client as the
+    // `categories` tag (single-element array — see BODY_TILE_MAP above; kept
+    // as an array so nothing downstream that reads c.categories breaks).
+    // The client filters on the tag, it never re-resolves this itself.
     if (q.category) cars = cars.filter((c) => c.categories.includes(q.category!));
     if (q.fuel.length) cars = cars.filter((c) => matchesFuelGroup(c, q.fuel));
     if (q.transmission.length) cars = cars.filter((c) => matchesTransmissionGroup(c, q.transmission));

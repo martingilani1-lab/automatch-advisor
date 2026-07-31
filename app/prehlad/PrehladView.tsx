@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
@@ -19,19 +19,26 @@ import {
 } from "@/app/lib/carFilters";
 import CarRow from "./CarRow";
 import FilterPanel from "./FilterPanel";
+import CarDetail from "./CarDetail";
+import type { DetailData } from "./types";
 
 interface CategoryTile { slug: string; emoji: string; label: string; desc: string }
 
+// A body-type PARTITION — every car lands in exactly one tile (see
+// resolveCategory/BODY_TILE_MAP in app/api/cars/route.ts). Order here is the
+// order tiles render in. No Electric/Seven-seats tiles anymore — fuel is
+// still filterable inside any tile via FilterPanel, it's just not a tile.
 const CATEGORIES: CategoryTile[] = [
-  { slug: "city_small", emoji: "\u{1F3D9}️", label: "Small city cars", desc: "Small, nimble, easy to park anywhere." },
+  { slug: "city", emoji: "\u{1F3D9}️", label: "City cars", desc: "Small, nimble, easy to park anywhere." },
   { slug: "hatchback", emoji: "\u{1F697}", label: "Hatchbacks", desc: "The everyday all-rounder shape." },
-  { slug: "estate", emoji: "\u{1F9F3}", label: "Estates & wagons", desc: "Built for cargo — long roofs, big boots." },
-  { slug: "sedan_liftback", emoji: "\u{1F698}", label: "Sedans & liftbacks", desc: "Classic three-box shape, sedans and liftbacks." },
-  { slug: "suv_crossover", emoji: "\u{1F699}", label: "SUVs & crossovers", desc: "Raised ride height, room to spare." },
-  { slug: "seven_seats", emoji: "\u{1F68C}", label: "Seven seats", desc: "Room for the whole crew, or more." },
-  { slug: "pickup_work", emoji: "\u{1F6FB}", label: "Pickups & work vans", desc: "Beds, vans, and tools-in-the-back haulers." },
-  { slug: "coupe_convertible", emoji: "\u{1F3CE}️", label: "Coupes & convertibles", desc: "Two doors, top down, all style." },
-  { slug: "electric", emoji: "⚡", label: "Electric", desc: "Battery-powered, zero tailpipe emissions." },
+  { slug: "liftback", emoji: "\u{1F698}", label: "Liftbacks", desc: "Sedan looks, hatchback practicality." },
+  { slug: "sedan", emoji: "\u{1F696}", label: "Sedans", desc: "Classic three-box shape." },
+  { slug: "combi", emoji: "\u{1F9F3}", label: "Estates / Combi", desc: "Built for cargo — long roofs, big boots." },
+  { slug: "suv_crossover", emoji: "\u{1F699}", label: "SUVs / Crossovers", desc: "Raised ride height, room to spare." },
+  { slug: "minivan", emoji: "\u{1F690}", label: "Minivans / MPVs", desc: "Room for the whole crew, or more." },
+  { slug: "pickup", emoji: "\u{1F6FB}", label: "Pickups", desc: "Beds and tools-in-the-back haulers." },
+  { slug: "van", emoji: "\u{1F69A}", label: "Vans", desc: "Cargo space for work or big loads." },
+  { slug: "coupe_convertible", emoji: "\u{1F3CE}️", label: "Coupés / Convertibles", desc: "Two doors, top down, all style." },
 ];
 
 const CATEGORY_SLUGS = new Set(CATEGORIES.map((c) => c.slug));
@@ -132,11 +139,33 @@ export default function PrehladView() {
     return list;
   }, [filteredList, sort]);
 
-  // Multi-powertrain models (208, 500, Kona...) blend all their engines' figures
-  // into avgConsumption/maxPowerKw — meaningless on a row once a fuel is known.
-  // Force the per-fuel reading whenever exactly one fuel is selected, or the
-  // category itself is "electric" (the step-3 fix, unchanged when no fuel filter narrows it further).
-  const fuelContext = filters.fuel.length === 1 ? filters.fuel[0] : (activeCat === "electric" ? "electric" : "");
+  // Detail view: which car (if any) is open, driven entirely by the `car` URL
+  // param so browser back closes it and returns to this same filtered list.
+  const carId = searchParams.get("car");
+  const openCarData = useMemo(() => (carId ? allCars.find((c) => c.id === carId) ?? null : null), [carId, allCars]);
+
+  // /api/detail is fetched once per vehicle and cached by id — re-opening a
+  // car already viewed this session is instant, no re-fetch.
+  const [detailCache, setDetailCache] = useState<Record<string, DetailData>>({});
+  const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({});
+
+  const loadDetail = useCallback((id: string) => {
+    if (detailCache[id] || detailLoading[id]) return;
+    Promise.resolve()
+      .then(() => setDetailLoading((p) => ({ ...p, [id]: true })))
+      .then(() => fetch("/api/detail", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vehicleId: id }),
+      }))
+      .then((r) => r.json())
+      .then((data) => setDetailCache((p) => ({ ...p, [id]: data })))
+      .catch((e) => console.error("Prehľad detail fetch failed:", e))
+      .finally(() => setDetailLoading((p) => ({ ...p, [id]: false })));
+  }, [detailCache, detailLoading]);
+
+  useEffect(() => {
+    if (carId) loadDetail(carId);
+  }, [carId, loadDetail]);
 
   const activeFilterCount =
     filters.fuel.length + filters.transmission.length + filters.drivetrain.length + filters.brand.length +
@@ -164,6 +193,14 @@ export default function PrehladView() {
 
   function setSort(value: string) {
     updateParams((params) => { params.set("sort", value); });
+  }
+
+  function openCar(id: string) {
+    updateParams((params) => { params.set("car", id); });
+  }
+
+  function closeCar() {
+    updateParams((params) => { params.delete("car"); });
   }
 
   return (
@@ -205,7 +242,20 @@ export default function PrehladView() {
         </div>
       </>)}
 
-      {activeCat && (<>
+      {activeCat && openCarData && (
+        <CarDetail
+          key={openCarData.id}
+          car={openCarData}
+          detail={detailCache[openCarData.id] ?? null}
+          loading={!!detailLoading[openCarData.id]}
+          fuelFilter={filters.fuel}
+          transmissionFilter={filters.transmission}
+          drivetrainFilter={filters.drivetrain}
+          onBack={closeCar}
+        />
+      )}
+
+      {activeCat && !openCarData && (<>
         <div className="results-hdr">
           <h3>{activeMeta?.emoji} {activeMeta?.label}</h3>
           <div className="tg">{loaded ? `${sortedList.length} cars` : "Loading…"}</div>
@@ -251,7 +301,7 @@ export default function PrehladView() {
           )}
 
           {sortedList.map((car) => (
-            <CarRow key={car.id} car={car} fuelContext={fuelContext} />
+            <CarRow key={car.id} car={car} onOpen={() => openCar(car.id)} />
           ))}
         </>)}
 

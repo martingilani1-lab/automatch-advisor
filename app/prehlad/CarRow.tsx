@@ -1,44 +1,51 @@
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carRel, REL_COLORS, originLine } from "@/app/lib/carFields";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 
-// Fixed-width fields in a monospace font is what makes the columns line up
-// down the list — this is not just string formatting, the alignment is the point.
-function buildSpecLine(c: CarData, fuelContext: string): string {
-  const price = `€${fmtK(carPriceMin(c))}–${fmtK(carPriceMax(c))}`;
-  const isElectric = fuelContext === "electric";
-  const cons = getConsumptionForFuel(c, fuelContext);
-  const consStr = cons != null ? `${cons}${isElectric ? "kWh" : "L"}/100` : "—";
-  const power = getPowerForFuel(c, fuelContext);
-  const powerStr = power != null ? `${power}kW` : "—";
-  // Gearbox: raw transmissions.specific_type strings, as-is — no unit-name normalisation.
-  const gearbox = (c.transmissions || []).filter(Boolean).join(" / ") || "—";
-  // Drivetrain: raw engines.drivetrain values, as-is — no drivetrain_systems table yet.
-  const drivetrain = c.drivetrains && c.drivetrains.length > 0 ? c.drivetrains.join("/") : "—";
-  return [
-    price.padEnd(14),
-    consStr.padEnd(12),
-    powerStr.padEnd(9),
-    gearbox.padEnd(28),
-    drivetrain,
-  ].join("");
-}
-
 interface CarRowProps {
   car: CarData;
-  fuelContext: string;
+  onOpen: () => void;
 }
 
-export default function CarRow({ car, fuelContext }: CarRowProps) {
+// Row face is major info only — make/model/gen, price range, body type, fuel
+// tags, reliability pill. Per-engine power/consumption/gearbox/drivetrain
+// don't belong here (a multi-engine car has no single correct value) — those
+// live per-variant in the full-screen detail view opened by clicking the row.
+export default function CarRow({ car, onOpen }: CarRowProps) {
+  const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
+  const rel = carRel(car);
+
+  // reliabilityTiers/reliabilityWorst come straight off /api/cars — no
+  // /api/detail dependency, so the list can show the honest "Poor–Good"
+  // spread instead of bestRel's optimistic single tier, same as CarDetail.
+  const relTiers = car.reliabilityTiers ?? [];
+  const isRelSpread = relTiers.length > 1;
+  const relLabel = isRelSpread ? `${relTiers[0]}–${relTiers[relTiers.length - 1]}` : rel;
+  const relColor = REL_COLORS[isRelSpread ? (car.reliabilityWorst || relTiers[0]) : rel] || "#888";
+  const relTitle = isRelSpread ? `Reliability by engine: ${relTiers.join(" · ")}` : undefined;
+
   return (
-    <div className="car-row">
+    <div
+      className="car-row"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+    >
       <div className="row-photo" aria-hidden="true">{"\u{1F4F7}"}</div>
       <div className="row-main">
         <div className="cmake">{car.make}</div>
         <div className="cmodel">{car.model}</div>
-        <div className="cgen">{car.gen} {"·"} {car.years}</div>
-        <div className="row-spec">{buildSpecLine(car, fuelContext)}</div>
+        <div className="cgen">{originLine(car)}</div>
+        <div className="row-tags">
+          <span className="cfuel-tag">{car.body}</span>
+          {(car.fuel || []).map((f) => <span key={f} className="cfuel-tag">{f}</span>)}
+        </div>
+      </div>
+      <div className="row-side">
+        <div className="row-price" title={price}>{price}</div>
+        <span className="rel-pill" title={relTitle} style={{ background: relColor + "22", color: relColor, border: `1px solid ${relColor}44` }}>{relLabel}</span>
       </div>
     </div>
   );

@@ -15,9 +15,17 @@ export interface CarData {
   resaleValue?: string | null; bodyVariants?: any[] | null;
   buyingTip?: string;
   transmissions?: string[]; maxPowerKw?: number | null; minPowerKw?: number | null;
+  // Counts only (from /api/cars) — per-engine/gearbox detail still lives behind
+  // /api/detail. Absent on /api/recommend's normalised shape.
+  engineCount?: number; transmissionCount?: number;
   vehicleFaults?: { issue: string; severity: string }[];
   pricing?: { skPriceMin?: number; skPriceMax?: number; euPriceMin?: number; euPriceMax?: number; mileageAtMidBudget?: string };
   reliability?: any; safety?: any; equipment?: any[];
+  // Distinct reliability tiers across the vehicle's engines, worst-first, and
+  // the worst one alone (from /api/cars) — bestRel (reliability.overall) is
+  // the optimistic single value; these let the browse card show the honest
+  // "Poor–Good" spread instead. Absent on /api/recommend's normalised shape.
+  reliabilityTiers?: string[]; reliabilityWorst?: string;
   _n?: boolean; budgetMin?: number; budgetMax?: number; mileageRange?: string;
   ncapStars?: number | null; ncapAdult?: number | null;
   pros?: string[]; cons?: string[]; consumptionByFuel?: Record<string, number> | null;
@@ -29,6 +37,23 @@ export interface CarData {
 }
 
 export const REL_RANK: Record<string, number> = { Excellent: 3, Good: 2, Average: 1, Poor: 0 };
+export const REL_COLORS: Record<string, string> = { Excellent: "#6bdb8a", Good: "#e8ff47", Average: "#ff9944", Poor: "#ff6b35" };
+export const REL_SCALE_TITLE = "Reliability: Excellent > Good > Average > Poor";
+
+// origin_country + years, e.g. "🇩🇪 German · 2015–2021" — falls back to just
+// years (no orphan "·") if origin is empty. gen and years are both set to the
+// same raw production_years string by /api/cars, so a card must never render
+// both — this is the single shared line that replaces that doubled render.
+export function originLine(c: CarData): string {
+  const origin = c.origin ? c.origin.charAt(0).toUpperCase() + c.origin.slice(1) : "";
+  return origin ? `${c.originFlag || "\u{1F30D}"} ${origin} · ${c.years}` : c.years;
+}
+
+const FUEL_LABELS: Record<string, string> = { petrol: "⛽ Petrol", diesel: "\u{1F6E2}️ Diesel", electric: "⚡ Electric", hybrid: "⚡ Hybrid", phev: "⚡ PHEV", lpg: "\u{1F4A7} LPG" };
+export function fuelLabel(f: string): string { return FUEL_LABELS[f] || f; }
+
+const BODY_LABELS: Record<string, string> = { hatchback: "Hatchback", estate: "Estate", suv: "SUV", mpv: "MPV", pickup: "Pickup", convertible: "Convertible", coupe: "Coupe", sedan: "Sedan", crossover: "Crossover", city_car: "City Car", van: "Van", minivan: "MPV" };
+export function bodyLabel(b: string): string { return BODY_LABELS[b] || b; }
 
 export function carPriceMin(c: CarData): number { return c._n ? (c.budgetMin ?? 0) : (c.pricing?.euPriceMin ?? c.pricing?.skPriceMin ?? 0); }
 export function carPriceMax(c: CarData): number { return c._n ? (c.budgetMax ?? 0) : (c.pricing?.euPriceMax ?? c.pricing?.skPriceMax ?? 0); }
