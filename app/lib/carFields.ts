@@ -35,6 +35,11 @@ export interface CarData {
   // in app/api/cars/route.ts from CATEGORY_PREDICATES. Only present on /api/cars
   // responses; absent on /api/recommend's normalised shape.
   categories?: string[];
+  // Hand-assigned lifestyle tags (0..8 of LIFESTYLE_TAG_SLUGS, app/lib/tags.ts) —
+  // distinct from the derived `categories`/body-shape fields above. Additive
+  // only for now (Track A Step 1): populated from vehicles.tags on /api/cars
+  // responses, unread by scoring, the quiz, browse filtering, or tiles.
+  tags?: string[];
 }
 
 export const REL_RANK: Record<string, number> = { Excellent: 3, Good: 2, Average: 1, Poor: 0 };

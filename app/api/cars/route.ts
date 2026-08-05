@@ -212,6 +212,10 @@ function buildCar(v: any, vEngines: any[], vTrans: any[]) {
     // Max engine power for quick display
     maxPowerKw: vEngines.length > 0 ? Math.max(...vEngines.map((e: any) => e.power_kw || 0)) : null,
     minPowerKw: vEngines.length > 0 ? Math.min(...vEngines.filter((e: any) => e.power_kw > 0).map((e: any) => e.power_kw)) : null,
+    // Hand-assigned lifestyle tags (Track A Step 1) — see app/lib/tags.ts.
+    // Additive only: surfaced here so the client has the field, but nothing
+    // filters/ranks on it yet. Defaults to [] until vehicles.tags is backfilled.
+    tags: v.tags || [],
   };
 }
 
