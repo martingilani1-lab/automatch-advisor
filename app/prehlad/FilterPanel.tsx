@@ -42,6 +42,7 @@ function FilterGroupBlock({ title, options, counts, selected, onToggle }: Filter
 interface BrandOption { slug: string; label: string }
 
 interface FilterPanelProps {
+  bodyOptions: FilterOption[]; bodyCounts: Record<string, number>; bodySelected: string[]; onToggleBody: (s: string) => void;
   fuelOptions: FilterOption[]; fuelCounts: Record<string, number>; fuelSelected: string[]; onToggleFuel: (s: string) => void;
   transmissionOptions: FilterOption[]; transmissionCounts: Record<string, number>; transmissionSelected: string[]; onToggleTransmission: (s: string) => void;
   drivetrainOptions: FilterOption[]; drivetrainCounts: Record<string, number>; drivetrainSelected: string[]; onToggleDrivetrain: (s: string) => void;
@@ -53,6 +54,7 @@ interface FilterPanelProps {
 export default function FilterPanel(props: FilterPanelProps) {
   return (
     <div className="filter-panel">
+      <FilterGroupBlock title="Body Type" options={props.bodyOptions} counts={props.bodyCounts} selected={props.bodySelected} onToggle={props.onToggleBody} />
       <FilterGroupBlock title="Fuel" options={props.fuelOptions} counts={props.fuelCounts} selected={props.fuelSelected} onToggle={props.onToggleFuel} />
       <FilterGroupBlock title="Transmission" options={props.transmissionOptions} counts={props.transmissionCounts} selected={props.transmissionSelected} onToggle={props.onToggleTransmission} />
       <FilterGroupBlock title="Drivetrain" options={props.drivetrainOptions} counts={props.drivetrainCounts} selected={props.drivetrainSelected} onToggle={props.onToggleDrivetrain} />
@@ -76,18 +78,28 @@ export default function FilterPanel(props: FilterPanelProps) {
         </div>
       </div>
 
-      {/* Brand: present but visually unemphasised — collapsed disclosure, no badge/consequence line */}
+      {/* Brand: collapsed disclosure (30+ options — always-open would dwarf
+          every other group), but same visual weight as the rest: full-size
+          rows, group-title-styled summary, no cramped compact treatment. */}
       <details className="filter-brand">
-        <summary>Brand {props.brandSelected.length ? `(${props.brandSelected.length} selected)` : ""}</summary>
+        <summary>
+          <span aria-hidden="true">{"\u{1F3F7}️"}</span>
+          <span>Brand{props.brandSelected.length ? ` (${props.brandSelected.length} selected)` : ""}</span>
+          <span className="brand-chevron" aria-hidden="true">{"▾"}</span>
+        </summary>
         {props.brandOptions.map((o) => {
           const count = props.brandCounts[o.slug] ?? 0;
           const isSelected = props.brandSelected.includes(o.slug);
           const dead = count === 0 && !isSelected;
           return (
-            <label key={o.slug} className={`filter-opt filter-opt-compact${dead ? " dead" : ""}`}>
+            <label key={o.slug} className={`filter-opt${dead ? " dead" : ""}`}>
               <input type="checkbox" checked={isSelected} disabled={dead} onChange={() => props.onToggleBrand(o.slug)} />
-              <span>{o.label}</span>
-              <span className="filter-count">{count}</span>
+              <div className="filter-opt-body">
+                <div className="filter-opt-head">
+                  <span>{o.label}</span>
+                  <span className="filter-count">{count}</span>
+                </div>
+              </div>
             </label>
           );
         })}

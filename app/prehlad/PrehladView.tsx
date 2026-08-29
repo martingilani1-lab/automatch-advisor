@@ -6,9 +6,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carRel, carStars, REL_RANK } from "@/app/lib/carFields";
 import {
+  BODY_OPTIONS,
   FUEL_OPTIONS,
   DRIVETRAIN_OPTIONS,
   TRANSMISSION_TYPES,
+  matchesBodyGroup,
+  matchesTagGroup,
   matchesFuelGroup,
   matchesTransmissionGroup,
   matchesDrivetrainGroup,
@@ -17,31 +20,13 @@ import {
   facetCounts,
   type FilterState,
 } from "@/app/lib/carFilters";
+import { LIFESTYLE_TAGS } from "@/app/lib/tags";
 import CarRow from "./CarRow";
 import FilterPanel from "./FilterPanel";
 import CarDetail from "./CarDetail";
-import type { DetailData } from "./types";
+import TagBar from "./TagBar";
+import type { DetailData, SafetyFeature } from "./types";
 
-interface CategoryTile { slug: string; emoji: string; label: string; desc: string }
-
-// A body-type PARTITION — every car lands in exactly one tile (see
-// resolveCategory/BODY_TILE_MAP in app/api/cars/route.ts). Order here is the
-// order tiles render in. No Electric/Seven-seats tiles anymore — fuel is
-// still filterable inside any tile via FilterPanel, it's just not a tile.
-const CATEGORIES: CategoryTile[] = [
-  { slug: "city", emoji: "\u{1F3D9}️", label: "City cars", desc: "Small, nimble, easy to park anywhere." },
-  { slug: "hatchback", emoji: "\u{1F697}", label: "Hatchbacks", desc: "The everyday all-rounder shape." },
-  { slug: "liftback", emoji: "\u{1F698}", label: "Liftbacks", desc: "Sedan looks, hatchback practicality." },
-  { slug: "sedan", emoji: "\u{1F696}", label: "Sedans", desc: "Classic three-box shape." },
-  { slug: "combi", emoji: "\u{1F9F3}", label: "Estates / Combi", desc: "Built for cargo — long roofs, big boots." },
-  { slug: "suv_crossover", emoji: "\u{1F699}", label: "SUVs / Crossovers", desc: "Raised ride height, room to spare." },
-  { slug: "minivan", emoji: "\u{1F690}", label: "Minivans / MPVs", desc: "Room for the whole crew, or more." },
-  { slug: "pickup", emoji: "\u{1F6FB}", label: "Pickups", desc: "Beds and tools-in-the-back haulers." },
-  { slug: "van", emoji: "\u{1F69A}", label: "Vans", desc: "Cargo space for work or big loads." },
-  { slug: "coupe_convertible", emoji: "\u{1F3CE}️", label: "Coupés / Convertibles", desc: "Two doors, top down, all style." },
-];
-
-const CATEGORY_SLUGS = new Set(CATEGORIES.map((c) => c.slug));
 const SORT_OPTIONS = [
   { value: "price_asc", label: "Price ↑" },
   { value: "price_desc", label: "Price ↓" },
@@ -59,10 +44,18 @@ export default function PrehladView() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const rawCat = searchParams.get("cat");
-  const activeCat = rawCat && CATEGORY_SLUGS.has(rawCat) ? rawCat : null;
+  // Body type is now the first sidebar filter, not a landing gate — reuses
+  // the `?cat` param so old tile links (?cat=hatchback) degrade gracefully
+  // into "Body Type: Hatchbacks" pre-selected instead of a dead tile screen.
+  // SINGLE-select (toggleSingleParam below), same as Drivetrain/Transmission
+  // — `parseList` still yields a string[] here (shared with the OR matchers
+  // below) but the toggle guarantees it never holds more than one value.
+  const selectedBody = useMemo(() => parseList(searchParams.get("cat")), [searchParams]);
 
   const filters: FilterState = useMemo(() => ({
+    // fuel and brand (further below) stay MULTI-select OR — everything else
+    // in this object (transmission, drivetrain) is SINGLE-select now, same
+    // toggleSingleParam pattern as body type above.
     fuel: parseList(searchParams.get("fuel")),
     transmission: parseList(searchParams.get("transmission")),
     drivetrain: parseList(searchParams.get("drivetrain")),
@@ -74,11 +67,25 @@ export default function PrehladView() {
   const sort = searchParams.get("sort") || "price_asc";
   const [showFilters, setShowFilters] = useState(false);
 
-  // ONE fetch on mount — /api/cars with no category param returns all 334 cars,
-  // each already tagged server-side with `categories: string[]` (every slug
-  // whose CATEGORY_PREDICATES entry it satisfies). Tile counts, category
-  // selection, and every filter/sort below all read off this one array —
-  // there is no per-category fetch and no re-fetch on filter/sort changes.
+  // Simple client-side make+model search — the primary "I know my model"
+  // entry point above the tag bar. Not URL state (unlike the filters below):
+  // a lightweight placeholder ahead of real search, not asked to persist yet.
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Lifestyle tags — HARD filter, AND semantics (matchesTagGroup): a car must
+  // carry every selected tag, not just one. Kept OUT of `filters`/FilterState
+  // above for the same reason body type is — applied as its own pre-filter
+  // step below, so applyFilters' fuel/transmission/drivetrain/brand/budget
+  // logic stays untouched. Lives in the URL the same way every other filter
+  // does, so back/share/deep-link work.
+  const selectedTags = useMemo(() => parseList(searchParams.get("tags")), [searchParams]);
+
+  // ONE fetch on mount — /api/cars with no params returns all 334 cars, each
+  // already tagged server-side with `categories: string[]` (the body-type
+  // partition) and `tags: string[]` (lifestyle tags). Every filter, the
+  // search box, tag ranking, and sort below all read off this one array —
+  // there is no per-filter re-fetch, including body type now that it's a
+  // sidebar filter instead of a per-category landing fetch.
   const [allCars, setAllCars] = useState<CarData[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -95,49 +102,100 @@ export default function PrehladView() {
     return () => { cancelled = true; };
   }, []);
 
-  const activeMeta = activeCat ? CATEGORIES.find((c) => c.slug === activeCat) : null;
+  // Safety-feature reference vocabulary — same 17 rows for every car, so this
+  // is fetched once here (like allCars above), not per-vehicle inside
+  // CarDetail. Empty until the safety_features migration has actually been
+  // run — CarDetail's Safety tab handles that gracefully (see its own
+  // comments), it doesn't assume this is populated.
+  const [safetyFeatures, setSafetyFeatures] = useState<SafetyFeature[]>([]);
 
-  const categoryList = useMemo(
-    () => (activeCat ? allCars.filter((c) => (c.categories || []).includes(activeCat)) : []),
-    [allCars, activeCat]
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/safety-features")
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setSafetyFeatures(data); })
+      .catch((e) => console.error("Safety-features fetch failed:", e));
+    return () => { cancelled = true; };
+  }, []);
+
+  // Body type and tags are both applied as their own pre-filter steps over
+  // the full set, kept separate from applyFilters/FilterState (same reason
+  // as before: applyFilters' fuel/transmission/drivetrain/brand/budget logic
+  // stays untouched). Six independent hard-filter dimensions total now, all
+  // AND-ed together: body, tags, fuel, transmission, drivetrain, brand
+  // (+budget). Intersection order doesn't affect the result, only which
+  // intermediate a given facet count's "exclude my own group" base reads.
+  const bodyFilteredList = useMemo(
+    () => (selectedBody.length ? allCars.filter((c) => matchesBodyGroup(c, selectedBody)) : allCars),
+    [allCars, selectedBody]
+  );
+  // body ∩ tags — the base every one of fuel/transmission/drivetrain/brand's
+  // own facet counts is computed from (via applyFilters' `exclude` below),
+  // and also the direct input to the final applyFilters call further down.
+  const tagFilteredList = useMemo(
+    () => (selectedTags.length ? bodyFilteredList.filter((c) => matchesTagGroup(c, selectedTags)) : bodyFilteredList),
+    [bodyFilteredList, selectedTags]
   );
 
   const brandOptions = useMemo(
-    () => [...new Set(categoryList.map((c) => c.make).filter(Boolean))].sort().map((make) => ({ slug: make, label: make })),
-    [categoryList]
+    () => [...new Set(tagFilteredList.map((c) => c.make).filter(Boolean))].sort().map((make) => ({ slug: make, label: make })),
+    [tagFilteredList]
   );
 
   // Facet counts: the count for an option in group X is computed against the
   // current filter set with group X's own selections excluded — otherwise
   // checking an option would immediately zero out its own sibling counts.
+  // This is now fully bidirectional across all six dimensions: a tag can gray
+  // out a body/fuel/transmission/drivetrain/brand option and vice versa,
+  // because every base below folds in every OTHER group before counting.
+  const bodyCounts = useMemo(
+    () => facetCounts(applyFilters(allCars.filter((c) => matchesTagGroup(c, selectedTags)), filters), BODY_OPTIONS, matchesBodyGroup),
+    [allCars, selectedTags, filters]
+  );
+  // Tags are AND within their own group (unlike every other group's OR), so
+  // this needs facetCounts' `currentSelected` — an unselected tag's count
+  // must reflect "on top of the tags I've already picked," not tested alone.
+  const tagCounts = useMemo(
+    () => facetCounts(applyFilters(bodyFilteredList, filters), LIFESTYLE_TAGS, matchesTagGroup, selectedTags),
+    [bodyFilteredList, filters, selectedTags]
+  );
   const fuelCounts = useMemo(
-    () => facetCounts(applyFilters(categoryList, filters, "fuel"), FUEL_OPTIONS, (c, selected) => matchesFuelGroup(c, selected, filters.transmission)),
-    [categoryList, filters]
+    () => facetCounts(applyFilters(tagFilteredList, filters, "fuel"), FUEL_OPTIONS, (c, selected) => matchesFuelGroup(c, selected, filters.transmission)),
+    [tagFilteredList, filters]
   );
   const transmissionCounts = useMemo(
-    () => facetCounts(applyFilters(categoryList, filters, "transmission"), TRANSMISSION_TYPES, (c, selected) => matchesTransmissionGroup(c, selected, filters.fuel)),
-    [categoryList, filters]
+    () => facetCounts(applyFilters(tagFilteredList, filters, "transmission"), TRANSMISSION_TYPES, (c, selected) => matchesTransmissionGroup(c, selected, filters.fuel)),
+    [tagFilteredList, filters]
   );
   const drivetrainCounts = useMemo(
-    () => facetCounts(applyFilters(categoryList, filters, "drivetrain"), DRIVETRAIN_OPTIONS, matchesDrivetrainGroup),
-    [categoryList, filters]
+    () => facetCounts(applyFilters(tagFilteredList, filters, "drivetrain"), DRIVETRAIN_OPTIONS, matchesDrivetrainGroup),
+    [tagFilteredList, filters]
   );
   const brandCounts = useMemo(
-    () => facetCounts(applyFilters(categoryList, filters, "brand"), brandOptions, matchesBrandGroup),
-    [categoryList, filters, brandOptions]
+    () => facetCounts(applyFilters(tagFilteredList, filters, "brand"), brandOptions, matchesBrandGroup),
+    [tagFilteredList, filters, brandOptions]
   );
 
-  const filteredList = useMemo(() => applyFilters(categoryList, filters), [categoryList, filters]);
+  // The actual hard-filtered set: body ∩ tags ∩ fuel ∩ transmission ∩
+  // drivetrain ∩ brand ∩ budget. Ordering below (sort dropdown) is now the
+  // ONLY thing that orders this — no soft-rank layer on top anymore.
+  const filteredList = useMemo(() => applyFilters(tagFilteredList, filters), [tagFilteredList, filters]);
+
+  const searchedList = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return filteredList;
+    return filteredList.filter((c) => `${c.make} ${c.model}`.toLowerCase().includes(q));
+  }, [filteredList, searchQuery]);
 
   const sortedList = useMemo(() => {
-    const list = [...filteredList];
+    const list = [...searchedList];
     if (sort === "price_asc") list.sort((a, b) => carPriceMin(a) - carPriceMin(b));
     else if (sort === "price_desc") list.sort((a, b) => carPriceMin(b) - carPriceMin(a));
     else if (sort === "reliability") list.sort((a, b) => (REL_RANK[carRel(b)] ?? 0) - (REL_RANK[carRel(a)] ?? 0));
     else if (sort === "safety") list.sort((a, b) => (carStars(b) ?? 0) - (carStars(a) ?? 0));
     else if (sort === "year") list.sort((a, b) => (b.yearTo ?? 0) - (a.yearTo ?? 0));
     return list;
-  }, [filteredList, sort]);
+  }, [searchedList, sort]);
 
   // Detail view: which car (if any) is open, driven entirely by the `car` URL
   // param so browser back closes it and returns to this same filtered list.
@@ -168,7 +226,7 @@ export default function PrehladView() {
   }, [carId, loadDetail]);
 
   const activeFilterCount =
-    filters.fuel.length + filters.transmission.length + filters.drivetrain.length + filters.brand.length +
+    selectedBody.length + filters.fuel.length + filters.transmission.length + filters.drivetrain.length + filters.brand.length +
     (filters.priceMin != null ? 1 : 0) + (filters.priceMax != null ? 1 : 0);
 
   function updateParams(mutate: (p: URLSearchParams) => void) {
@@ -177,11 +235,27 @@ export default function PrehladView() {
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  // Multi-select OR (Brand, Fuel, Tags — tags additionally ANDs at the
+  // matcher level, matchesTagGroup, but still accumulates the same way here).
   function toggleListParam(key: string, value: string) {
     updateParams((params) => {
       const current = new Set(parseList(params.get(key)));
       if (current.has(value)) current.delete(value); else current.add(value);
       if (current.size > 0) params.set(key, [...current].join(",")); else params.delete(key);
+    });
+  }
+
+  // Single-select (Body Type, Drivetrain, Transmission) — one shared handler
+  // so all three behave identically, no drift. A new value REPLACES the
+  // current one; clicking the active value again clears the param entirely
+  // (back to "all" for that group). Always a bare single value in the URL,
+  // never a comma-list. Downstream (matchesBodyGroup/matchesDrivetrainGroup/
+  // matchesTransmissionGroup, applyFilters, facetCounts) is untouched — those
+  // still read a string[] via parseList and OR across it; that array just
+  // never holds more than one element for these three groups now.
+  function toggleSingleParam(key: string, value: string) {
+    updateParams((params) => {
+      if (params.get(key) === value) params.delete(key); else params.set(key, value);
     });
   }
 
@@ -205,44 +279,16 @@ export default function PrehladView() {
 
   return (
     <main className="w">
-      <Link href="/" className="restart" style={{ display: "block", textDecoration: "none", textAlign: "center" }}>
-        {"←"} Back
-      </Link>
+      {/* Only on the catalog view — CarDetail's own "Back to results" is the
+          sole exit from the detail view (clears ?car=, preserves every other
+          filter param). Browser back is untouched, still works natively. */}
+      {!openCarData && (
+        <Link href="/" className="restart" style={{ display: "block", textDecoration: "none", textAlign: "center" }}>
+          {"←"} Back
+        </Link>
+      )}
 
-      {!activeCat && (<>
-        <div className="results-hdr">
-          <h3>Prehľad</h3>
-        </div>
-
-        <input
-          type="text"
-          className="opt-btn"
-          style={{ cursor: "text" }}
-          placeholder="Search a model, or a shape — 'Octavia', 'estate', 'awd'"
-        />
-
-        <div className="cat-grid">
-          {CATEGORIES.map((cat) => (
-            <Link
-              key={cat.slug}
-              href={`/prehlad?cat=${cat.slug}`}
-              className="opt-btn"
-              style={{ display: "block", textDecoration: "none" }}
-            >
-              <div style={{ fontSize: "1.6rem", marginBottom: 4 }}>{cat.emoji}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span>{cat.label}</span>
-                <span className="tile-count">
-                  {loaded ? `${allCars.filter((c) => (c.categories || []).includes(cat.slug)).length} cars` : "…"}
-                </span>
-              </div>
-              <div className="opt-desc">{cat.desc}</div>
-            </Link>
-          ))}
-        </div>
-      </>)}
-
-      {activeCat && openCarData && (
+      {openCarData ? (
         <CarDetail
           key={openCarData.id}
           car={openCarData}
@@ -251,15 +297,23 @@ export default function PrehladView() {
           fuelFilter={filters.fuel}
           transmissionFilter={filters.transmission}
           drivetrainFilter={filters.drivetrain}
+          safetyFeatures={safetyFeatures}
           onBack={closeCar}
         />
-      )}
-
-      {activeCat && !openCarData && (<>
+      ) : (<>
         <div className="results-hdr">
-          <h3>{activeMeta?.emoji} {activeMeta?.label}</h3>
+          <h3>Browse & Compare</h3>
           <div className="tg">{loaded ? `${sortedList.length} cars` : "Loading…"}</div>
         </div>
+
+        <input
+          type="text"
+          className="opt-btn"
+          style={{ cursor: "text" }}
+          placeholder="Search a model — 'Octavia', 'Golf', 'Tucson'"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
 
         {!loaded && <div className="load-msg">{"⟳"} Loading cars...</div>}
 
@@ -279,12 +333,14 @@ export default function PrehladView() {
 
           {showFilters && (
             <FilterPanel
+              bodyOptions={BODY_OPTIONS} bodyCounts={bodyCounts} bodySelected={selectedBody}
+              onToggleBody={(s) => toggleSingleParam("cat", s)}
               fuelOptions={FUEL_OPTIONS} fuelCounts={fuelCounts} fuelSelected={filters.fuel}
               onToggleFuel={(s) => toggleListParam("fuel", s)}
               transmissionOptions={TRANSMISSION_TYPES} transmissionCounts={transmissionCounts} transmissionSelected={filters.transmission}
-              onToggleTransmission={(s) => toggleListParam("transmission", s)}
+              onToggleTransmission={(s) => toggleSingleParam("transmission", s)}
               drivetrainOptions={DRIVETRAIN_OPTIONS} drivetrainCounts={drivetrainCounts} drivetrainSelected={filters.drivetrain}
-              onToggleDrivetrain={(s) => toggleListParam("drivetrain", s)}
+              onToggleDrivetrain={(s) => toggleSingleParam("drivetrain", s)}
               brandOptions={brandOptions} brandCounts={brandCounts} brandSelected={filters.brand}
               onToggleBrand={(s) => toggleListParam("brand", s)}
               priceMin={filters.priceMin} priceMax={filters.priceMax}
@@ -292,6 +348,8 @@ export default function PrehladView() {
               onChangePriceMax={(v) => setNumberParam("priceMax", v)}
             />
           )}
+
+          <TagBar selected={selectedTags} counts={tagCounts} onToggle={(s) => toggleListParam("tags", s)} />
 
           {sortedList.length === 0 && (
             <div style={{ textAlign: "center", padding: "40px 0", color: "#6b6b72" }}>
@@ -301,17 +359,9 @@ export default function PrehladView() {
           )}
 
           {sortedList.map((car) => (
-            <CarRow key={car.id} car={car} onOpen={() => openCar(car.id)} />
+            <CarRow key={car.id} car={car} onOpen={() => openCar(car.id)} selectedTags={selectedTags} selectedFuel={filters.fuel} />
           ))}
         </>)}
-
-        <Link
-          href="/prehlad"
-          className="btn-back"
-          style={{ display: "block", textDecoration: "none", textAlign: "center", marginTop: 12 }}
-        >
-          {"←"} Other categories
-        </Link>
       </>)}
     </main>
   );

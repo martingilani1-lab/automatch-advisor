@@ -5,7 +5,7 @@ function PrehladFallback() {
   return (
     <main className="w">
       <div className="results-hdr">
-        <h3>Prehľad</h3>
+        <h3>Browse & Compare</h3>
       </div>
     </main>
   );

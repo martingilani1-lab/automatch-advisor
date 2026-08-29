@@ -13,6 +13,23 @@ export interface FilterOption {
   consequence: string;
 }
 
+// Body type — the former category-tile grid's 10 slugs (tile grid removed;
+// body type is now the first sidebar filter instead of a landing screen —
+// see PrehladView). Reuses each car's server-computed `categories` field
+// (app/api/cars/route.ts, BODY_TILE_MAP) verbatim; no new data source.
+export const BODY_OPTIONS: FilterOption[] = [
+  { slug: "city", label: "City cars", consequence: "Small, nimble, easy to park anywhere." },
+  { slug: "hatchback", label: "Hatchbacks", consequence: "The everyday all-rounder shape." },
+  { slug: "liftback", label: "Liftbacks", consequence: "Sedan looks, hatchback practicality." },
+  { slug: "sedan", label: "Sedans", consequence: "Classic three-box shape." },
+  { slug: "combi", label: "Estates / Combi", consequence: "Built for cargo — long roofs, big boots." },
+  { slug: "suv_crossover", label: "SUVs / Crossovers", consequence: "Raised ride height, room to spare." },
+  { slug: "minivan", label: "Minivans / MPVs", consequence: "Room for the whole crew, or more." },
+  { slug: "pickup", label: "Pickups", consequence: "Beds and tools-in-the-back haulers." },
+  { slug: "van", label: "Vans", consequence: "Cargo space for work or big loads." },
+  { slug: "coupe_convertible", label: "Coupés / Convertibles", consequence: "Two doors, top down, all style." },
+];
+
 export const FUEL_OPTIONS: FilterOption[] = [
   { slug: "petrol", label: "Petrol", consequence: "Simple and proven, usually cheaper to buy. Loves being revved in the city." },
   { slug: "diesel", label: "Diesel", badge: "highway efficient", consequence: "Torque monster, sips fuel on the highway. Makes sense if you rack up the kilometers." },
@@ -107,6 +124,29 @@ export function matchesTransmissionGroup(c: CarData, selected: string[], selecte
   return selected.some((sel) => compatibleTypes.includes(sel));
 }
 
+// Deliberately NOT wired into applyFilters/FilterState below — body type is
+// applied as its own pre-filter step in PrehladView (over the full allCars
+// set, before applyFilters runs), so applyFilters' existing matching logic
+// stays untouched. Same shape as matchesDrivetrainGroup — a car's tile is
+// its (single-element) `categories` array from /api/cars.
+export function matchesBodyGroup(c: CarData, selected: string[]): boolean {
+  if (selected.length === 0) return true;
+  return (c.categories || []).some((cat) => selected.includes(cat));
+}
+
+// AND semantics, unlike every other matchesXGroup above (which are OR within
+// their own group — selecting more fuel types widens results). A tag pill
+// selection narrows: the car must carry ALL selected tags, not just one.
+// Deliberately NOT wired into applyFilters/FilterState below, same reasoning
+// as matchesBodyGroup — tags are applied as their own pre-filter step in
+// PrehladView, over c.tags (vehicles.tags, /api/cars — see app/lib/tags.ts
+// for the frozen slug vocabulary).
+export function matchesTagGroup(c: CarData, selected: string[]): boolean {
+  if (selected.length === 0) return true;
+  const carTags = new Set(c.tags || []);
+  return selected.every((t) => carTags.has(t));
+}
+
 export function matchesDrivetrainGroup(c: CarData, selected: string[]): boolean {
   if (selected.length === 0) return true;
   return (c.drivetrains || []).some((d) => selected.includes(d));
@@ -149,10 +189,23 @@ export function applyFilters(cars: CarData[], f: FilterState, exclude?: FilterGr
   return list;
 }
 
+// `currentSelected` (optional, default []) makes this correct for AND-
+// semantics groups too (tags — matchesTagGroup): each option's count is
+// computed as "if I ALSO selected this option, on top of what's already
+// selected in this same group, how many cars would remain" — the option
+// itself is unioned into `currentSelected` before testing, not tested alone.
+// For every existing OR-semantics group (fuel/transmission/drivetrain/
+// brand/body) this is called without the 4th arg, so `currentSelected`
+// stays [] and the trial set collapses to exactly [o.slug] — byte-identical
+// to the old behaviour, unchanged.
 export function facetCounts(
   base: CarData[],
   options: { slug: string }[],
-  matches: (c: CarData, selected: string[]) => boolean
+  matches: (c: CarData, selected: string[]) => boolean,
+  currentSelected: string[] = []
 ): Record<string, number> {
-  return Object.fromEntries(options.map((o) => [o.slug, base.filter((c) => matches(c, [o.slug])).length]));
+  return Object.fromEntries(options.map((o) => {
+    const trial = currentSelected.includes(o.slug) ? currentSelected : [...currentSelected, o.slug];
+    return [o.slug, base.filter((c) => matches(c, trial)).length];
+  }));
 }

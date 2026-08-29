@@ -86,7 +86,7 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .cprice{font-size:.88rem;color:#e8ff47;font-weight:600}
 .cmileage{font-size:.72rem;color:#6b6b72;margin-bottom:10px}
 .cfuels{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.cfuel-tag{font-size:.72rem;background:rgba(232,255,71,.06);color:#aaa;padding:3px 8px;border-radius:4px}
+.cfuel-tag{font-size:.72rem;background:rgba(232,255,71,.06);color:#aaa;padding:3px 8px;border-radius:4px;border:1px solid transparent}
 .safety-row{display:flex;align-items:center;gap:6px;margin-bottom:12px}
 .safety-label{font-size:.66rem;color:#6b6b72;text-transform:uppercase;min-width:36px}
 .nstar{font-size:.95rem;color:#333}.nstar.on{color:#e8ff47}
@@ -170,24 +170,62 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 /* New quiz styles */
 .opt-desc{font-size:.72rem;color:#6b6b72;margin-top:3px;line-height:1.4}
 
-/* Prehľad browse page — category tile grid */
-.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
-.tile-count{font-size:.72rem;color:#6b6b72}
-
 /* Prehľad browse page — row list. A CSS grid, not a flex row: column widths
    are fixed here (shared by every row) so cells line up vertically down the
    list, independent of any single row's content. Each data cell truncates
    with an ellipsis (min-width:0 lets a grid cell shrink below its content's
    natural width) instead of scrolling — a horizontally-scrolling row can
    never align with its neighbours by definition. */
-.car-row{display:flex;gap:12px;align-items:center;background:#181818;border:1px solid #2a2a2e;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .12s}
+.car-row{position:relative;display:flex;gap:12px;align-items:center;background:#181818;border:1px solid #2a2a2e;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .12s}
 .car-row:hover{border-color:#3a3a3e}
 .row-photo{width:38px;height:48px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;opacity:.4;background-image:repeating-linear-gradient(45deg,#1c1c1e,#1c1c1e 6px,#28282c 6px,#28282c 12px);flex-shrink:0}
-.row-main{min-width:0;flex:1}
+/* padding-right reserves room for the two absolutely-positioned corners
+   (reliability top-right, price/mileage bottom-right) so cmake/cmodel/cgen's
+   existing ellipsis-truncation kicks in before text would run underneath
+   them, at any card width. */
+.row-main{min-width:0;flex:1;padding-right:145px}
 .row-main>.cmake,.row-main>.cmodel,.row-main>.cgen{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
-.row-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.row-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px}
+.row-body-label{font-size:.72rem;color:#6b6b72;font-weight:600}
+.row-tags-sep{color:#3a3a3e;font-size:.72rem}
+/* Bottom-right corner: price + mileage. Pulled out of the flex flow (row-main
+   above now reserves the space via padding-right) and pinned to the card's
+   own 12px padding inset so it lines up with the card edge exactly like an
+   in-flow element at that padding would. */
+.row-side{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .row-price{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.8rem;color:#e8ff47;font-weight:600;white-space:nowrap}
+/* Same colour/size as .cmileage (quiz card) — can't reuse that class as-is:
+   .row-side is a narrow absolutely-positioned column, and .cmileage's block
+   layout assumes full card width. Capped width + wrap keeps the column from
+   stretching to fit an unwrapped "150,000 - 280,000 km"; CarRow.tsx glues the
+   last space to a non-breaking one so "km" always wraps with the number
+   before it, never orphaned alone on a line. */
+.row-mileage{font-size:.72rem;color:#6b6b72;text-align:right;max-width:100px;line-height:1.3;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Top-right corner: reliability pill. Same 12px inset as row-side, anchored
+   independently at the opposite corner (not part of the row-side stack). */
+.row-rel-pill{position:absolute;right:12px;top:12px}
+
+/* Prehľad — lifestyle tag bar (Track A Step 2): multi-select soft-rank pills,
+   not a filter. Pill shape/scroll borrows .cfuel-tag's rounded-chip look and
+   .tab-bar's horizontal-scroll behaviour rather than inventing a new pattern. */
+.tag-bar{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#3a3a3e transparent}
+.tag-bar::-webkit-scrollbar{height:4px}
+.tag-bar::-webkit-scrollbar-track{background:transparent}
+.tag-bar::-webkit-scrollbar-thumb{background:#3a3a3e;border-radius:4px}
+.tag-pill{flex:0 0 auto;display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;padding:6px 12px;border-radius:20px;background:#1c1c1e;color:#aaa;border:1px solid #2a2a2e;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .12s}
+.tag-pill:hover{border-color:#3a3a3e}
+.tag-pill.active{background:rgba(232,255,71,.12);color:#e8ff47;border-color:rgba(232,255,71,.4)}
+.tag-pill.dead{opacity:.35;cursor:not-allowed}
+.tag-pill.dead:hover{border-color:#2a2a2e}
+.tag-pill-count{font-size:.66rem;opacity:.7}
+
+/* Per-car lifestyle-tag chips (row face) — the car's OWN tags, distinct from
+   the tag-bar's filter pills above. .match highlights whichever of the car's
+   tags are currently selected (every visible car has ALL of them, under the
+   AND hard-filter — a car can still carry extra, unselected tags too). */
+.row-tag-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.row-tag-chip{font-size:.68rem;background:#1c1c1e;color:#888;padding:2px 7px;border-radius:10px;border:1px solid #2a2a2e;white-space:nowrap}
+.row-tag-chip.match, .cfuel-tag.match{background:rgba(232,255,71,.12);color:#e8ff47;border-color:rgba(232,255,71,.4)}
 
 /* Prehľad browse page — sort control */
 .sort-select{background:#1c1c1e;border:1px solid #2a2a2e;border-radius:6px;padding:0 10px;color:#f0f0f0;font-size:.85rem;font-family:'DM Sans',sans-serif}
@@ -196,8 +234,15 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    single narrow column, so this is the mobile-appropriate equivalent of a
    sidebar rather than a true side-by-side layout) */
 .filter-panel{background:#181818;border:1px solid #2a2a2e;border-radius:14px;padding:16px;margin-bottom:16px}
-.filter-group{margin-bottom:18px}
-.filter-group:last-of-type{margin-bottom:0}
+/* Spacing + divider between every group (Body Type/Fuel/Transmission/
+   Drivetrain/Budget/Brand) is one rule keyed off sibling position, not a
+   per-group margin — applies uniformly and can't drift out of sync if a
+   group gets reordered or a new one is added/removed. First group gets
+   neither (nothing above it to separate from). Divider colour matches the
+   panel's own border (#2a2a2e, the app's standard "quiet border" tone) —
+   a shade stronger than .filter-opt's .04-alpha per-row divider, so group
+   boundaries read as a bigger separation than option-row boundaries. */
+.filter-panel > * + *{margin-top:22px;padding-top:22px;border-top:1px solid #2a2a2e}
 .filter-group-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#e8ff47;margin-bottom:8px}
 .filter-opt{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
 .filter-opt:last-child{border-bottom:none}
@@ -209,11 +254,17 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .filter-consequence{font-size:.72rem;color:#6b6b72;margin-top:2px;line-height:1.4}
 .filter-opt.dead{opacity:.35}
 .filter-opt.dead .filter-consequence{display:none}
-.budget-inputs{display:flex;align-items:center;gap:8px}
-.budget-input{width:auto;flex:1;margin-bottom:0;text-align:center;cursor:text}
-.filter-brand{margin-top:4px}
-.filter-brand summary{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b6b72;cursor:pointer;padding:6px 0}
-.filter-opt-compact{padding:4px 0;font-size:.78rem}
+.budget-inputs{display:flex;align-items:center;flex-wrap:wrap;gap:8px;width:100%}
+.budget-input{width:auto;flex:1 1 100px;min-width:0;box-sizing:border-box;margin-bottom:0;text-align:center;cursor:text}
+.budget-inputs>span{flex-shrink:0}
+
+/* Brand: same visual weight as the other groups (.filter-group-title-style
+   summary, full-size .filter-opt rows) — only the collapse-by-default and
+   the lack of a per-option consequence line differ, since 30+ brands would
+   dwarf every other group if always open, and "Audi" has no consequence copy. */
+.filter-brand summary{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#e8ff47;cursor:pointer;padding:0 0 8px;list-style:none}
+.filter-brand summary::-webkit-details-marker{display:none}
+.brand-chevron{margin-left:auto;font-size:.7rem;color:#6b6b72;text-transform:none;letter-spacing:0}
 
 /* Prehľad — full-screen vehicle detail view (opened by clicking a row) */
 .detail-view{animation:slideUp .2s ease}
