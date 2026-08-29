@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, carRel, carStars, REL_COLORS, REL_RANK, REL_SCALE_TITLE, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carRel, carStars, carAdult, isGsr2Era, REL_COLORS, REL_RANK, REL_SCALE_TITLE, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyTransmissionTypes, TRANSMISSION_TYPES } from "@/app/lib/carFilters";
-import type { DetailData, DetailEngine, DetailTransmission } from "./types";
+import type { DetailData, DetailEngine, DetailTransmission, SafetyFeature } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 const SEVERITY_COLORS: Record<string, string> = { Critical: "#f44336", High: "#ff9800", Medium: "#e8ff47", Low: "#4caf50" };
@@ -18,7 +18,10 @@ function RelDots({ rel }: { rel: string }) {
   );
 }
 
-interface TabDef { id: string; label: string; count: number }
+// count is optional — the Safety tab (always present, no /api/detail
+// dependency) has no natural item count the way Engines/Transmissions/
+// Equipment/Faults do.
+interface TabDef { id: string; label: string; count?: number }
 
 interface CarDetailProps {
   car: CarData;
@@ -27,6 +30,7 @@ interface CarDetailProps {
   fuelFilter: string[];
   transmissionFilter: string[];
   drivetrainFilter: string[];
+  safetyFeatures: SafetyFeature[];
   onBack: () => void;
 }
 
@@ -35,7 +39,6 @@ const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 function EngineAccordion({ car, engine, isOpen, onToggle }: { car: CarData; engine: DetailEngine; isOpen: boolean; onToggle: () => void }) {
   const rc = REL_COLORS[engine.reliability] || "#888";
   const isEV = engine.fuel_type === "electric" || engine.battery_kwh != null;
-  const power = engine.power_kw || getPowerForFuel(car, engine.fuel_type) || null;
   const cons = engine.consumption ?? getConsumptionForFuel(car, engine.fuel_type);
 
   return (
@@ -44,10 +47,8 @@ function EngineAccordion({ car, engine, isOpen, onToggle }: { car: CarData; engi
         <div className="eng-left">
           <span className="eng-name">{engine.engine}</span>
           <div className="eng-tags">
-            {power != null && (
-              <span className="eng-badge" style={{ background: "rgba(232,255,71,.1)", color: "#e8ff47", border: "1px solid rgba(232,255,71,.25)" }}>{power}kW</span>
-            )}
             <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{engine.reliability}</span>
+            {engine.fuel_type && <span className="cfuel-tag">{fuelLabel(engine.fuel_type)}</span>}
           </div>
         </div>
         <span className="chevron">{isOpen ? "▲" : "▼"}</span>
@@ -92,12 +93,21 @@ function EngineAccordion({ car, engine, isOpen, onToggle }: { car: CarData; engi
 
 function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTransmission; isOpen: boolean; onToggle: () => void }) {
   const rc = REL_COLORS[trans.reliability] || "#888";
+  // Type tag, e.g. "Manual" / "Torque converter" — same slug vocabulary and
+  // labels as the sidebar's transmission-type filter (TRANSMISSION_TYPES),
+  // so this tag and the filter option text can never drift apart. Display
+  // only, reusing trans.subtype (already present in DetailTransmission, just
+  // not rendered before) — no new data, no new logic.
+  const typeLabel = TRANSMISSION_TYPES.find((tt) => tt.slug === trans.subtype)?.label;
   return (
     <div className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
       <div className="eng-hdr">
         <div className="eng-left">
           <span className="eng-name">{trans.type}</span>
-          <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{trans.reliability}</span>
+          <div className="eng-tags">
+            <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{trans.reliability}</span>
+            {typeLabel && <span className="cfuel-tag">{typeLabel}</span>}
+          </div>
         </div>
         <span className="chevron">{isOpen ? "▲" : "▼"}</span>
       </div>
@@ -114,10 +124,30 @@ function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTrans
             </div>
           </div>
           {trans.notes && <div style={{ fontSize: ".78rem", color: "#9999aa", marginBottom: 4 }}>{trans.notes}</div>}
-          {trans.faults?.length > 0 && (<>
-            <div className="sub-label">{"⚠️"} Known faults</div>
-            {trans.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
-          </>)}
+          {/* Path B step 3 — the linked unit's authored reliability_note is the
+              primary reliability content now (it's what the whole unit-discovery
+              +authoring effort produced). Per-car common_faults that survived the
+              earlier oil-change-miscategorisation cleanup are shown underneath as
+              "This car" — car-specific notes layered on the unit's general
+              profile, not a duplicate of it. Falls back to the old bare
+              "Known faults" rendering verbatim if there's no linked unit or its
+              note is empty (defensive — every row is linked as of this step, but
+              must degrade gracefully rather than show nothing/crash). */}
+          {trans.unit?.reliability_note ? (
+            <>
+              <div className="sub-label">{"⚠️"} Reliability</div>
+              <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{trans.unit.reliability_note}</div>
+              {trans.faults?.length > 0 && (<>
+                <div className="sub-label">This car</div>
+                {trans.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
+              </>)}
+            </>
+          ) : (
+            trans.faults?.length > 0 && (<>
+              <div className="sub-label">{"⚠️"} Known faults</div>
+              {trans.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
+            </>)
+          )}
           {trans.pros?.length > 0 && (<>
             <div className="sub-label">{"✅"} Pros</div>
             {trans.pros.map((p, pi) => <div key={pi} className="pro-item">{"·"} {p}</div>)}
@@ -132,15 +162,92 @@ function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTrans
   );
 }
 
-export default function CarDetail({ car, detail, loading, fuelFilter, transmissionFilter, drivetrainFilter, onBack }: CarDetailProps) {
+// Mirrors EngineAccordion/TransmissionAccordion exactly — same classes, no
+// new CSS. Reused for both mandated rows (fixed "GSR2-mandated" badge, every
+// row carries the same guarantee) and beyond-baseline rows (badge reflects
+// this specific car's Standard/Optional/Not available state, from
+// vehicle_safety_features via detail.sf — badgeLabel/badgeColor are passed
+// in per-row rather than hardcoded). Expanded body is identical either way:
+// marketing names as a subtitle, then what/how/sensors/how-to-disable from
+// the safety_features reference table.
+function SafetyFeatureAccordion({ feature, badgeLabel, badgeColor, isOpen, onToggle }: { feature: SafetyFeature; badgeLabel: string; badgeColor: string; isOpen: boolean; onToggle: () => void }) {
+  return (
+    <div className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+      <div className="eng-hdr">
+        <div className="eng-left">
+          <span className="eng-name">{feature.universal_name}</span>
+          <div className="eng-tags">
+            <span className="eng-badge" style={{ background: badgeColor + "22", color: badgeColor, border: `1px solid ${badgeColor}44` }}>{badgeLabel}</span>
+          </div>
+        </div>
+        <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+      </div>
+      {isOpen && (
+        <div className="eng-body">
+          {feature.marketing_names != null && feature.marketing_names.length > 0 && (
+            <div style={{ fontSize: ".78rem", color: "#9999aa", marginBottom: 8 }}>{feature.marketing_names.join(" · ")}</div>
+          )}
+          {feature.what_it_does && <div style={{ fontSize: ".82rem", marginBottom: 8 }}>{feature.what_it_does}</div>}
+          {feature.how_it_works && (<>
+            <div className="sub-label">How it works</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{feature.how_it_works}</div>
+          </>)}
+          {feature.sensors_used && (<>
+            <div className="sub-label">Sensors used</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{feature.sensors_used}</div>
+          </>)}
+          {feature.how_to_disable && (<>
+            <div className="sub-label">How to disable</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5 }}>{feature.how_to_disable}</div>
+          </>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function CarDetail({ car, detail, loading, fuelFilter, transmissionFilter, drivetrainFilter, safetyFeatures, onBack }: CarDetailProps) {
   const [activeTabState, setActiveTabState] = useState<string | null>(null);
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
   const [openTrans, setOpenTrans] = useState<Record<number, boolean>>({});
+  const [openSafety, setOpenSafety] = useState<Record<string, boolean>>({});
+
+  // GSR2-mandated features are never stored per-car (STRUCTURE DECISION, see
+  // the safety_features migration) — eligibility is derived here from the
+  // car's own production years. Never touches scoring/tags/filters.
+  const gsr2Era = isGsr2Era(car);
+  const mandatedFeatures = safetyFeatures.filter((f) => f.category === "gsr2_mandated");
+  // The 8 beyond-baseline features. This car's actual availability per
+  // feature comes from detail.sf (vehicle_safety_features, Step 2,
+  // presence-only) — a slug with no entry in that map reads as "Not
+  // available," identically whether that's because it's genuinely absent,
+  // hasn't been hand-tagged yet, or the migration hasn't been run yet (all
+  // three collapse to "no row," on purpose). Tagging is scoped to GSR2-era
+  // cars only (see scripts/safety-tags-template.csv), so this section is
+  // gated on gsr2Era below — a pre-2022 car would show all 8 as "Not
+  // available" too, but that'd misleadingly imply it was actually evaluated.
+  const beyondBaselineFeatures = safetyFeatures.filter((f) => f.category === "beyond_baseline");
+  const availabilityBySlug = useMemo(() => {
+    const m: Record<string, "standard" | "optional"> = {};
+    (detail?.sf ?? []).forEach((r) => { m[r.slug] = r.availability; });
+    return m;
+  }, [detail]);
 
   const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
   const rel = carRel(car);
   const relColor = REL_COLORS[rel] || "#888";
   const stars = carStars(car);
+  // Full NCAP breakdown for the Safety tab below — carStars/carAdult are the
+  // shared accessors (carFields.ts); child/pedestrian/safetyAssist/ncapYear
+  // have no accessor of their own, but CarDetail only ever sees the RAW
+  // /api/cars shape (never /api/recommend's normalised one), so reading
+  // car.safety directly here is safe and matches carRel/carStars/carAdult's
+  // own RAW-branch logic.
+  const adult = carAdult(car);
+  const child = car.safety?.childOccupant;
+  const ped = car.safety?.pedestrian;
+  const assist = car.safety?.safetyAssist;
+  const ncapYear = car.safety?.ncapYear;
 
   // A browse card represents a MODEL, not one variant — seats/boot/drivetrain/
   // transmission differ across a model's engines and body styles (verified:
@@ -191,6 +298,10 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
   if ((detail?.t.length ?? 0) > 0) tabs.push({ id: "transmissions", label: "Transmissions", count: detail!.t.length });
   if ((detail?.q.length ?? 0) > 0) tabs.push({ id: "equipment", label: "Equipment", count: detail!.q.length });
   if ((detail?.c.length ?? 0) > 0) tabs.push({ id: "faults", label: "Common faults", count: detail!.c.length });
+  // Always present — stars/adult/child/ped/assist/ncapYear come straight off
+  // /api/cars (car.safety), no /api/detail dependency, so Safety never has
+  // to wait on the detail fetch the way the tabs above do.
+  tabs.push({ id: "safety", label: "Safety" });
 
   const activeTab = activeTabState && tabs.some((t) => t.id === activeTabState) ? activeTabState : (tabs[0]?.id ?? null);
 
@@ -263,7 +374,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
         <div className="tab-bar">
           {tabs.map((t) => (
             <button key={t.id} className={`tab${activeTab === t.id ? " active" : ""}`} onClick={() => setActiveTabState(t.id)}>
-              {t.label} ({t.count})
+              {t.label}{t.count != null ? ` (${t.count})` : ""}
             </button>
           ))}
         </div>
@@ -320,6 +431,81 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
                   </div>
                 );
               })
+            )}
+          </div>
+        )}
+
+        {/* Safety — Euro NCAP. Markup/thresholds duplicated verbatim from
+            app/page.tsx's renderMorePanel (quiz detail panel) rather than
+            extracted into a shared component, since extraction would require
+            editing page.tsx to consume it and the quiz panel must stay
+            untouched. Keep the two in sync by hand if this ever changes. */}
+        {activeTab === "safety" && (
+          <div className="mp-section">
+            <div className="mp-title">{"\u{1F6E1}️"} Safety {"—"} Euro NCAP</div>
+            {stars != null ? (
+              <div className="ncap-detail">
+                <div className="ncap-stars-row">{[1, 2, 3, 4, 5].map((n) => <span key={n} className={`ns-lg${n <= (stars || 0) ? " on" : ""}`}>{"★"}</span>)}<span className="ns-label">{stars}/5{ncapYear ? ` · ${ncapYear}` : ""}</span></div>
+                {[{ l: "Adult", v: adult }, { l: "Child", v: child }, { l: "Pedestrian", v: ped }, { l: "Safety Assist", v: assist }].filter((b) => b.v != null).map((b) => (
+                  <div key={b.l} className="ncap-bar"><span className="ncap-bl">{b.l}</span><div className="ncap-track"><div className="ncap-fill" style={{ width: b.v + "%", background: (b.v || 0) >= 90 ? "#4caf50" : (b.v || 0) >= 75 ? "#e8ff47" : (b.v || 0) >= 60 ? "#ff9800" : "#f44336" }} /></div><span className="ncap-pv">{b.v}%</span></div>
+                ))}
+                <div className="ncap-verdict" style={{ color: (stars || 0) >= 5 ? "#4caf50" : (stars || 0) >= 4 ? "#e8ff47" : "#ff9800" }}>{(stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}</div>
+              </div>
+            ) : <div className="ncap-na">{"⚠️"} Not tested by Euro NCAP</div>}
+
+            {/* GSR2-mandated safety assists — additive on top of the existing
+                Euro NCAP block above (this Safety tab pre-dates this task and
+                already covers crash-test ratings; extending it here keeps one
+                coherent Safety tab rather than a second, confusingly-similar
+                one). Eligibility is derived from car.years (isGsr2Era) — never
+                stored per-car, never touches scoring/filters/tags. */}
+            <div className="mp-title" style={{ marginTop: 18 }}>{"\u{1F6E1}️"} {gsr2Era ? "Safety assists this model can have" : "Guaranteed safety assists"}</div>
+            {gsr2Era ? (
+              mandatedFeatures.length > 0 ? (
+                mandatedFeatures.map((f) => (
+                  <SafetyFeatureAccordion
+                    key={f.slug}
+                    feature={f}
+                    badgeLabel="GSR2-mandated"
+                    badgeColor="#4caf50"
+                    isOpen={!!openSafety[f.slug]}
+                    onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                  />
+                ))
+              ) : (
+                <div className="mp-hint">Safety-feature reference data isn't loaded yet — run the safety_features migration to populate this list.</div>
+              )
+            ) : (
+              <div className="mp-hint">This model's production ended before the EU's 2022 GSR2 safety mandate took effect, so the guaranteed-baseline list above doesn't apply here — check the individual listing for what safety equipment it actually has.</div>
+            )}
+
+            {gsr2Era && (
+              <>
+                <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
+                {/* TEMP DEBUG — bug trace, remove after diagnosis */}
+                {console.log("[safety debug] (a) car.id:", car.id, "| detail === null:", detail === null, "| detail?.sf:", detail?.sf)}
+                {console.log("[safety debug] (b) beyondBaselineFeatures slugs:", beyondBaselineFeatures.map((f) => f.slug))}
+                {console.log("[safety debug] (c) per-slug lookup:", beyondBaselineFeatures.map((f) => ({ slug: f.slug, availability: availabilityBySlug[f.slug] ?? "(no entry -> Not available)" })))}
+                {beyondBaselineFeatures.length > 0 ? (
+                  beyondBaselineFeatures.map((f) => {
+                    const availability = availabilityBySlug[f.slug];
+                    const badgeLabel = availability === "standard" ? "Standard" : availability === "optional" ? "Optional" : "Not available";
+                    const badgeColor = availability === "standard" ? "#4caf50" : availability === "optional" ? "#e8ff47" : "#6b6b72";
+                    return (
+                      <SafetyFeatureAccordion
+                        key={f.slug}
+                        feature={f}
+                        badgeLabel={badgeLabel}
+                        badgeColor={badgeColor}
+                        isOpen={!!openSafety[f.slug]}
+                        onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                      />
+                    );
+                  })
+                ) : (
+                  <div className="mp-hint">Safety-feature reference data isn't loaded yet — run the safety_features migration to populate this list.</div>
+                )}
+              </>
             )}
           </div>
         )}

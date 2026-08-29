@@ -10,15 +10,28 @@ export async function POST(req: NextRequest) {
   try {
     const { vehicleId } = await req.json();
 
-    const [enginesRes, transRes, vehicleRes] = await Promise.all([
+    const [enginesRes, transRes, vehicleRes, safetyRes] = await Promise.all([
       supabase.from("engines").select("*").eq("vehicle_id", vehicleId),
-      supabase.from("transmissions").select("*").eq("vehicle_id", vehicleId),
+      // Embeds transmission_units via the unit_id FK (Path B step 3) — every
+      // transmission row is now linked (594/594), so this returns the unit's
+      // authored code/family/reliability_note/maintenance_note alongside the
+      // existing per-car columns. PostgREST returns the embed as a single
+      // object (to-one, via transmissions.unit_id -> transmission_units.id),
+      // null if unit_id is somehow unset.
+      supabase.from("transmissions").select("*, transmission_units(code, family, reliability_note, maintenance_note)").eq("vehicle_id", vehicleId),
       supabase.from("vehicles").select("*").eq("id", vehicleId).single(),
+      // Presence-only per-car beyond-baseline rows (Step 2). Table may not
+      // exist yet if the vehicle_safety_features migration hasn't been run
+      // — same graceful `.data || []` fallback as engines/transmissions
+      // above, no explicit error check, so a missing table degrades to "no
+      // rows" (every feature reads as Not available) rather than a 500.
+      supabase.from("vehicle_safety_features").select("feature_slug, availability").eq("vehicle_id", vehicleId),
     ]);
 
     const engines = enginesRes.data || [];
     const transmissions = transRes.data || [];
     const vehicle = vehicleRes.data;
+    const safetyRows = safetyRes.data || [];
 
     const relLabel: Record<string, string> = { excellent: "Excellent", good: "Good", average: "Average", below_average: "Poor" };
 
@@ -53,6 +66,17 @@ export async function POST(req: NextRequest) {
         notes: t.notes || "",
         pros: t.pros || [],
         cons: t.cons || [],
+        // Path B step 3 — the unit's authored content (reliability_note is
+        // the real content; maintenance_note is empty until a later pass).
+        // null if the embed came back empty (defensive — shouldn't happen,
+        // every row is linked, but a missing/deleted unit_id must degrade
+        // gracefully, not crash the response).
+        unit: t.transmission_units ? {
+          code: t.transmission_units.code,
+          family: t.transmission_units.family,
+          reliability_note: t.transmission_units.reliability_note || null,
+          maintenance_note: t.transmission_units.maintenance_note || null,
+        } : null,
       })),
 
       // Vehicle common faults: [{issue, severity}]
@@ -70,6 +94,12 @@ export async function POST(req: NextRequest) {
         features: Array.isArray(t.features) ? t.features.join(" \u00B7 ") : t.features || "",
       })),
       b: vehicle?.buyers_guide || "Check full service history and verify mileage.",
+
+      // Beyond-baseline safety features this car actually HAS — presence-
+      // only (vehicle_safety_features), so absence from this array means
+      // "Not available," never an explicit negative. See app/lib/tags.ts-
+      // style frozen vocabulary in the safety_features migration.
+      sf: safetyRows.map((r: any) => ({ slug: r.feature_slug, availability: r.availability })),
 
       // Extra vehicle info for expanded card
       specs: {
@@ -89,7 +119,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[/api/detail]", err);
     return NextResponse.json(
-      { e: [], t: [], c: [], pros: [], cons: [], q: [], b: "Could not load data.", specs: {} },
+      { e: [], t: [], c: [], pros: [], cons: [], q: [], b: "Could not load data.", sf: [], specs: {} },
       { status: 500 }
     );
   }
