@@ -9,6 +9,22 @@ import type { DetailData, DetailEngine, DetailTransmission, SafetyFeature } from
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 const SEVERITY_COLORS: Record<string, string> = { Critical: "#f44336", High: "#ff9800", Medium: "#e8ff47", Low: "#4caf50" };
 
+// Splits a maintenance_note prose string into per-sentence bullets, at RENDER
+// time only — the stored text (and the DB) are never touched. Splits on a
+// period followed by whitespace and a capital letter — deliberately does NOT
+// also require "not preceded by a digit": a decimal like "~1.7 L" can never
+// match this pattern in the first place, since a decimal point has no
+// whitespace after it (it's followed directly by the next digit), while a
+// real sentence boundary that happens to end with a number — "~EUR 100-160.
+// The mechatronic..." — does have a space before the capital and must still
+// split. Verified against all 65 authored maintenance_note strings (194
+// sentences total, zero bad splits), including the DQ200 "~1.7 L" case and
+// abbreviation-adjacent text (TSB, 8 years, etc.) explicitly.
+function splitSentences(text: string): string[] {
+  const parts = text.split(/\.\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
+  return parts.map((s, i) => (i < parts.length - 1 ? s + "." : s));
+}
+
 function RelDots({ rel }: { rel: string }) {
   const filled = (REL_RANK[rel] ?? 0) + 1;
   return (
@@ -99,6 +115,12 @@ function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTrans
   // only, reusing trans.subtype (already present in DetailTransmission, just
   // not rendered before) — no new data, no new logic.
   const typeLabel = TRANSMISSION_TYPES.find((tt) => tt.slug === trans.subtype)?.label;
+  // Local to this one transmission's accordion instance (React keys each
+  // TransmissionAccordion by index in the parent map, so this is naturally
+  // per-transmission — no need to lift into CarDetail's openEngines/openTrans-
+  // style state objects). Independent of the outer isOpen/onToggle, which
+  // controls the whole card's expand/collapse.
+  const [maintOpen, setMaintOpen] = useState(false);
   return (
     <div className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
       <div className="eng-hdr">
@@ -118,11 +140,40 @@ function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTrans
               <div className="cgrid-label">Speeds</div>
               <div className="cgrid-val">{trans.speeds ?? "—"}</div>
             </div>
-            <div className="cgrid-item">
-              <div className="cgrid-label">Maintenance</div>
-              <div className="cgrid-val">{trans.maintenance_km != null ? `${fmtK(trans.maintenance_km)}km` : "—"}</div>
-            </div>
+            {/* Click-to-expand tile when there's an authored maintenance_note
+                to show — stopPropagation is required since this tile sits
+                inside the outer .tx-card, which toggles the WHOLE accordion
+                on click; without it, tapping the tile would also
+                collapse/re-trigger the outer card. Falls back to the old
+                bare km-interval cell (unchanged) when there's no unit note
+                to expand — every unit has one now, so that's defensive-only,
+                same as the reliability fallback below. */}
+            {trans.unit?.maintenance_note ? (
+              <div
+                className="cgrid-item cgrid-item-btn"
+                onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
+              >
+                <div className="cgrid-val">{"🔧"} Maintenance {maintOpen ? "▴" : "▾"}</div>
+              </div>
+            ) : (
+              <div className="cgrid-item">
+                <div className="cgrid-label">Maintenance</div>
+                <div className="cgrid-val">{trans.maintenance_km != null ? `${fmtK(trans.maintenance_km)}km` : "—"}</div>
+              </div>
+            )}
           </div>
+          {/* Expands in place directly below the tile row, pushing notes/
+              reliability/pros/cons down — collapsed by default (maintOpen
+              starts false). Same splitSentences + .maint-card/.maint-item
+              content as before, just moved behind this toggle instead of
+              always-rendered. */}
+          {maintOpen && trans.unit?.maintenance_note && (
+            <div className="maint-card">
+              {splitSentences(trans.unit.maintenance_note).map((s, si) => (
+                <div key={si} className="maint-item">{s}</div>
+              ))}
+            </div>
+          )}
           {trans.notes && <div style={{ fontSize: ".78rem", color: "#9999aa", marginBottom: 4 }}>{trans.notes}</div>}
           {/* Path B step 3 — the linked unit's authored reliability_note is the
               primary reliability content now (it's what the whole unit-discovery

@@ -83,6 +83,11 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .cgrid-item{background:#1c1c1e;border-radius:6px;padding:8px;text-align:center}
 .cgrid-label{font-size:.6rem;color:#6b6b72;text-transform:uppercase;letter-spacing:.06em}
 .cgrid-val{font-size:.82rem;font-weight:600;margin-top:2px}
+/* Maintenance tile — the only clickable cgrid-item (a toggle, not a plain
+   stat), so it needs to visibly read as tappable unlike its neighbours. */
+.cgrid-item-btn{cursor:pointer;border:1px solid transparent;transition:border-color .12s,background .12s}
+.cgrid-item-btn:hover{border-color:#3a3a3e;background:#202024}
+.cgrid-item-btn .cgrid-val{margin-top:0;font-size:.72rem}
 .cprice{font-size:.88rem;color:#e8ff47;font-weight:600}
 .cmileage{font-size:.72rem;color:#6b6b72;margin-bottom:10px}
 .cfuels{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
@@ -129,6 +134,15 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .con-item{font-size:.78rem;color:#ef9a9a;margin-bottom:3px;line-height:1.5}
 .tx-card{background:#1c1c1e;border:1px solid #2a2a2e;border-radius:8px;padding:11px 13px;margin-bottom:6px;cursor:pointer;transition:all .12s}
 .tx-card:hover{border-color:#3a3a3e}.tx-card.open{border-color:rgba(232,255,71,.2)}
+/* Transmission maintenance section — a bordered card distinct from the plain
+   Reliability prose above it, deliberately NOT the yellow-tinted .buy-tip
+   treatment (that reads as "buying tip" elsewhere; this is neutral reference
+   content). One sentence per .maint-item, its own line, hairline divider
+   between items — split at render time from maintenance_note's prose, see
+   splitSentences in CarDetail.tsx. */
+.maint-card{background:#202024;border:1px solid #2a2a2e;border-radius:8px;padding:4px 12px;margin-bottom:8px}
+.maint-item{font-size:.78rem;color:#9999aa;line-height:1.5;padding:8px 0}
+.maint-item+.maint-item{border-top:1px solid rgba(255,255,255,.05)}
 .fault-block{margin-bottom:12px}
 .fault-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .fault-area{font-weight:600;font-size:.82rem}

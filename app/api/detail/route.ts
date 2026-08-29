@@ -66,11 +66,11 @@ export async function POST(req: NextRequest) {
         notes: t.notes || "",
         pros: t.pros || [],
         cons: t.cons || [],
-        // Path B step 3 — the unit's authored content (reliability_note is
-        // the real content; maintenance_note is empty until a later pass).
-        // null if the embed came back empty (defensive — shouldn't happen,
-        // every row is linked, but a missing/deleted unit_id must degrade
-        // gracefully, not crash the response).
+        // Path B step 3 — the unit's authored content: reliability_note and
+        // maintenance_note are both populated for all 65 units. null if the
+        // embed came back empty (defensive — shouldn't happen, every row is
+        // linked, but a missing/deleted unit_id must degrade gracefully, not
+        // crash the response).
         unit: t.transmission_units ? {
           code: t.transmission_units.code,
           family: t.transmission_units.family,
