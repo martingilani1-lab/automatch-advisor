@@ -105,3 +105,18 @@ export function getReliabilityForFuel(c: CarData, userFuel: string): string {
   if (userFuel === "hybrid") return bf["hybrid"] ?? bf["phev"] ?? fallback;
   return bf[userFuel] ?? fallback;
 }
+
+// GSR2-era: production still active past 2022 (contains "Present", or the end
+// year is 2022+) — the same rule that identified 261/334 cars as eligible for
+// the GSR2-mandated safety-feature baseline (see the read-only query that
+// established that count/list). Derived purely from the existing years
+// string — no new per-car column. Every car in this catalog uses a strict
+// "YYYY - YYYY" / "YYYY - Present" format (verified against all 334 rows),
+// so no ambiguous-format handling is needed beyond the regex simply not
+// matching (which correctly falls through to false/non-GSR2-era).
+export function isGsr2Era(c: CarData): boolean {
+  const y = c.years || "";
+  if (/present/i.test(y)) return true;
+  const m = y.match(/(\d{4})\s*$/);
+  return m ? parseInt(m[1], 10) >= 2022 : false;
+}
