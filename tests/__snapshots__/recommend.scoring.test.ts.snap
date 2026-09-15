@@ -1,0 +1,234 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`recommend scoring — regression snapshot > 'P01_commuter_petrol_durability' 1`] = `
+[
+  {
+    "dims": {
+      "financial": 24,
+      "practical": 6,
+      "preference": 14,
+      "safety": 18,
+    },
+    "id": "71ee38e4-911c-4800-b073-0f9b654c17c8",
+    "isBest": true,
+    "make": "Mazda",
+    "model": "MX-5 (ND)",
+    "score": 99,
+  },
+  {
+    "dims": {
+      "financial": 16,
+      "practical": 17,
+      "preference": 13,
+      "safety": 20,
+    },
+    "id": "43c5233e-3e93-4f8f-bd6d-7cbf87526d64",
+    "isBest": false,
+    "make": "Škoda",
+    "model": "Fabia IV (PJ)",
+    "score": 96,
+  },
+  {
+    "dims": {
+      "financial": 16,
+      "practical": 10,
+      "preference": 14,
+      "safety": 22,
+    },
+    "id": "fb35d8fd-4ae9-439f-a233-a6c34628b4f2",
+    "isBest": false,
+    "make": "Škoda",
+    "model": "Citigo (AA)",
+    "score": 96,
+  },
+  {
+    "dims": {
+      "financial": 15,
+      "practical": 19,
+      "preference": 13,
+      "safety": 2,
+    },
+    "id": "b86fad56-96e7-4bba-8166-c2db42bd623b",
+    "isBest": false,
+    "make": "Dacia",
+    "model": "Sandero III (BJ)",
+    "score": 70,
+  },
+  {
+    "dims": {
+      "financial": 14,
+      "practical": 3,
+      "preference": 6,
+      "safety": 20,
+    },
+    "id": "42eed166-bef1-4867-9d6b-0db975b592fc",
+    "isBest": false,
+    "make": "Škoda",
+    "model": "Kodiaq (NS7)",
+    "score": 65,
+  },
+]
+`;
+
+exports[`recommend scoring — regression snapshot > 'P04_family_diesel_safety' 1`] = `
+[
+  {
+    "dims": {
+      "financial": 29,
+      "practical": 21,
+      "preference": 20,
+      "safety": 32,
+    },
+    "id": "42eed166-bef1-4867-9d6b-0db975b592fc",
+    "isBest": true,
+    "make": "Škoda",
+    "model": "Kodiaq (NS7)",
+    "score": 99,
+  },
+  {
+    "dims": {
+      "financial": 27,
+      "practical": 20,
+      "preference": 3,
+      "safety": 16,
+    },
+    "id": "fd03ebcb-a89e-4730-b829-9350e9e5fef4",
+    "isBest": false,
+    "make": "Volkswagen",
+    "model": "Amarok (2H)",
+    "score": 55,
+  },
+]
+`;
+
+exports[`recommend scoring — regression snapshot > 'P07_drivers_car_petrol_pleasure' 1`] = `
+[
+  {
+    "dims": {
+      "financial": 18,
+      "practical": 10,
+      "preference": 27,
+      "safety": 18,
+    },
+    "id": "71ee38e4-911c-4800-b073-0f9b654c17c8",
+    "isBest": true,
+    "make": "Mazda",
+    "model": "MX-5 (ND)",
+    "score": 99,
+  },
+  {
+    "dims": {
+      "financial": 6,
+      "practical": 15,
+      "preference": 7,
+      "safety": 20,
+    },
+    "id": "43c5233e-3e93-4f8f-bd6d-7cbf87526d64",
+    "isBest": false,
+    "make": "Škoda",
+    "model": "Fabia IV (PJ)",
+    "score": 42,
+  },
+  {
+    "dims": {
+      "financial": 7,
+      "practical": 15,
+      "preference": 3,
+      "safety": 22,
+    },
+    "id": "fb35d8fd-4ae9-439f-a233-a6c34628b4f2",
+    "isBest": false,
+    "make": "Škoda",
+    "model": "Citigo (AA)",
+    "score": 35,
+  },
+  {
+    "dims": {
+      "financial": 6,
+      "practical": 15,
+      "preference": 9,
+      "safety": 2,
+    },
+    "id": "b86fad56-96e7-4bba-8166-c2db42bd623b",
+    "isBest": false,
+    "make": "Dacia",
+    "model": "Sandero III (BJ)",
+    "score": 33,
+  },
+]
+`;
+
+exports[`recommend scoring — regression snapshot > 'P08_workhorse_diesel_durability' 1`] = `
+[
+  {
+    "dims": {
+      "financial": 27,
+      "practical": 35,
+      "preference": 18,
+      "safety": 16,
+    },
+    "id": "fd03ebcb-a89e-4730-b829-9350e9e5fef4",
+    "isBest": true,
+    "make": "Volkswagen",
+    "model": "Amarok (2H)",
+    "score": 99,
+  },
+  {
+    "dims": {
+      "financial": 29,
+      "practical": 32,
+      "preference": 18,
+      "safety": 22,
+    },
+    "id": "42eed166-bef1-4867-9d6b-0db975b592fc",
+    "isBest": false,
+    "make": "Škoda",
+    "model": "Kodiaq (NS7)",
+    "score": 93,
+  },
+]
+`;
+
+exports[`recommend scoring — regression snapshot > 'P14_first_car_petrol' 1`] = `
+[
+  {
+    "dims": {
+      "financial": 23,
+      "practical": 23,
+      "preference": 17,
+      "safety": 28,
+    },
+    "id": "fb35d8fd-4ae9-439f-a233-a6c34628b4f2",
+    "isBest": true,
+    "make": "Škoda",
+    "model": "Citigo (AA)",
+    "score": 99,
+  },
+  {
+    "dims": {
+      "financial": 7,
+      "practical": 18,
+      "preference": 17,
+      "safety": 26,
+    },
+    "id": "43c5233e-3e93-4f8f-bd6d-7cbf87526d64",
+    "isBest": false,
+    "make": "Škoda",
+    "model": "Fabia IV (PJ)",
+    "score": 70,
+  },
+  {
+    "dims": {
+      "financial": 17,
+      "practical": 21,
+      "preference": 9,
+      "safety": 0,
+    },
+    "id": "b86fad56-96e7-4bba-8166-c2db42bd623b",
+    "isBest": false,
+    "make": "Dacia",
+    "model": "Sandero III (BJ)",
+    "score": 39,
+  },
+]
+`;

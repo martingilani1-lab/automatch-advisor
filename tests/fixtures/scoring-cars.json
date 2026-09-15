@@ -1,0 +1,1073 @@
+[
+  {
+    "id": "fd03ebcb-a89e-4730-b829-9350e9e5fef4",
+    "make": "Volkswagen",
+    "model": "Amarok (2H)",
+    "gen": "2010 - 2022",
+    "years": "2010 - 2022",
+    "yearTo": 2022,
+    "body": "pickup",
+    "segment": "Pickup",
+    "fuel": [
+      "diesel"
+    ],
+    "seats": 5,
+    "boot": null,
+    "bootMax": null,
+    "origin": "german",
+    "originFlag": "🇩🇪",
+    "towingCapacity": 3500,
+    "groundClearance": 192,
+    "length": 5254,
+    "width": 1954,
+    "height": 1834,
+    "weight": 2100,
+    "hasAWD": true,
+    "drivetrains": [
+      "AWD"
+    ],
+    "avgConsumption": 8.2,
+    "resaleValue": "holds_well",
+    "bodyVariants": null,
+    "buyingTip": "Best buy is the 3.0 V6 TDI with the ZF 8-speed auto — avoid early 2.0 BiTDI (pre-2013). Check service history for DPF and timing gear.",
+    "transmissions": [
+      "ZF 8HP (8-speed)",
+      "6-speed manual"
+    ],
+    "fuelTankLiters": 80,
+    "consumptionByFuel": {
+      "diesel": 8.2
+    },
+    "powerByFuel": {
+      "diesel": 165
+    },
+    "pricing": {
+      "skPriceMin": 13000,
+      "skPriceMax": 35000,
+      "euPriceMin": 13000,
+      "euPriceMax": 35000,
+      "mileageAtMidBudget": "80,000 - 220,000 km"
+    },
+    "reliability": {
+      "overall": "Good",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "diesel": "Good"
+    },
+    "reliabilityTiers": [
+      "Average",
+      "Good"
+    ],
+    "reliabilityWorst": "Average",
+    "safety": {
+      "stars": 4,
+      "adultOccupant": 86,
+      "childOccupant": null,
+      "pedestrian": null,
+      "safetyAssist": null,
+      "ncapYear": 2010
+    },
+    "equipment": [],
+    "pros": [
+      "Car-like ride for a pickup",
+      "3.0 V6 TDI is strong and durable",
+      "Permanent 4Motion available",
+      "Widest bed in class — Euro pallet fits sideways"
+    ],
+    "cons": [
+      "2.0 BiTDI has known engine issues",
+      "Expensive parts vs Japanese rivals",
+      "Rear seat tight for adults"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "2.0 BiTDI injector and turbo failures on early engines",
+        "severity": "high"
+      },
+      {
+        "issue": "DPF clogging with short-trip use",
+        "severity": "medium"
+      }
+    ],
+    "maxPowerKw": 165,
+    "minPowerKw": 132
+  },
+  {
+    "id": "fb35d8fd-4ae9-439f-a233-a6c34628b4f2",
+    "make": "Škoda",
+    "model": "Citigo (AA)",
+    "gen": "2012 - 2020",
+    "years": "2012 - 2020",
+    "yearTo": 2020,
+    "body": "city_car",
+    "segment": "A",
+    "fuel": [
+      "electric",
+      "petrol"
+    ],
+    "seats": 4,
+    "boot": 251,
+    "bootMax": 951,
+    "origin": "czech",
+    "originFlag": "🇨🇿",
+    "towingCapacity": null,
+    "groundClearance": 117,
+    "length": 3563,
+    "width": 1645,
+    "height": 1478,
+    "weight": 854,
+    "hasAWD": false,
+    "drivetrains": [
+      "FWD"
+    ],
+    "avgConsumption": 8.2,
+    "resaleValue": "holds_well",
+    "bodyVariants": null,
+    "buyingTip": "The ultimate city car — nothing is easier to park or cheaper to run. The 1.0 MPI engine is practically bulletproof. Essentially a rebadged VW up! with Škoda pricing. The eIV electric version (2019-2020) has 260 km WLTP range — perfect for city commutes. 3-door is cheaper but 5-door is far more practical. At these prices, there is no better value city car on the used market.",
+    "transmissions": [
+      "5-speed MQ100",
+      "Single-speed EV"
+    ],
+    "fuelTankLiters": 36,
+    "consumptionByFuel": {
+      "electric": 14.5,
+      "petrol": 5.1
+    },
+    "powerByFuel": {
+      "electric": 61,
+      "petrol": 55
+    },
+    "pricing": {
+      "skPriceMin": 3000,
+      "skPriceMax": 9000,
+      "euPriceMin": 3000,
+      "euPriceMax": 9000,
+      "mileageAtMidBudget": "60,000 - 130,000 km"
+    },
+    "reliability": {
+      "overall": "Excellent",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "electric": "Good",
+      "petrol": "Excellent"
+    },
+    "reliabilityTiers": [
+      "Good",
+      "Excellent"
+    ],
+    "reliabilityWorst": "Good",
+    "safety": {
+      "stars": 5,
+      "adultOccupant": 89,
+      "childOccupant": 80,
+      "pedestrian": 62,
+      "safetyAssist": 68,
+      "ncapYear": 2012
+    },
+    "equipment": [
+      {
+        "trim": "Active",
+        "features": [
+          "Manual Windows",
+          "Radio with AUX",
+          "Height-Adjustable Driver Seat",
+          "Front Airbags",
+          "ABS + ESP"
+        ]
+      },
+      {
+        "trim": "Ambition",
+        "features": [
+          "Front Power Windows",
+          "Central Locking with Remote",
+          "Height-Adjustable Steering",
+          "Rear Parking Sensors",
+          "Leather Steering Wheel"
+        ]
+      },
+      {
+        "trim": "Style",
+        "features": [
+          "Climatronic Auto Aircon",
+          "Heated Front Seats",
+          "Bluetooth Connectivity",
+          "15-inch Alloy Wheels",
+          "Chrome Accents"
+        ]
+      }
+    ],
+    "pros": [
+      "Tiny footprint — the easiest car to park in the city",
+      "Remarkably spacious cabin for its size — fits 4 adults",
+      "Rock-solid 1.0 MPI engine — virtually indestructible",
+      "Lowest possible running costs — insurance, fuel, servicing",
+      "eIV electric version available — zero-emission city driving"
+    ],
+    "cons": [
+      "Terrible on the motorway — noisy, unstable, underpowered",
+      "Tiny boot — 251 l is strictly for shopping bags",
+      "No modern infotainment — basic radio on most trims",
+      "Safety is compromised in a collision with larger vehicles",
+      "Rear seat access tight on 3-door versions"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "Exhaust heat shield rattling",
+        "severity": "low"
+      },
+      {
+        "issue": "Window regulator failure",
+        "severity": "low"
+      },
+      {
+        "issue": "Front suspension clunking over bumps",
+        "severity": "medium"
+      },
+      {
+        "issue": "eIV 12V battery drain during extended parking",
+        "severity": "medium"
+      }
+    ],
+    "maxPowerKw": 61,
+    "minPowerKw": 44
+  },
+  {
+    "id": "42eed166-bef1-4867-9d6b-0db975b592fc",
+    "make": "Škoda",
+    "model": "Kodiaq (NS7)",
+    "gen": "2016 - 2024",
+    "years": "2016 - 2024",
+    "yearTo": 2024,
+    "body": "suv",
+    "segment": "SUV-D",
+    "fuel": [
+      "diesel",
+      "petrol"
+    ],
+    "seats": 7,
+    "boot": 720,
+    "bootMax": 2005,
+    "origin": "czech",
+    "originFlag": "🇨🇿",
+    "towingCapacity": 2500,
+    "groundClearance": 188,
+    "length": 4697,
+    "width": 1882,
+    "height": 1676,
+    "weight": 1615,
+    "hasAWD": true,
+    "drivetrains": [
+      "FWD",
+      "AWD"
+    ],
+    "avgConsumption": 7.5,
+    "resaleValue": "holds_well",
+    "bodyVariants": [
+      {
+        "style": "suv_5seat",
+        "length_mm": 4697,
+        "boot_liters": 720,
+        "boot_max_liters": 2065
+      },
+      {
+        "style": "suv_7seat",
+        "length_mm": 4697,
+        "boot_liters": 270,
+        "boot_max_liters": 2065
+      }
+    ],
+    "buyingTip": "Best family SUV for the money. The 2.0 TDI 110 kW + DSG 7 + 4x4 is the dominant configuration. Check Haldex oil change history (every 60k km). Facelift (2021) brought bolder design and digital cockpit. RS with 2.0 TSI (180 kW) is fast but drinks 10 – 13 l/100 km.",
+    "transmissions": [
+      "DSG 7 (DQ500)",
+      "DSG 7 (DQ381)"
+    ],
+    "fuelTankLiters": 58,
+    "consumptionByFuel": {
+      "diesel": 6.5,
+      "petrol": 9.5
+    },
+    "powerByFuel": {
+      "diesel": 110,
+      "petrol": 140
+    },
+    "pricing": {
+      "skPriceMin": 17000,
+      "skPriceMax": 36000,
+      "euPriceMin": 17000,
+      "euPriceMax": 36000,
+      "mileageAtMidBudget": "80,000 - 160,000 km"
+    },
+    "reliability": {
+      "overall": "Good",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "diesel": "Good",
+      "petrol": "Average"
+    },
+    "reliabilityTiers": [
+      "Average",
+      "Good"
+    ],
+    "reliabilityWorst": "Average",
+    "safety": {
+      "stars": 5,
+      "adultOccupant": 92,
+      "childOccupant": 77,
+      "pedestrian": 71,
+      "safetyAssist": 58,
+      "ncapYear": 2017
+    },
+    "equipment": [
+      {
+        "trim": "Style",
+        "features": [
+          "Full LED Headlights",
+          "Alcantara/Fabric Seats",
+          "KESSY Keyless",
+          "Rear View Camera",
+          "Amundsen Navigation"
+        ]
+      },
+      {
+        "trim": "Sportline",
+        "features": [
+          "Sports Leather/Alcantara Seats",
+          "Black Styling Kit",
+          "Progressive Steering",
+          "20-inch Vega Alloys",
+          "Carbon Decor"
+        ]
+      },
+      {
+        "trim": "Laurin & Klement",
+        "features": [
+          "Heated Ventilated Leather Seats",
+          "360-degree Area View Camera",
+          "DCC Suspension",
+          "Panoramic Roof",
+          "Blind Spot Detection"
+        ]
+      }
+    ],
+    "pros": [
+      "Spacious interior for 5 or 7 passengers",
+      "Solid driving dynamics on MQB platform",
+      "4x4 with Haldex coupling — handles light off-road and winter",
+      "High safety equipment — 9 airbags and AEB",
+      "Tow rating up to 2,500 kg — suitable for caravan towing"
+    ],
+    "cons": [
+      "Third row only for children — adults will not fit comfortably",
+      "Higher consumption than Octavia — especially 4x4 with DSG",
+      "Used prices remain high — slow depreciation",
+      "Electric tailgate occasional malfunctions",
+      "Large dimensions make city parking difficult"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "Haldex coupling oil change often neglected",
+        "severity": "high"
+      },
+      {
+        "issue": "Electric tailgate malfunction",
+        "severity": "low"
+      },
+      {
+        "issue": "Brake wear faster due to vehicle weight",
+        "severity": "medium"
+      },
+      {
+        "issue": "AdBlue system failures on diesel",
+        "severity": "medium"
+      }
+    ],
+    "maxPowerKw": 140,
+    "minPowerKw": 110
+  },
+  {
+    "id": "b86fad56-96e7-4bba-8166-c2db42bd623b",
+    "make": "Dacia",
+    "model": "Sandero III (BJ)",
+    "gen": "2021 - Present",
+    "years": "2021 - Present",
+    "yearTo": 2025,
+    "body": "hatchback",
+    "segment": "B",
+    "fuel": [
+      "petrol"
+    ],
+    "seats": 5,
+    "boot": 328,
+    "bootMax": 1108,
+    "origin": "romanian",
+    "originFlag": "🇷🇴",
+    "towingCapacity": 900,
+    "groundClearance": 137,
+    "length": 4088,
+    "width": 1848,
+    "height": 1499,
+    "weight": 1050,
+    "hasAWD": false,
+    "drivetrains": [
+      "FWD"
+    ],
+    "avgConsumption": 6.2,
+    "resaleValue": "average",
+    "bodyVariants": [
+      {
+        "style": "hatchback",
+        "length_mm": 4088,
+        "boot_liters": 410,
+        "boot_max_liters": 1100
+      },
+      {
+        "style": "stepway",
+        "length_mm": 4088,
+        "boot_liters": 410,
+        "boot_max_liters": 1100
+      }
+    ],
+    "buyingTip": "The Sandero III is a revolution — near-Clio quality at rock-bottom prices. The 1.0 TCe 74 kW is the sweet spot. ECO-G (LPG) version is the cheapest fuel option. Stepway version is a mini-crossover. Only 2-star NCAP — make sure AEB is fitted. Essential or Comfort trim is the minimum recommended spec. Best new car value in Europe.",
+    "transmissions": [
+      "5-speed Manual",
+      "6-speed Manual",
+      "CVT (X-Tronic)"
+    ],
+    "fuelTankLiters": 50,
+    "consumptionByFuel": {
+      "petrol": 6.2
+    },
+    "powerByFuel": {
+      "petrol": 74
+    },
+    "pricing": {
+      "skPriceMin": 8000,
+      "skPriceMax": 16000,
+      "euPriceMin": 8000,
+      "euPriceMax": 16000,
+      "mileageAtMidBudget": "10,000 - 60,000 km"
+    },
+    "reliability": {
+      "overall": "Good",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "petrol": "Good"
+    },
+    "reliabilityTiers": [
+      "Good"
+    ],
+    "reliabilityWorst": "Good",
+    "safety": {
+      "stars": 2,
+      "adultOccupant": 70,
+      "childOccupant": 72,
+      "pedestrian": 60,
+      "safetyAssist": 42,
+      "ncapYear": 2021
+    },
+    "equipment": [
+      {
+        "trim": "Access",
+        "features": [
+          "Halogen Headlights",
+          "No Aircon (option)",
+          "No Radio (Bluetooth speaker dock)",
+          "ABS + ESP",
+          "LED DRL"
+        ]
+      },
+      {
+        "trim": "Essential",
+        "features": [
+          "Manual Aircon",
+          "8-inch Touchscreen",
+          "Electric Mirrors",
+          "Cruise Control",
+          "Rear Parking Sensors"
+        ]
+      },
+      {
+        "trim": "Comfort",
+        "features": [
+          "Auto Aircon",
+          "Wireless CarPlay/Android Auto",
+          "Rear Camera",
+          "Smart Key",
+          "16-inch Alloys"
+        ]
+      },
+      {
+        "trim": "Stepway",
+        "features": [
+          "Raised Suspension (+40mm)",
+          "Roof Rails",
+          "Protective Cladding",
+          "17-inch Alloys",
+          "Two-tone Roof Option"
+        ]
+      }
+    ],
+    "pros": [
+      "Cheapest new car in Europe — unbeatable value proposition",
+      "Based on CMF-B platform — same as Clio V, massive quality improvement",
+      "LPG (ECO-G) option — rock-bottom fuel costs",
+      "Stepway crossover version with raised suspension",
+      "Surprisingly modern interior for a budget car"
+    ],
+    "cons": [
+      "Only 2-star NCAP — AEB was optional, limited safety kit",
+      "Boot is small — 328 l is below class average",
+      "No diesel option available",
+      "Rear seat is tight for tall adults",
+      "Base trim is genuinely bare — no radio, no aircon"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "Only 2-star NCAP — AEB optional on base",
+        "severity": "high"
+      },
+      {
+        "issue": "Too new for major fault patterns",
+        "severity": "low"
+      },
+      {
+        "issue": "ECO-G LPG valve adjustment needed periodically",
+        "severity": "low"
+      }
+    ],
+    "maxPowerKw": 74,
+    "minPowerKw": 49
+  },
+  {
+    "id": "71ee38e4-911c-4800-b073-0f9b654c17c8",
+    "make": "Mazda",
+    "model": "MX-5 (ND)",
+    "gen": "2015 - Present",
+    "years": "2015 - Present",
+    "yearTo": 2025,
+    "body": "coupe",
+    "segment": "Sports",
+    "fuel": [
+      "petrol"
+    ],
+    "seats": 2,
+    "boot": 130,
+    "bootMax": 130,
+    "origin": "japanese",
+    "originFlag": "🇯🇵",
+    "towingCapacity": null,
+    "groundClearance": 118,
+    "length": 3915,
+    "width": 1735,
+    "height": 1235,
+    "weight": 1000,
+    "hasAWD": false,
+    "drivetrains": [
+      "RWD"
+    ],
+    "avgConsumption": 6.5,
+    "resaleValue": "holds_well",
+    "bodyVariants": null,
+    "buyingTip": "The MX-5 ND is the purest driving experience you can buy. The 2.0 Skyactiv-G (135 kW) is the one to buy — more power matters in a light car. RF (Retractable Fastback) adds hardtop elegance. ALWAYS buy manual — the gearbox is the best in any car. Sport Nav+ with LSD and Bilstein dampers is the enthusiast spec. Mazda reliability is legendary. Holds resale exceptionally well.",
+    "transmissions": [
+      "Skyactiv-Drive 6AT",
+      "6-speed Manual"
+    ],
+    "fuelTankLiters": 45,
+    "consumptionByFuel": {
+      "petrol": 6.5
+    },
+    "powerByFuel": {
+      "petrol": 135
+    },
+    "pricing": {
+      "skPriceMin": 14000,
+      "skPriceMax": 30000,
+      "euPriceMin": 14000,
+      "euPriceMax": 30000,
+      "mileageAtMidBudget": "20,000 - 80,000 km"
+    },
+    "reliability": {
+      "overall": "Excellent",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "petrol": "Excellent"
+    },
+    "reliabilityTiers": [
+      "Excellent"
+    ],
+    "reliabilityWorst": "Excellent",
+    "safety": {
+      "stars": 4,
+      "adultOccupant": 80,
+      "childOccupant": 73,
+      "pedestrian": 93,
+      "safetyAssist": 64,
+      "ncapYear": 2015
+    },
+    "equipment": [
+      {
+        "trim": "SE",
+        "features": [
+          "LED Headlights",
+          "7-inch Touchscreen",
+          "Manual Aircon",
+          "Rear Parking Sensors",
+          "16-inch Alloys"
+        ]
+      },
+      {
+        "trim": "Sport Nav+",
+        "features": [
+          "Bose Audio",
+          "Bilstein Dampers",
+          "Limited-slip Diff",
+          "Heated Seats",
+          "17-inch Alloys"
+        ]
+      },
+      {
+        "trim": "RF",
+        "features": [
+          "Retractable Fastback Hardtop",
+          "All Sport Nav+ Features",
+          "Coupe Styling",
+          "Quieter Cabin",
+          "BBS Alloys (option)"
+        ]
+      }
+    ],
+    "pros": [
+      "The world best-selling roadster — THE driving experience",
+      "Only 1,000 kg — lighter than most superminis",
+      "RF (Retractable Fastback) — hardtop roadster elegance",
+      "Mazda reliability — virtually zero faults",
+      "Best manual gearbox of any car — period"
+    ],
+    "cons": [
+      "Only 2 seats — no practicality whatsoever",
+      "Tiny boot — 130 l barely fits a weekend bag",
+      "Only 96/135 kW — not fast in a straight line",
+      "Not suitable for tall drivers — 190cm+ is tight",
+      "Soft top is vulnerable — RF is more secure"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "Virtually no common faults — Mazda reliability at its finest",
+        "severity": "low"
+      },
+      {
+        "issue": "Soft top — vulnerable to vandalism and wear",
+        "severity": "low"
+      },
+      {
+        "issue": "RF mechanism — occasional alignment at high mileage",
+        "severity": "low"
+      }
+    ],
+    "maxPowerKw": 135,
+    "minPowerKw": 96
+  },
+  {
+    "id": "43c5233e-3e93-4f8f-bd6d-7cbf87526d64",
+    "make": "Škoda",
+    "model": "Fabia IV (PJ)",
+    "gen": "2021 - Present",
+    "years": "2021 - Present",
+    "yearTo": 2025,
+    "body": "hatchback",
+    "segment": "B",
+    "fuel": [
+      "petrol"
+    ],
+    "seats": 5,
+    "boot": 380,
+    "bootMax": 1190,
+    "origin": "czech",
+    "originFlag": "🇨🇿",
+    "towingCapacity": 1000,
+    "groundClearance": 143,
+    "length": 4108,
+    "width": 1780,
+    "height": 1460,
+    "weight": 1100,
+    "hasAWD": false,
+    "drivetrains": [
+      "FWD"
+    ],
+    "avgConsumption": 6,
+    "resaleValue": "average",
+    "bodyVariants": [
+      {
+        "style": "hatchback",
+        "length_mm": 4108,
+        "boot_liters": 380,
+        "boot_max_liters": 1190
+      }
+    ],
+    "buyingTip": "A massive step up from Fabia III — practically a small Octavia now. The 1.0 TSI 81 kW is the volume seller and perfectly adequate. The 1.5 TSI 110 kW is overkill for most but lovely to drive. No diesel option. No estate — if you need cargo space, look at Scala. Monte Carlo trim is the best value for features. Very few used examples available yet — most are nearly new with low mileage.",
+    "transmissions": [
+      "5-speed MQ200",
+      "6-speed MQ200",
+      "DSG 7 (DQ200 Gen 2)"
+    ],
+    "fuelTankLiters": 45,
+    "consumptionByFuel": {
+      "petrol": 6
+    },
+    "powerByFuel": {
+      "petrol": 110
+    },
+    "pricing": {
+      "skPriceMin": 12000,
+      "skPriceMax": 21000,
+      "euPriceMin": 12000,
+      "euPriceMax": 21000,
+      "mileageAtMidBudget": "20,000 - 70,000 km"
+    },
+    "reliability": {
+      "overall": "Good",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "petrol": "Good"
+    },
+    "reliabilityTiers": [
+      "Good"
+    ],
+    "reliabilityWorst": "Good",
+    "safety": {
+      "stars": 5,
+      "adultOccupant": 85,
+      "childOccupant": 81,
+      "pedestrian": 70,
+      "safetyAssist": 70,
+      "ncapYear": 2021
+    },
+    "equipment": [
+      {
+        "trim": "Ambition",
+        "features": [
+          "LED Headlights",
+          "6.5-inch Swing Infotainment",
+          "Manual Aircon",
+          "Lane Assist",
+          "Front Assist"
+        ]
+      },
+      {
+        "trim": "Style",
+        "features": [
+          "Full LED Headlights",
+          "Climatronic Auto Aircon",
+          "9.2-inch Amundsen Navigation",
+          "Digital Cockpit",
+          "KESSY Keyless"
+        ]
+      },
+      {
+        "trim": "Monte Carlo",
+        "features": [
+          "Matrix LED Headlights",
+          "Sports Seats with MC Emblem",
+          "Black 17-inch Alloy Wheels",
+          "Black Roof and Mirror Caps",
+          "Sport Bumpers and Red Accents"
+        ]
+      }
+    ],
+    "pros": [
+      "Significant size jump over Fabia III — now nearly Octavia II dimensions",
+      "Largest boot in the supermini class — 380 l standard",
+      "Full MQB-A0 platform — modern and refined",
+      "Available with full LED Matrix headlights",
+      "Excellent ride comfort for a supermini"
+    ],
+    "cons": [
+      "No estate version — hatchback only (estate discontinued)",
+      "Noticeably more expensive than Fabia III — pricing overlaps Scala",
+      "Rear drum brakes still on base models",
+      "No diesel engine option available",
+      "Infotainment on Ambition trim feels basic for the price"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "1.0 TSI timing chain tensioner on early builds",
+        "severity": "medium"
+      },
+      {
+        "issue": "Infotainment occasional lag and glitches",
+        "severity": "low"
+      },
+      {
+        "issue": "Rear drum brakes on lower specs",
+        "severity": "low"
+      }
+    ],
+    "maxPowerKw": 110,
+    "minPowerKw": 81
+  },
+  {
+    "id": "4eaa5801-1e10-4d48-b1c3-1dcbe1c5b488",
+    "make": "BMW",
+    "model": "iX (I20)",
+    "gen": "2021 - Present",
+    "years": "2021 - Present",
+    "yearTo": 2025,
+    "body": "suv",
+    "segment": "EV",
+    "fuel": [
+      "electric"
+    ],
+    "seats": 5,
+    "boot": 500,
+    "bootMax": 1750,
+    "origin": "german",
+    "originFlag": "🇩🇪",
+    "towingCapacity": 2500,
+    "groundClearance": 200,
+    "length": 4953,
+    "width": 1967,
+    "height": 1695,
+    "weight": 2440,
+    "hasAWD": true,
+    "drivetrains": [
+      "AWD"
+    ],
+    "avgConsumption": 20,
+    "resaleValue": "depreciates_fast",
+    "bodyVariants": null,
+    "buyingTip": "The iX is BMW's flagship EV. xDrive50 (385 kW, 111 kWh) is the sweet spot — 630 km WLTP range. M60 (455 kW) adds M performance. Stunning interior. Polarizing design. Rapid depreciation = great used value. DC charging up to 200 kW.",
+    "transmissions": [
+      "Single-speed EV"
+    ],
+    "fuelTankLiters": null,
+    "consumptionByFuel": {
+      "electric": 20
+    },
+    "powerByFuel": {
+      "electric": 385
+    },
+    "pricing": {
+      "skPriceMin": 35000,
+      "skPriceMax": 80000,
+      "euPriceMin": 35000,
+      "euPriceMax": 80000,
+      "mileageAtMidBudget": "15,000 - 50,000 km"
+    },
+    "reliability": {
+      "overall": "Good",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "electric": "Good"
+    },
+    "reliabilityTiers": [
+      "Good"
+    ],
+    "reliabilityWorst": "Good",
+    "safety": {
+      "stars": 5,
+      "adultOccupant": 91,
+      "childOccupant": 87,
+      "pedestrian": 73,
+      "safetyAssist": 81,
+      "ncapYear": 2022
+    },
+    "equipment": [
+      {
+        "trim": "xDrive40",
+        "features": [
+          "LED Headlights",
+          "Curved Display",
+          "4-zone Climate",
+          "Rear Camera",
+          "20-inch Alloys"
+        ]
+      },
+      {
+        "trim": "xDrive50",
+        "features": [
+          "Harman Kardon Audio",
+          "Laser Headlights",
+          "Air Suspension",
+          "Panoramic Roof",
+          "22-inch Alloys"
+        ]
+      },
+      {
+        "trim": "M60",
+        "features": [
+          "455 kW M Performance",
+          "M Sport Brakes",
+          "M Interior",
+          "Adaptive Air Suspension",
+          "22-inch M Alloys"
+        ]
+      }
+    ],
+    "pros": [
+      "BMW flagship EV SUV — most advanced BMW ever",
+      "iX xDrive50 (385 kW) — 630 km WLTP range",
+      "DC charging up to 200 kW — competitive",
+      "Stunning lounge-like interior — curved display, crystal iDrive",
+      "M60 variant (455 kW) — genuine M performance in an EV"
+    ],
+    "cons": [
+      "Polarizing exterior design — controversial kidney grille",
+      "Very expensive",
+      "Heavy — 2,440 kg",
+      "Rapid depreciation — premium EV segment falls fast",
+      "iDrive 8 — touch-heavy, minimal physical buttons"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "12V battery drain",
+        "severity": "medium"
+      },
+      {
+        "issue": "Software updates needed",
+        "severity": "low"
+      },
+      {
+        "issue": "Too new for major patterns",
+        "severity": "low"
+      }
+    ],
+    "maxPowerKw": 385,
+    "minPowerKw": 385
+  },
+  {
+    "id": "79d1b612-238b-48a6-a81d-123ed3ed9059",
+    "make": "Tesla",
+    "model": "Model S",
+    "gen": "2012 - Present",
+    "years": "2012 - Present",
+    "yearTo": 2025,
+    "body": "sedan",
+    "segment": "EV",
+    "fuel": [
+      "electric"
+    ],
+    "seats": 5,
+    "boot": 793,
+    "bootMax": 1645,
+    "origin": "american",
+    "originFlag": "🇺🇸",
+    "towingCapacity": null,
+    "groundClearance": 117,
+    "length": 4970,
+    "width": 1964,
+    "height": 1445,
+    "weight": 2162,
+    "hasAWD": true,
+    "drivetrains": [
+      "AWD"
+    ],
+    "avgConsumption": 18,
+    "resaleValue": "depreciates_fast",
+    "bodyVariants": null,
+    "buyingTip": "The Model S is the original Tesla. AVOID pre-2018 cars — MCU1 failure, door handle issues. The 2021+ refresh is a massive improvement. Plaid (760 kW, tri-motor) is the fastest sedan ever made — 0-100 in 2.1 s. Yoke steering is controversial — try before buying. Supercharger network is unmatched. Check battery SoH on older cars.",
+    "transmissions": [
+      "Single-speed EV"
+    ],
+    "fuelTankLiters": null,
+    "consumptionByFuel": {
+      "electric": 18
+    },
+    "powerByFuel": {
+      "electric": 760
+    },
+    "pricing": {
+      "skPriceMin": 28000,
+      "skPriceMax": 90000,
+      "euPriceMin": 28000,
+      "euPriceMax": 90000,
+      "mileageAtMidBudget": "30,000 - 120,000 km"
+    },
+    "reliability": {
+      "overall": "Good",
+      "repairCost": "Moderate"
+    },
+    "reliabilityByFuel": {
+      "electric": "Good"
+    },
+    "reliabilityTiers": [
+      "Good"
+    ],
+    "reliabilityWorst": "Good",
+    "safety": {
+      "stars": 5,
+      "adultOccupant": 92,
+      "childOccupant": 86,
+      "pedestrian": 72,
+      "safetyAssist": 86,
+      "ncapYear": 2014
+    },
+    "equipment": [
+      {
+        "trim": "Model S (2021+ refresh)",
+        "features": [
+          "17-inch Touchscreen",
+          "Yoke/Round Steering",
+          "22-speaker Audio",
+          "Glass Roof",
+          "21-inch Arachnid Alloys"
+        ]
+      },
+      {
+        "trim": "Model S Plaid",
+        "features": [
+          "Tri-motor 760 kW",
+          "Carbon Ceramic Brakes (option)",
+          "Track Mode",
+          "0-100 in 2.1 s",
+          "All refresh features"
+        ]
+      }
+    ],
+    "pros": [
+      "The car that made EVs desirable — the original Tesla",
+      "Plaid (760 kW) — 0-100 in 2.1 s, fastest production sedan EVER",
+      "Supercharger network — the best charging infrastructure",
+      "OTA updates — car improves over time",
+      "Massive boot — 793 l + frunk"
+    ],
+    "cons": [
+      "Build quality — Tesla quality control is inconsistent",
+      "Yoke steering wheel (refresh) — polarizing",
+      "Very heavy — 2,162 kg",
+      "Pre-refresh (2012-2020) had many issues — door handles, MCU, etc.",
+      "No physical buttons — everything through 17-inch screen"
+    ],
+    "vehicleFaults": [
+      {
+        "issue": "Pre-refresh door handle mechanism failure",
+        "severity": "high"
+      },
+      {
+        "issue": "MCU1 screen failure on pre-2018 cars",
+        "severity": "critical"
+      },
+      {
+        "issue": "12V battery drain",
+        "severity": "medium"
+      },
+      {
+        "issue": "Suspension noise — air suspension compressor on older cars",
+        "severity": "medium"
+      },
+      {
+        "issue": "Panel gaps and fit/finish",
+        "severity": "medium"
+      }
+    ],
+    "maxPowerKw": 760,
+    "minPowerKw": 493
+  }
+]

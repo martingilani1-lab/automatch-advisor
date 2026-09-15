@@ -18,7 +18,7 @@ const ORIGIN_FLAGS: Record<string, string> = {
 // TYPES
 // ════════════════════════════════════════════════════════════
 
-interface CarData {
+export interface CarData {
   id: string; make: string; model: string; gen: string; years: string;
   yearTo?: number; body: string; segment?: string; fuel: string[]; seats?: number; boot?: number;
   bootMax?: number; origin?: string; originFlag?: string;
@@ -42,8 +42,8 @@ interface CarData {
   pros?: string[]; cons?: string[]; consumptionByFuel?: Record<string, number> | null;
   powerByFuel?: Record<string, number> | null;
 }
-interface ScoredCar { car: CarData; score: number; isBest: boolean }
-type Answers = Record<string, string | string[]>;
+export interface ScoredCar { car: CarData; score: number; isBest: boolean }
+export type Answers = Record<string, string | string[]>;
 
 // ════════════════════════════════════════════════════════════
 // VEHICLE FETCH — same fetch+transform pattern as app/api/cars/route.ts
@@ -929,7 +929,7 @@ function scoreCar(car: CarData, a: Answers): number {
   return Math.max(1, Math.min(200, Math.round(weighted + bonus)));
 }
 
-function calcResults(DB: CarData[], a: Answers): ScoredCar[] {
+export function calcResults(DB: CarData[], a: Answers): ScoredCar[] {
   const raw = DB.map((car) => ({ car: norm(car), score: scoreCar(car, a), isBest: false }));
   const valid = raw.filter((s) => s.score > 0);
   if (valid.length === 0) return [];
