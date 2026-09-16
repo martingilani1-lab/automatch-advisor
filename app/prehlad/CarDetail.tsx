@@ -4,10 +4,39 @@ import { useMemo, useState } from "react";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, isGsr2Era, REL_COLORS, REL_RANK, REL_SCALE_TITLE, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyTransmissionTypes, TRANSMISSION_TYPES } from "@/app/lib/carFilters";
-import type { DetailData, DetailEngine, DetailTransmission, SafetyFeature } from "./types";
+import type { DetailData, DetailEngine, DetailTransmission, DetailDrivetrainSystem, SafetyFeature } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 const SEVERITY_COLORS: Record<string, string> = { Critical: "#f44336", High: "#ff9800", Medium: "#e8ff47", Low: "#4caf50" };
+
+// Human labels for drivetrain_systems.type (the frozen CHECK vocabulary —
+// haldex/torsen/permanent/on_demand/dual_motor). Kept local to this file
+// rather than carFilters.ts deliberately: carFilters.ts already owns an
+// unrelated "drivetrain" concept (car.drivetrains — AWD/FWD/RWD, from
+// engines.drivetrain, driving the existing drivetrain filter/?drivetrain=
+// param). This is the physical AWD/4WD hardware system, a different axis
+// entirely — hence DetailDrivetrainSystem/drivetrainSystem naming throughout,
+// never bare "drivetrain", to keep the two concepts from colliding in code.
+const DRIVETRAIN_TYPE_LABELS: Record<string, string> = {
+  haldex: "Haldex-type coupling",
+  torsen: "Torsen mechanical diff",
+  permanent: "Permanent / full-time",
+  on_demand: "On-demand coupling",
+  dual_motor: "Dual-motor (electric)",
+};
+// Flat informational color for the type badge — unlike REL_COLORS, system
+// type isn't a good/bad spectrum, so every type gets the same neutral accent.
+const DT_TYPE_COLOR = "#8ab4f8";
+
+// One drivetrain_systems row this car's transmissions resolve to, deduped by
+// code (see CarDetail's drivetrainGroups below) plus which transmission
+// variant(s) map to it — most cars have exactly one group covering every
+// paired transmission row; a handful (e.g. VW Amarok: manual -> selectable_4wd,
+// ZF 8HP auto -> quattro_torsen) have more than one, hence `variants`.
+interface DrivetrainGroup {
+  system: DetailDrivetrainSystem;
+  variants: string[];
+}
 
 // Splits a maintenance_note prose string into per-sentence bullets, at RENDER
 // time only — the stored text (and the DB) are never touched. Splits on a
@@ -213,6 +242,74 @@ function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTrans
   );
 }
 
+// Mirrors TransmissionAccordion's structure/classes closely — same eng-hdr/
+// eng-tags/cgrid/maint-card pattern, no new CSS. One card per distinct
+// drivetrain system this car resolves to (see drivetrainGroups in CarDetail);
+// `showVariants` is true only when the car has more than one distinct system,
+// so the single-system common case doesn't show a redundant "applies to"
+// line naming every transmission variant.
+function DrivetrainAccordion({ group, showVariants, isOpen, onToggle }: { group: DrivetrainGroup; showVariants: boolean; isOpen: boolean; onToggle: () => void }) {
+  const { system, variants } = group;
+  const typeLabel = DRIVETRAIN_TYPE_LABELS[system.type] || cap(system.type);
+  const [maintOpen, setMaintOpen] = useState(false);
+  return (
+    <div className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+      <div className="eng-hdr">
+        <div className="eng-left">
+          <span className="eng-name">{system.generation || system.code}</span>
+          <div className="eng-tags">
+            <span className="eng-badge" style={{ background: DT_TYPE_COLOR + "22", color: DT_TYPE_COLOR, border: `1px solid ${DT_TYPE_COLOR}44` }}>{typeLabel}</span>
+            {system.maker && <span className="cfuel-tag">{system.maker}</span>}
+            <span className="cfuel-tag" style={{ fontFamily: "monospace" }}>{system.code}</span>
+          </div>
+        </div>
+        <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+      </div>
+      {isOpen && (
+        <div className="eng-body">
+          <div className="cgrid">
+            {/* Mirrors TransmissionAccordion's maintenance click-to-expand
+                tile exactly, same stopPropagation reasoning (this tile sits
+                inside the outer .tx-card, which toggles the whole accordion
+                on click). Falls back to a bare "—" tile when there's no
+                authored maintenance_note — defensive only, every catalogue
+                row has one, but a future system added without one must
+                degrade gracefully rather than show a dead toggle. */}
+            {system.maintenance_note ? (
+              <div
+                className="cgrid-item cgrid-item-btn"
+                onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
+              >
+                <div className="cgrid-val">{"🔧"} Maintenance {maintOpen ? "▴" : "▾"}</div>
+              </div>
+            ) : (
+              <div className="cgrid-item">
+                <div className="cgrid-label">Maintenance</div>
+                <div className="cgrid-val">{"—"}</div>
+              </div>
+            )}
+          </div>
+          {maintOpen && system.maintenance_note && (
+            <div className="maint-card">
+              {splitSentences(system.maintenance_note).map((s, si) => (
+                <div key={si} className="maint-item">{s}</div>
+              ))}
+            </div>
+          )}
+          {system.description && <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 4 }}>{system.description}</div>}
+          {showVariants && variants.length > 0 && (
+            <div style={{ fontSize: ".72rem", color: "#6b6b72", marginBottom: 8 }}>Applies to: {variants.join(", ")}</div>
+          )}
+          {system.reliability_note && (<>
+            <div className="sub-label">{"⚠️"} Reliability</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5 }}>{system.reliability_note}</div>
+          </>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Mirrors EngineAccordion/TransmissionAccordion exactly — same classes, no
 // new CSS. Reused for both mandated rows (fixed "GSR2-mandated" badge, every
 // row carries the same guarantee) and beyond-baseline rows (badge reflects
@@ -261,6 +358,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
   const [activeTabState, setActiveTabState] = useState<string | null>(null);
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
   const [openTrans, setOpenTrans] = useState<Record<number, boolean>>({});
+  const [openDrivetrain, setOpenDrivetrain] = useState<Record<number, boolean>>({});
   const [openSafety, setOpenSafety] = useState<Record<string, boolean>>({});
 
   // GSR2-mandated features are never stored per-car (STRUCTURE DECISION, see
@@ -344,9 +442,32 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
     return all.filter((e) => fuelFilter.some((sel) => matchesFuelOption(e.fuel_type, sel)));
   }, [detail, fuelFilter]);
 
+  // Dedupe this car's paired transmission rows by drivetrain_systems.code —
+  // most cars have every row resolve to the same system (one group); a
+  // handful (e.g. Amarok) have rows resolving to genuinely different systems
+  // (multiple groups). Unpaired rows (drivetrainSystem null) are skipped
+  // entirely rather than shown as an empty/unknown group.
+  const drivetrainGroups = useMemo<DrivetrainGroup[]>(() => {
+    const groups: DrivetrainGroup[] = [];
+    const byCode = new Map<string, DrivetrainGroup>();
+    for (const t of detail?.t ?? []) {
+      if (!t.drivetrainSystem) continue;
+      const existing = byCode.get(t.drivetrainSystem.code);
+      if (existing) {
+        existing.variants.push(t.type);
+      } else {
+        const group: DrivetrainGroup = { system: t.drivetrainSystem, variants: [t.type] };
+        byCode.set(t.drivetrainSystem.code, group);
+        groups.push(group);
+      }
+    }
+    return groups;
+  }, [detail]);
+
   const tabs: TabDef[] = [];
   if (filteredEngines.length > 0) tabs.push({ id: "engines", label: "Engines", count: filteredEngines.length });
   if ((detail?.t.length ?? 0) > 0) tabs.push({ id: "transmissions", label: "Transmissions", count: detail!.t.length });
+  if (drivetrainGroups.length > 0) tabs.push({ id: "drivetrain", label: "Drivetrain System", count: drivetrainGroups.length });
   if ((detail?.q.length ?? 0) > 0) tabs.push({ id: "equipment", label: "Equipment", count: detail!.q.length });
   if ((detail?.c.length ?? 0) > 0) tabs.push({ id: "faults", label: "Common faults", count: detail!.c.length });
   // Always present — stars/adult/child/ped/assist/ncapYear come straight off
@@ -447,6 +568,20 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
                 <TransmissionAccordion key={i} trans={t} isOpen={!!openTrans[i]} onToggle={() => setOpenTrans((p) => ({ ...p, [i]: !p[i] }))} />
               ))
             )}
+          </div>
+        )}
+
+        {activeTab === "drivetrain" && (
+          <div className="mp-section">
+            {drivetrainGroups.map((g, i) => (
+              <DrivetrainAccordion
+                key={g.system.code}
+                group={g}
+                showVariants={drivetrainGroups.length > 1}
+                isOpen={!!openDrivetrain[i]}
+                onToggle={() => setOpenDrivetrain((p) => ({ ...p, [i]: !p[i] }))}
+              />
+            ))}
           </div>
         )}
 

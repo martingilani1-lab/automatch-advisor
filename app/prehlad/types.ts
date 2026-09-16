@@ -29,6 +29,22 @@ export interface DetailTransmissionUnit {
   maintenance_note: string | null;
 }
 
+// The drivetrain_systems row this transmission is linked to (drivetrain-
+// display phase) — the physical AWD/4WD hardware system (Haldex, Torsen,
+// etc.), distinct from car.drivetrains (AWD/FWD/RWD, from engines.drivetrain)
+// used by the existing drivetrain filter — see CarDetail.tsx for the naming
+// note. null if this transmission row has no drivetrain_id (2WD-only car, or
+// one of the 5 intentionally-unpaired AWD rows).
+export interface DetailDrivetrainSystem {
+  code: string;
+  type: string;
+  generation: string | null;
+  maker: string | null;
+  description: string | null;
+  reliability_note: string | null;
+  maintenance_note: string | null;
+}
+
 export interface DetailTransmission {
   type: string;
   trans_type: string;
@@ -41,6 +57,7 @@ export interface DetailTransmission {
   pros: string[];
   cons: string[];
   unit: DetailTransmissionUnit | null;
+  drivetrainSystem: DetailDrivetrainSystem | null;
 }
 
 export interface DetailFault {

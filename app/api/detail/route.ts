@@ -18,7 +18,13 @@ export async function POST(req: NextRequest) {
       // existing per-car columns. PostgREST returns the embed as a single
       // object (to-one, via transmissions.unit_id -> transmission_units.id),
       // null if unit_id is somehow unset.
-      supabase.from("transmissions").select("*, transmission_units(code, family, reliability_note, maintenance_note)").eq("vehicle_id", vehicleId),
+      //
+      // Also embeds drivetrain_systems via the separate drivetrain_id FK
+      // (drivetrain-display phase) — same to-one embed shape, unrelated FK,
+      // no ambiguity since only one FK links transmissions -> drivetrain_systems.
+      // Only 243/594 rows are paired (see the drivetrain-pairing migrations);
+      // the rest resolve to null, same as an unset unit_id above.
+      supabase.from("transmissions").select("*, transmission_units(code, family, reliability_note, maintenance_note), drivetrain_systems(code, type, generation, maker, description, reliability_note, maintenance_note)").eq("vehicle_id", vehicleId),
       supabase.from("vehicles").select("*").eq("id", vehicleId).single(),
       // Presence-only per-car beyond-baseline rows (Step 2). Table may not
       // exist yet if the vehicle_safety_features migration hasn't been run
@@ -76,6 +82,20 @@ export async function POST(req: NextRequest) {
           family: t.transmission_units.family,
           reliability_note: t.transmission_units.reliability_note || null,
           maintenance_note: t.transmission_units.maintenance_note || null,
+        } : null,
+        // drivetrain-display phase — flat per-row mapping, mirrors `unit`
+        // above exactly. null for the 351/594 rows with no drivetrain_id
+        // (2WD-only cars, plus the 5 intentionally-unpaired AWD rows) —
+        // degrades gracefully, no error. Grouping/dedup by code across a
+        // car's rows happens client-side in CarDetail.tsx, not here.
+        drivetrainSystem: t.drivetrain_systems ? {
+          code: t.drivetrain_systems.code,
+          type: t.drivetrain_systems.type,
+          generation: t.drivetrain_systems.generation || null,
+          maker: t.drivetrain_systems.maker || null,
+          description: t.drivetrain_systems.description || null,
+          reliability_note: t.drivetrain_systems.reliability_note || null,
+          maintenance_note: t.drivetrain_systems.maintenance_note || null,
         } : null,
       })),
 
