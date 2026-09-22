@@ -22,7 +22,7 @@ Exact resolved versions (from `package-lock.json` — `next` and `react`/`react-
 | eslint | 9.39.4 |
 | eslint-config-next | 16.2.7 (kept in lockstep with `next`) |
 
-No state library beyond React's own `useState`/`useMemo` (no Redux/Zustand/Jotai/Context for app state). No test framework configured — no jest/vitest/playwright, no test script. Package manager is npm (`package-lock.json`, lockfileVersion 3) — don't introduce a second lockfile (yarn.lock/pnpm-lock.yaml).
+No state library beyond React's own `useState`/`useMemo` (no Redux/Zustand/Jotai/Context for app state). Test framework: vitest, scoped to a scoring-regression snapshot suite (see Commands). Package manager is npm (`package-lock.json`, lockfileVersion 3) — don't introduce a second lockfile (yarn.lock/pnpm-lock.yaml).
 
 ## Commands
 
@@ -30,8 +30,7 @@ No state library beyond React's own `useState`/`useMemo` (no Redux/Zustand/Jotai
 - `npm run build` — production build
 - `npm run start` — run the production build
 - `npm run lint` — ESLint (flat config in `eslint.config.mjs`, extends `eslint-config-next` core-web-vitals + typescript)
-
-There is no test suite/framework configured in this repo.
+- `npm test` — vitest, runs `tests/recommend.scoring.test.ts` (snapshots `calcResults` scoring output for 5 of the 20 `scripts/score-audit-profiles.json` profiles against frozen fixture cars). Run this after any DB write to confirm scoring hasn't shifted (see Supabase/data-access rules).
 
 Environment variables (in `.env.local`, gitignored) required for the app to function: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. In practice every route handler uses the **service-role key** server-side (see Supabase/data-access rules below) — the anon key is present in the env but not currently read by any route handler.
 
@@ -75,7 +74,7 @@ When changing recommendation behavior, edit the pipeline in `app/api/recommend/r
 - **New shared accessor/predicate** (used by both `page.tsx` and `/prehlad`, or reusable across `/prehlad` components): `app/lib/carFields.ts` (display/derivation off `CarData`) or `app/lib/carFilters.ts` (filter-matching predicates + `FilterOption` shapes) — follow whichever of the two the new function is closer to, don't create a third general-purpose lib file without a reason.
 - **New quiz-only logic**: stays inline in `page.tsx` unless it's genuinely shared with `/prehlad`, matching the existing duplication convention noted above (`getResaleRelevance`, `getConsumptionForFuel`, `faultRelevant`).
 - **New DB table**: a new file under `supabase/migrations/`, timestamp-prefixed (`YYYYMMDDHHMMSS_description.sql`), written for review — **never run it yourself**, the user runs migrations (see Supabase/data-access rules). Follow the existing frozen-vocabulary `CHECK` constraint pattern for any enum-like column (see `transmission_units.family`, `safety_features.category`).
-- **New one-off data-authoring/backfill task**: `scripts/`, plain Node/TS, generate reviewable `.sql` to a file — never execute it against the DB yourself, same discipline as migrations.
+- **New one-off data-authoring/backfill task**: `scripts/`, plain Node/TS, generate reviewable `.sql` to a file first. A pure additive `INSERT` seed MAY be executed via the Supabase MCP once the user has reviewed the file; anything touching `UPDATE`/`DELETE`/`ALTER`/schema stays file-only for the user to run (see Supabase/data-access rules).
 
 ## TypeScript & coding conventions
 
@@ -112,7 +111,11 @@ When changing recommendation behavior, edit the pipeline in `app/api/recommend/r
   ```
   Never let a raw Supabase error reach the client. The fallback shape must still type-check as valid output (`[]` for array endpoints, a fully-keyed-but-empty object for `detail`) — never `null`/`undefined`.
 - A missing/not-yet-migrated table degrades gracefully via `.data || []`, not an explicit error check — e.g. `/api/detail`'s `vehicle_safety_features` query assumes a possibly-missing table just means "no rows" (every safety feature reads as unavailable) rather than a 500. Follow this pattern for any query against a table that might not exist yet in every environment.
-- **Migrations and generated SQL are always written to a file for review — never run by the agent.** This has been the discipline for every migration and every data-authoring script in this repo's history; the user reviews and runs them. Do not call any tool or write any script that executes DDL/DML against Supabase directly, even if asked to "just apply it" — write the file and say so.
+- **The Supabase MCP server is live (read-write) and connected.** DB-access rules now split by what the SQL *does*, not a blanket no-execute rule:
+  - **Reads MAY run directly via MCP, and should.** Prefer querying live state (row counts, schema, spot-checking data) over inferring it from migration files, which may not have been run yet or may have drifted from what actually executed.
+  - **Additive `INSERT` seeds MAY be executed via MCP — but only after the user has reviewed the file.** Write the seed to `supabase/migrations/` (or via the `scripts/` CSV→SQL flow) exactly as before, get explicit sign-off on that file, then run it through MCP. Never execute a seed the user hasn't seen yet, even if asked to skip the review step.
+  - **Destructive or schema-changing SQL is still file-only, agent-never-executes — this gate does not move.** `DROP`, `DELETE`, `TRUNCATE`, `ALTER` (including new `CREATE TABLE` migrations), and `UPDATE` against existing hand-authored data all stay in a reviewable file for the user to run themselves. Do not call the MCP server (or any other tool) to execute these, even if asked to "just apply it."
+  - **After any write executed via MCP, run `npm test`** to confirm scoring hasn't shifted before reporting the write as done.
 - Frozen-vocabulary `CHECK` constraints (see `transmission_units.family`, `safety_features.category`, `drivetrain_systems.type`) are a deliberate closed-list pattern — if a new value is genuinely needed, that's a real migration (`ALTER TABLE ... DROP/ADD CONSTRAINT`), not a schema-less free-text column. Don't relax a `CHECK` constraint to "make an insert work" without flagging it.
 - Presence-only junction tables (`vehicle_safety_features` is the existing example) store *only* positive facts — a row means "this car has this," and absence means "not available." Never add an explicit negative/false row to a table using this pattern.
 
