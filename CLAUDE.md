@@ -119,6 +119,24 @@ When changing recommendation behavior, edit the pipeline in `app/api/recommend/r
 - Frozen-vocabulary `CHECK` constraints (see `transmission_units.family`, `safety_features.category`, `drivetrain_systems.type`) are a deliberate closed-list pattern — if a new value is genuinely needed, that's a real migration (`ALTER TABLE ... DROP/ADD CONSTRAINT`), not a schema-less free-text column. Don't relax a `CHECK` constraint to "make an insert work" without flagging it.
 - Presence-only junction tables (`vehicle_safety_features` is the existing example) store *only* positive facts — a row means "this car has this," and absence means "not available." Never add an explicit negative/false row to a table using this pattern.
 
+## Adding a new car / model
+
+The repeatable process for seeding a new car into the `catalog_` schema (`catalog_brands` → `catalog_models` → `catalog_phases` → `catalog_vehicle_configurations`, referencing `catalog_engines`/`catalog_transmissions`/`transmission_units`/`drivetrain_systems`), given a full spec: phases, configs, engines w/ codes, transmissions w/ codes, drivetrain, faults, trims + equipment.
+
+1. **Dictionary reconcile (reuse before create).** For every engine, transmission, and drivetrain system in the spec, query the LIVE DB via MCP (read-only) and resolve REUSE vs CREATE — never infer reuse-vs-create from migration files on disk, which can be stale or not yet run against the live DB:
+   - Engine: `(code, power_kw)` both match an existing `catalog_engines` row → REUSE that id. Else CREATE.
+   - Transmission: `code` matches an existing `catalog_transmissions` row → REUSE. Else CREATE.
+   - Drivetrain system: `code` matches an existing `drivetrain_systems` row → REUSE. Else CREATE.
+
+   Report a REUSE/CREATE table before writing any seed. Never create a second row for something that already exists — resolve every FK to the existing id via its code (subquery/CTE), never a hand-typed UUID.
+
+2. **Seed.** Write to a review-only migration file:
+   - `catalog_brands`/`catalog_models`: reuse if a name match exists, else create.
+   - `catalog_phases`, `catalog_vehicle_configurations`, `catalog_trims`, `catalog_trim_features`, `catalog_component_faults`: always new per car — resolve every FK (engine by `(code, power_kw)`, transmission/drivetrain by `code`) to the dictionary entry, reused or newly created.
+   - Additive `INSERT`s may run via MCP once reviewed (per Supabase/data-access rules above); any `DELETE`/destructive step stays file-only for the user to run.
+
+3. **Verify.** After the seed runs, query the live DB and confirm: row counts match expectations, and no duplicate dictionary rows exist — count grouped by engine `(code, power_kw)` and by transmission `code` must be 1 each.
+
 ## Spec vs. current state — DO NOT auto-correct
 
 These look like inconsistencies or magic numbers at a glance. They are deliberate. Do not "fix," refactor, or align them with what seems more idiomatic without being explicitly asked.
