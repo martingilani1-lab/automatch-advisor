@@ -124,8 +124,8 @@ When changing recommendation behavior, edit the pipeline in `app/api/recommend/r
 The repeatable process for seeding a new car into the `catalog_` schema (`catalog_brands` → `catalog_models` → `catalog_phases` → `catalog_vehicle_configurations`, referencing `catalog_engines`/`catalog_transmissions`/`transmission_units`/`drivetrain_systems`), given a full spec: phases, configs, engines w/ codes, transmissions w/ codes, drivetrain, faults, trims + equipment.
 
 1. **Dictionary reconcile (reuse before create).** For every engine, transmission, and drivetrain system in the spec, query the LIVE DB via MCP (read-only) and resolve REUSE vs CREATE — never infer reuse-vs-create from migration files on disk, which can be stale or not yet run against the live DB:
-   - Engine: `(code, power_kw)` both match an existing `catalog_engines` row → REUSE that id. Else CREATE.
-   - Transmission: `code` matches an existing `catalog_transmissions` row → REUSE. Else CREATE.
+   - Engine: `(code, power_kw)` matches an existing `catalog_engines` row on EITHER the primary `code` OR anywhere in `alt_codes` → REUSE that id. Else CREATE. An engine already in the DB under an alt code must be reused, not duplicated under what looks like a "new" code.
+   - Transmission: match by the real gearbox family/code (e.g. `02J`, `MQ250`, `DQ200`) → REUSE. **Never match by speed count alone** — a "5-speed manual" is not evidence it's the same unit as another 5-speed manual already in the DB (the Octavia I 1U case: the real code is `02J`, not `MQ200`/`MQ250`, despite matching speed counts). If the real code doesn't match, it's CREATE, even if the speeds do.
    - Drivetrain system: `code` matches an existing `drivetrain_systems` row → REUSE. Else CREATE.
 
    Report a REUSE/CREATE table before writing any seed. Never create a second row for something that already exists — resolve every FK to the existing id via its code (subquery/CTE), never a hand-typed UUID.
