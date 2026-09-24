@@ -133,9 +133,13 @@ The repeatable process for seeding a new car into the `catalog_` schema (`catalo
 2. **Seed.** Write to a review-only migration file:
    - `catalog_brands`/`catalog_models`: reuse if a name match exists, else create.
    - `catalog_phases`, `catalog_vehicle_configurations`, `catalog_trims`, `catalog_trim_features`, `catalog_component_faults`: always new per car — resolve every FK (engine by `(code, power_kw)`, transmission/drivetrain by `code`) to the dictionary entry, reused or newly created.
-   - Additive `INSERT`s may run via MCP once reviewed (per Supabase/data-access rules above); any `DELETE`/destructive step stays file-only for the user to run.
+   - **Populate the attribute columns too — a seed that only creates the structure is incomplete.** `catalog_models`: `segment`, `origin_country` (lowercase, e.g. `'german'`). `catalog_phases`: NCAP fields (`safety_rating`, `ncap_year`, `ncap_adult_pct`, `ncap_child_pct`, `ncap_pedestrian_pct`, `ncap_safety_assist_pct`), dimensions/weight (`length_mm`, `width_mm`, `height_mm`, `curb_weight_kg`, `ground_clearance_mm`), boot (`boot_capacity_liters`, `boot_max_liters`), `seats_count`, `towing_capacity_kg`, prices (`avg_market_price_eur`, `price_range_min_eur`, `price_range_max_eur`), `typical_mileage_range`, `resale_value_rating`.
+     - **Source:** if the car has a row in the old `vehicles` table (query it via MCP, read-only), copy from that row. If it is genuinely new, author the values fresh — never invent numbers; leave unknowns NULL (NCAP, boot and towing nulls are legitimate).
+     - **Both phases of a generation get the SAME NCAP/dimension values.** The old table is one row per generation, so pre-facelift and facelift carry identical values until a facelift re-test/spec is authored — that is expected, not a copy-paste bug.
+     - Column-name mapping: old `typical_milage_range` (sic) → new `typical_mileage_range`. There is no `body_type` on the phase — body is carried per configuration by `body_type_id`.
+   - Additive `INSERT`s may run via MCP once reviewed (per Supabase/data-access rules above); any `DELETE`/destructive step stays file-only for the user to run. Populating these columns on already-existing model/phase rows is an `UPDATE` of existing data, so it stays file-only unless the columns are still NULL and the user has reviewed it.
 
-3. **Verify.** After the seed runs, query the live DB and confirm: row counts match expectations, and no duplicate dictionary rows exist — count grouped by engine `(code, power_kw)` and by transmission `code` must be 1 each.
+3. **Verify.** After the seed runs, query the live DB and confirm: row counts match expectations, and no duplicate dictionary rows exist — count grouped by engine `(code, power_kw)` and by transmission `code` must be 1 each. Also confirm the model's `segment`/`origin_country` and each phase's attribute columns are populated (only legitimately-unknown ones NULL).
 
 ## Spec vs. current state — DO NOT auto-correct
 
