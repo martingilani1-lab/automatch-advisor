@@ -119,27 +119,20 @@ When changing recommendation behavior, edit the pipeline in `app/api/recommend/r
 - Frozen-vocabulary `CHECK` constraints (see `transmission_units.family`, `safety_features.category`, `drivetrain_systems.type`) are a deliberate closed-list pattern — if a new value is genuinely needed, that's a real migration (`ALTER TABLE ... DROP/ADD CONSTRAINT`), not a schema-less free-text column. Don't relax a `CHECK` constraint to "make an insert work" without flagging it.
 - Presence-only junction tables (`vehicle_safety_features` is the existing example) store *only* positive facts — a row means "this car has this," and absence means "not available." Never add an explicit negative/false row to a table using this pattern.
 
-## Adding a new car / model
+## Adding a new car / model — RULES
 
-The repeatable process for seeding a new car into the `catalog_` schema (`catalog_brands` → `catalog_models` → `catalog_phases` → `catalog_vehicle_configurations`, referencing `catalog_engines`/`catalog_transmissions`/`transmission_units`/`drivetrain_systems`), given a full spec: phases, configs, engines w/ codes, transmissions w/ codes, drivetrain, faults, trims + equipment.
+Guardrails that must always hold when seeding a car into the `catalog_` schema. The step-by-step mechanics live in the `import-car` skill (`.claude/skills/import-car/SKILL.md`); these rules apply regardless of which steps are followed.
 
-1. **Dictionary reconcile (reuse before create).** For every engine, transmission, and drivetrain system in the spec, query the LIVE DB via MCP (read-only) and resolve REUSE vs CREATE — never infer reuse-vs-create from migration files on disk, which can be stale or not yet run against the live DB:
-   - Engine: `(code, power_kw)` matches an existing `catalog_engines` row on EITHER the primary `code` OR anywhere in `alt_codes` → REUSE that id. Else CREATE. An engine already in the DB under an alt code must be reused, not duplicated under what looks like a "new" code.
-   - Transmission: match by the real gearbox family/code (e.g. `02J`, `MQ250`, `DQ200`) → REUSE. **Never match by speed count alone** — a "5-speed manual" is not evidence it's the same unit as another 5-speed manual already in the DB (the Octavia I 1U case: the real code is `02J`, not `MQ200`/`MQ250`, despite matching speed counts). If the real code doesn't match, it's CREATE, even if the speeds do.
-   - Drivetrain system: `code` matches an existing `drivetrain_systems` row → REUSE. Else CREATE.
+1. **Reconcile before create.** Query the LIVE DB for every engine, transmission and drivetrain system before writing any seed — via the Supabase MCP, or, if MCP is unavailable, the human queries and pastes the result. Reuse by code; never create a duplicate. Never infer DB state from migration files (they may not have been run, or may have drifted).
+2. **Matching keys.** Engine = `(code, power_kw)`, and also check `alt_codes`. Transmission = the real gearbox code (`02J`, `MQ250`, `DQ200`) — **NEVER speed count** (a "5-speed manual" is not evidence of the same unit). Drivetrain system = `code`.
+3. **Split engines when they genuinely differ.** Emissions generation (Euro 2 vs Euro 3) or hardware generation (turbo type, etc.) means separate rows with distinct primary codes; `alt_codes` is only for alternate codes of the *same* unit.
+4. **Only real configurations.** Never seed a body × engine × transmission × drivetrain combination that did not exist from the factory.
+5. **Destructive ops stay human-run.** `DROP`, `DELETE`, `UPDATE` of existing data and column moves go in ONE transaction with a verify-before-drop step, written to a review-only file, run by the human. Never auto-executed (see Supabase/data-access rules). Additive `INSERT` seeds may run via MCP only after the human has reviewed the file.
+6. **Run each migration in a FRESH SQL editor tab.** A stale or uncommitted transaction in an old tab silently swallows writes — "Success, no rows returned" with the data missing means an uncommitted transaction, not a no-op.
+7. **NULL over invention.** An unknown attribute stays NULL. Never fabricate NCAP percentages, specs, dimensions, prices or configurations.
+8. **When MCP is down, the human is the source of truth on live DB state.** Do not claim a migration "ran" or "did not run" from the files on disk.
 
-   Report a REUSE/CREATE table before writing any seed. Never create a second row for something that already exists — resolve every FK to the existing id via its code (subquery/CTE), never a hand-typed UUID.
-
-2. **Seed.** Write to a review-only migration file:
-   - `catalog_brands`/`catalog_models`: reuse if a name match exists, else create.
-   - `catalog_phases`, `catalog_vehicle_configurations`, `catalog_trims`, `catalog_trim_features`, `catalog_component_faults`: always new per car — resolve every FK (engine by `(code, power_kw)`, transmission/drivetrain by `code`) to the dictionary entry, reused or newly created.
-   - **Populate the attribute columns too — a seed that only creates the structure is incomplete.** `catalog_models`: `segment`, `origin_country` (lowercase, e.g. `'german'`). `catalog_phases`: NCAP fields (`safety_rating`, `ncap_year`, `ncap_adult_pct`, `ncap_child_pct`, `ncap_pedestrian_pct`, `ncap_safety_assist_pct`), dimensions/weight (`length_mm`, `width_mm`, `height_mm`, `curb_weight_kg`, `ground_clearance_mm`), boot (`boot_capacity_liters`, `boot_max_liters`), `seats_count`, `towing_capacity_kg`, prices (`avg_market_price_eur`, `price_range_min_eur`, `price_range_max_eur`), `typical_mileage_range`, `resale_value_rating`.
-     - **Source:** if the car has a row in the old `vehicles` table (query it via MCP, read-only), copy from that row. If it is genuinely new, author the values fresh — never invent numbers; leave unknowns NULL (NCAP, boot and towing nulls are legitimate).
-     - **Both phases of a generation get the SAME NCAP/dimension values.** The old table is one row per generation, so pre-facelift and facelift carry identical values until a facelift re-test/spec is authored — that is expected, not a copy-paste bug.
-     - Column-name mapping: old `typical_milage_range` (sic) → new `typical_mileage_range`. There is no `body_type` on the phase — body is carried per configuration by `body_type_id`.
-   - Additive `INSERT`s may run via MCP once reviewed (per Supabase/data-access rules above); any `DELETE`/destructive step stays file-only for the user to run. Populating these columns on already-existing model/phase rows is an `UPDATE` of existing data, so it stays file-only unless the columns are still NULL and the user has reviewed it.
-
-3. **Verify.** After the seed runs, query the live DB and confirm: row counts match expectations, and no duplicate dictionary rows exist — count grouped by engine `(code, power_kw)` and by transmission `code` must be 1 each. Also confirm the model's `segment`/`origin_country` and each phase's attribute columns are populated (only legitimately-unknown ones NULL).
+**Definition of a complete car:** every attribute area is *addressed* — filled where real data exists, NULL where genuinely unknown. "Complete" means nothing was skipped, NOT that every field is non-null (NULL is a valid honest answer per rule 7). A car is not done while any attribute area is entirely unconsidered.
 
 ## Spec vs. current state — DO NOT auto-correct
 
