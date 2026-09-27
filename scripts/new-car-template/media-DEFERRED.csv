@@ -1,0 +1,3 @@
+# DEFERRED / OPTIONAL. One row per image. phase_label + body_type identify where it attaches.
+# view_angle: front | rear | side | interior | dashboard.  is_main: true for the one hero image per phase+body.
+phase_label,body_type,image_url,view_angle,is_main

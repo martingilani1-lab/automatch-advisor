@@ -1,0 +1,5 @@
+# DEFERRED / OPTIONAL - fill in only if you have real per-config performance figures.
+# One row per config (must match a marked 'x' cell in a configs-*.csv grid): identify the config
+# by phase_label + the same column header (BODY|GEARBOX|DRIVETRAIN) + engine_code + power_kw.
+# Empty cell = genuinely unknown (NULL) - never estimate acceleration/consumption/CO2/EV figures.
+phase_label,body_gearbox_drivetrain,engine_code,power_kw,acceleration_0_100,top_speed_kmh,fuel_consumption_combined,co2_emissions_g_km,battery_capacity_net_kwh,ev_range_wltp_km,max_charging_kw_dc

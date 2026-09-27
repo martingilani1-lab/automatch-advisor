@@ -1,0 +1,18 @@
+# CONFIG GRID for ONE phase - rename this file to configs-<phase_label from phases.csv>.csv
+# (make one copy of this file per phase; delete/duplicate as needed).
+#
+# Rows = engine, identified by code+power_kw (must match a row in engines.csv).
+# Columns = one distinct body x gearbox x drivetrain combination that existed for THIS car.
+#   Column header format: BODY|GEARBOX|DRIVETRAIN
+#     BODY       = a body_type from dimensions.csv (e.g. Liftback, Estate, 3dr, 5dr)
+#     GEARBOX    = a transmission code from transmissions.csv (e.g. 02J, 09A)
+#     DRIVETRAIN = FWD or RWD for non-AWD, or the drivetrain_systems code for AWD (e.g. haldex_gen1)
+#   Example: 3dr|02J|FWD   5dr|09A|FWD   Estate|02M|haldex_gen1
+#
+# Mark 'x' ONLY in a cell where that exact combination really existed from the factory.
+# Leave a cell EMPTY if it did not exist - this makes both a missing real combo and a phantom
+# combo (one that never existed) visible, instead of silently omitted.
+#
+# Only two example columns are shown below - DELETE them and add your own real columns; the
+# number of real combinations varies per car and per phase.
+phase_label,engine_code,power_kw,3dr|02J|FWD,Estate|02M|haldex_gen1

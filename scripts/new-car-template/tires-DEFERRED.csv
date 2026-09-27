@@ -1,0 +1,3 @@
+# DEFERRED / OPTIONAL. One row per tire size fitted to a config (identify the config as in
+# performance-per-config-DEFERRED.csv). is_standard: true = factory-standard, false = optional upgrade.
+phase_label,body_gearbox_drivetrain,engine_code,power_kw,tire_size,is_standard

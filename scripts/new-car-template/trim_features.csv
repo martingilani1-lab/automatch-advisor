@@ -1,0 +1,3 @@
+# One row per feature per trim. phase_label + trim_name must match a row in trims.csv.
+# is_optional: false = standard on that trim, true = optional extra.
+phase_label,trim_name,feature,is_optional

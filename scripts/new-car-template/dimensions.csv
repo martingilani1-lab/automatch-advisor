@@ -1,0 +1,5 @@
+# One row per (phase x body) that actually existed - phase_label must match phases.csv exactly.
+# body_type is the catalog body-type name (check catalog_body_types live; e.g. Liftback, Estate -
+# only add a new body name here if it genuinely doesn't exist yet, and flag it as NEW in your notes).
+# Empty cell = genuinely unknown (NULL) - never invent a dimension.
+phase_label,body_type,length_mm,width_mm,height_mm,ground_clearance_mm,curb_weight_kg,boot_capacity_liters,boot_max_liters,gross_vehicle_weight_kg,payload_kg,fuel_tank_capacity_liters
