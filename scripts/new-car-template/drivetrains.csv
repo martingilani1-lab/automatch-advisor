@@ -1,0 +1,5 @@
+# OPTIONAL. One row per AWD/4x4 system this car uses, beyond plain FWD (which is always
+# included automatically by gen-config-grid.mjs). Leave this file empty/absent for an
+# FWD-only car. drivetrain_code must match an existing drivetrain_systems.code (e.g.
+# haldex_gen1) - check the live DB, don't guess a code.
+drivetrain_code
