@@ -1,10 +1,10 @@
 phase_label,name,tier
-Pre-facelift,Basis,1
-Pre-facelift,Trendline,2
-Pre-facelift,Comfortline,3
-Pre-facelift,Highline,4
-Facelift,Basis,1
-Facelift,Trendline,2
-Facelift,Comfortline,3
-Facelift,Highline,4
-# No GTI/R32 trim row, per your note - those are engine + config, not a trim level.
+Pre-facelift,Stella,1
+Pre-facelift,Signo,2
+Pre-facelift,Sport,3
+Pre-facelift,Top Sport,4
+Facelift,Stella,1
+Facelift,Signo,2
+Facelift,Sport,3
+Facelift,FR,4
+# No Cupra/Cupra R trim row, per convention - Cupra R (AMK/BAM) is engine+config, not a trim.
