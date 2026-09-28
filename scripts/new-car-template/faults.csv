@@ -1,8 +1,5 @@
-# Faults attach to a COMPONENT (engine or transmission), never to the car directly.
-# component_type: engine | transmission.
-# target_code = the engine or gearbox code. target_power_kw: REQUIRED for engines (code+power_kw
-#   is the real key - two engines can share a code prefix at different power); leave blank for transmissions.
-# A fault on a REUSED engine/transmission is visible on every car that uses it - check the live
-#   DB first so you don't duplicate a fault that's already recorded there.
-# severity e.g. critical | moderate. Give the exact, real fault text - never invent one.
 component_type,target_code,target_power_kw,fault,severity
+engine,AXP,55,"Piston ring wear leading to high oil consumption, and fatal engine freezing in winter due to crankcase breather condensation.",critical
+engine,AGZ,110,"Timing chain stretch and tensioner failure requiring complex engine removal to service.",critical
+engine,AQN,125,"Timing chain stretch and tensioner failure requiring complex engine removal to service.",critical
+transmission,09A,,"Failure of solenoid valves (N88, N89, N92) causing harsh shifting, missing gears, or complete loss of reverse. Reverse piston cracking is also common.",critical

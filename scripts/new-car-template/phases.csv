@@ -1,6 +1,4 @@
-# One row per phase (pre-facelift / facelift / ...). NCAP + market attributes are phase-level.
-# safety_rating: 1-5.  ncap_*_pct: 0-100.  resale_value_rating: holds_well | average | depreciates_fast
-# platform_code e.g. PQ34, PQ35, MQB.
-# If this car has an old row in the flat `vehicles` table, COPY its attributes here (real data).
-# If it's a genuinely new car, author these from a real source. Empty cell = genuinely unknown (NULL) - never invent.
 generation_code,phase_label,year_from,year_to,display_name,platform_code,safety_rating,ncap_year,ncap_adult_pct,ncap_child_pct,ncap_pedestrian_pct,ncap_safety_assist_pct,avg_market_price_eur,price_range_min_eur,price_range_max_eur,typical_mileage_range,resale_value_rating,seats_count,towing_capacity_kg
+1J,Pre-facelift,1997,2000,Golf IV Pre-facelift,PQ34,4,1998,,,,,1500,700,3000,280000-450000 km,depreciates_fast,5,1300
+1J,Facelift,2000,2006,Golf IV Facelift,PQ34,4,1998,,,,,2500,1000,5000,220000-380000 km,average,5,1300
+# Facelift year_to = 2006 (Variant ran to 2006) - confirmed, no longer tentative.

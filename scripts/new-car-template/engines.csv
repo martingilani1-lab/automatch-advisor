@@ -1,9 +1,29 @@
-# One row per engine. reuse_or_new: decide ONLY after checking the live DB.
-#   Engine match key = code + power_kw (also check whether the code appears in another engine's alt_codes).
-# For a REUSE row, code + power_kw is enough (the existing row is kept as-is) - other columns may be left blank.
-# For a NEW row, fill everything real; leave a cell blank if genuinely unknown.
-# alt_codes: pipe-separated alternate codes of the SAME physical unit (e.g. AZD|XYZ).
-#   An engine that differs by emissions generation (Euro2/Euro3) or hardware generation is a SEPARATE row with its own code - never folded into alt_codes.
-# fuel_type: petrol | diesel | electric | hybrid | phev | lpg.   timing_type: belt | chain | gear.   cylinders e.g. L4, V6.
-# emission_standard e.g. 'Euro 3'.
 reuse_or_new,code,alt_codes,display_name,displacement_cc,power_kw,fuel_type,torque_nm,cylinders,emission_standard,timing_type,engine_oil_capacity_liters,timing_replacement_km
+REUSE,AGU,,,,110,petrol,,,,,,
+REUSE,AUQ,,,,132,petrol,,,,,,
+REUSE,AXP,BCA|AHW,,,55,petrol,,,,,,
+REUSE,AGN,,,,92,petrol,,,,,,
+REUSE,AKL,,,,74,petrol,,,,,,
+REUSE,APK,,,,85,petrol,,,,,,
+REUSE,AGP,,,,50,diesel,,,,,,
+REUSE,AGR,,,,66,diesel,,,,,,
+REUSE,AHF,,,,81,diesel,,,,,,
+REUSE,ALH,,,,66,diesel,,,,,,
+REUSE,ASV,,,,81,diesel,,,,,,
+REUSE,AQM,,,,50,diesel,,,,,,
+REUSE,AZH,,,,85,petrol,,,,,,
+REUSE,ATD,,,,74,diesel,,,,,,
+REUSE,ASZ,,,,96,diesel,,,,,,
+REUSE,BFQ,,,,75,petrol,,,,,,
+NEW,AUS,AZD,1.6 16V (AUS),,77,petrol,148,L4,Euro 4,belt,3.2,90000
+NEW,AGZ,,2.3 V5 (AGZ),,110,petrol,205,V5,Euro 2,chain,4.6,
+NEW,AQN,,2.3 V5 (AQN),,125,petrol,220,V5,Euro 3,chain,4.6,
+NEW,AUE,BDE,2.8 V6 (AUE),,150,petrol,270,V6,Euro 3,chain,5.5,
+NEW,BFH,,3.2 VR6 R32 (BFH),,177,petrol,320,VR6,Euro 4,chain,5.5,
+NEW,AJM,,1.9 TDI PD (AJM),,85,diesel,285,L4,Euro 3,belt,4.3,90000
+NEW,ARL,,1.9 TDI PD (ARL),,110,diesel,320,L4,Euro 3,belt,4.3,90000
+# AXP alt_codes shows the RESULT after adding AHW (BCA|AHW) - existing live row only has {BCA};
+# adding AHW is an UPDATE of existing data, stays in the seed's human-run block, not an insert.
+# NEW rows' torque_nm/emission_standard/timing_type/oil/interval are now filled per spec.
+# timing_replacement_km is blank for the 3 chain engines (AGZ, AQN, AUE, BFH) same convention
+# as the earlier Octavia backfill (chain = no belt interval) - AUS/AJM/ARL are belt, filled.

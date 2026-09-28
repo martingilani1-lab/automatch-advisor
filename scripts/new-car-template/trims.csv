@@ -1,3 +1,10 @@
-# One row per trim per phase. tier = ordering, 1 = base trim. The same trim name may exist in
-# both phases with different features - list it once per phase (two rows).
 phase_label,name,tier
+Pre-facelift,Basis,1
+Pre-facelift,Trendline,2
+Pre-facelift,Comfortline,3
+Pre-facelift,Highline,4
+Facelift,Basis,1
+Facelift,Trendline,2
+Facelift,Comfortline,3
+Facelift,Highline,4
+# No GTI/R32 trim row, per your note - those are engine + config, not a trim level.

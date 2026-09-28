@@ -1,5 +1,10 @@
-# One row per (phase x body) that actually existed - phase_label must match phases.csv exactly.
-# body_type is the catalog body-type name (check catalog_body_types live; e.g. Liftback, Estate -
-# only add a new body name here if it genuinely doesn't exist yet, and flag it as NEW in your notes).
-# Empty cell = genuinely unknown (NULL) - never invent a dimension.
 phase_label,body_type,length_mm,width_mm,height_mm,ground_clearance_mm,curb_weight_kg,boot_capacity_liters,boot_max_liters,gross_vehicle_weight_kg,payload_kg,fuel_tank_capacity_liters
+Pre-facelift,Hatchback 3-door,4149,1735,1439,130,1175,330,1184,1710,535,55
+Pre-facelift,Hatchback 5-door,4149,1735,1439,130,1175,330,1184,1710,535,55
+Pre-facelift,Estate,4397,1735,1485,130,1275,460,1470,1810,535,55
+Facelift,Hatchback 3-door,4149,1735,1439,130,1175,330,1184,1710,535,55
+Facelift,Hatchback 5-door,4149,1735,1439,130,1175,330,1184,1710,535,55
+Facelift,Estate,4397,1735,1485,130,1275,460,1470,1810,535,55
+# "Hatchback 3-door" and "Hatchback 5-door" are NEW body types (catalog_body_types currently
+# only has Liftback, Estate). Estate is REUSE (post Combi->Estate rename, id
+# 4ef2b371-9f86-428d-b692-9ad0fa60e507 at last check).

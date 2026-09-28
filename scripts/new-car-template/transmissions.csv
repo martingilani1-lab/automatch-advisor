@@ -1,5 +1,7 @@
-# One row per gearbox. code = the REAL gearbox code (02J, MQ250, DQ200...).
-#   Match/reuse by this code ONLY - NEVER by speed count (a "5-speed manual" is not evidence of the same unit).
-# reuse_or_new: decide after checking the live DB by code.
-# type: manual | torque_converter | dct_dry | dct_wet | dct | cvt | amt | single_speed
 reuse_or_new,code,type,speeds
+REUSE,02J,manual,5
+REUSE,02K,manual,5
+REUSE,01M,torque_converter,4
+REUSE,02M,manual,6
+NEW,09A,torque_converter,5
+NEW,02E,dct_wet,6

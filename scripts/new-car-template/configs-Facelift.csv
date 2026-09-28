@@ -1,0 +1,17 @@
+phase_label,engine_code,power_kw,3dr|02K|FWD,5dr|02K|FWD,Estate|02K|FWD,3dr|01M|FWD,5dr|01M|FWD,Estate|01M|FWD,3dr|02J|FWD,5dr|02J|FWD,Estate|02J|FWD,3dr|02M|haldex_gen1,5dr|02M|haldex_gen1,Estate|02M|haldex_gen1,3dr|09A|FWD,5dr|09A|FWD,Estate|09A|FWD,3dr|02M|FWD,5dr|02M|FWD,Estate|02M|FWD,3dr|02E|haldex_gen1,5dr|02E|haldex_gen1
+Facelift,AXP,55,x,x,x,,,,,,,,,,,,,,,,,
+Facelift,AUS,77,x,x,x,,,,,,,,,,,,,,,,,
+Facelift,BFQ,75,,,,x,x,x,,,,,,,,,,,,,,
+Facelift,AZH,85,,,,x,x,x,x,x,x,,,,,,,,,,,
+Facelift,AQM,50,,,,,,,x,x,x,,,,,,,,,,,
+Facelift,ALH,66,,,,x,x,x,x,x,x,,,,,,,,,,,
+Facelift,ASV,81,,,,x,x,x,x,x,x,,,,,,,,,,,
+Facelift,ATD,74,,,,,,,x,x,x,x,x,x,x,x,x,,,,,
+Facelift,AJM,85,,,,,,,,,,x,x,x,,,,x,x,x,,
+Facelift,ASZ,96,,,,,,,,,,x,x,x,x,x,x,x,x,x,,
+Facelift,AQN,125,,,,,,,,,,,,,x,x,x,,,,,
+Facelift,AGU,110,,,,,,,x,x,,,,,x,x,x,,,,,
+Facelift,AUQ,132,,,,,,,x,x,,,,,,,,,,,,
+Facelift,ARL,110,,,,,,,x,x,,,,,,,,,,,,
+Facelift,AUE,150,,,,,,,,,,x,x,x,,,,,,,,
+Facelift,BFH,177,,,,,,,,,,x,x,,,,,,,,x,x

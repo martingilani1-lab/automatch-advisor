@@ -1,3 +1,2 @@
-# One row. Check the live DB first: reuse an existing brand/model row if one exists (don't recreate).
-# origin_country is lowercase ('german', 'czech'). Empty = genuinely unknown, never invent.
 brand,brand_country,model,segment,origin_country
+Volkswagen,Germany,Golf,C,german
