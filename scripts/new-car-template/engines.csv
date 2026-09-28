@@ -1,21 +1,10 @@
+# One row per engine. reuse_or_new: decide ONLY after checking the live DB (see
+# scripts/reconcile.mjs, or check manually).
+#   Engine match key = code + power_kw (also check whether the code appears in another engine's alt_codes).
+# For a REUSE row, code + power_kw is enough (the existing row is kept as-is) - other columns may be left blank.
+# For a NEW row, fill everything real; leave a cell blank if genuinely unknown.
+# alt_codes: pipe-separated alternate codes of the SAME physical unit (e.g. AZD|XYZ).
+#   An engine that differs by emissions generation (Euro2/Euro3) or hardware generation is a SEPARATE row with its own code - never folded into alt_codes.
+# fuel_type: petrol | diesel | electric | hybrid | phev | lpg.   timing_type: belt | chain | gear.   cylinders e.g. L4, V6.
+# emission_standard e.g. 'Euro 3'.
 reuse_or_new,code,alt_codes,display_name,displacement_cc,power_kw,fuel_type,torque_nm,cylinders,emission_standard,timing_type,engine_oil_capacity_liters,timing_replacement_km
-REUSE,AXP,BCA|AHW,,,55,petrol,,,,,,
-REUSE,AKL,AEH,,,74,petrol,,,,,,
-REUSE,AGN,,,,92,petrol,,,,,,
-REUSE,AUQ,,,,132,petrol,,,,,,
-REUSE,AUE,BDE,,,150,petrol,,,,,,
-REUSE,AQM,,,,50,diesel,,,,,,
-REUSE,AGR,,,,66,diesel,,,,,,
-REUSE,ALH,,,,66,diesel,,,,,,
-REUSE,AHF,,,,81,diesel,,,,,,
-REUSE,ASV,,,,81,diesel,,,,,,
-REUSE,ASZ,,,,96,diesel,,,,,,
-REUSE,ARL,,,,110,diesel,,,,,,
-REUSE,AUS,AZD|BCB|ATN,,,77,petrol,,,,,,
-NEW,AMK,,1.8T Cupra R (AMK),,154,petrol,270,L4,Euro 3,belt,4.5,120000
-NEW,BAM,,1.8T Cupra R (BAM),,165,petrol,280,L4,Euro 3,belt,4.5,120000
-# All 13 REUSE rows reconfirmed live just now, exactly as expected - no drift.
-# AUS alt_codes shows the RESULT after adding BCB + ATN to its existing live {AZD} - this is
-# an UPDATE of existing data (not an insert), stays in the seed's human-run block, guarded to
-# fire only if it's still exactly {AZD} today so it can't clobber a value already changed.
-# AMK/BAM confirmed absent live under any code or alias - genuine CREATE.

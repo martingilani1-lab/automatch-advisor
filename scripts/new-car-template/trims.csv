@@ -1,10 +1,3 @@
+# One row per trim per phase. tier = ordering, 1 = base trim. The same trim name may exist in
+# both phases with different features - list it once per phase (two rows).
 phase_label,name,tier
-Pre-facelift,Stella,1
-Pre-facelift,Signo,2
-Pre-facelift,Sport,3
-Pre-facelift,Top Sport,4
-Facelift,Stella,1
-Facelift,Signo,2
-Facelift,Sport,3
-Facelift,FR,4
-# No Cupra/Cupra R trim row, per convention - Cupra R (AMK/BAM) is engine+config, not a trim.

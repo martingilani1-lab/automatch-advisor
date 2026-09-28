@@ -1,8 +1,8 @@
+# Faults attach to a COMPONENT (engine or transmission), never to the car directly.
+# component_type: engine | transmission.
+# target_code = the engine or gearbox code. target_power_kw: REQUIRED for engines (code+power_kw
+#   is the real key - two engines can share a code prefix at different power); leave blank for transmissions.
+# A fault on a REUSED engine/transmission is visible on every car that uses it - check the live
+#   DB first so you don't duplicate a fault that's already recorded there.
+# severity: critical | moderate | minor. Give the exact, real fault text - never invent one.
 component_type,target_code,target_power_kw,fault,severity
-engine,AMK,154,"Sludge buildup in the oil sump leading to a blocked oil pickup tube and catastrophic oil starvation if LongLife intervals were used.",critical
-engine,BAM,165,"Sludge buildup in the oil sump leading to a blocked oil pickup tube and catastrophic oil starvation if LongLife intervals were used.",critical
-engine,AUQ,132,"Sludge buildup in the oil sump leading to a blocked oil pickup tube and catastrophic oil starvation if LongLife intervals were used.",critical
-transmission,02M,,"Dual-mass flywheel (DMF) failure under high torque loads (especially mapped ARL/BAM engines), causing excessive vibration, rattling at idle, and potential transmission case damage if ignored.",moderate
-# NOTE: AUQ already exists live (reused from Golf IV) with no faults recorded yet - this fault
-# will now show on every car that reuses AUQ (Golf IV's GTI configs included), which is
-# correct/expected for a shared-engine fault, not a mistake.

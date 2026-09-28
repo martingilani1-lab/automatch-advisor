@@ -1,3 +1,6 @@
+# One row per phase (pre-facelift / facelift / ...). NCAP + market attributes are phase-level.
+# safety_rating: 1-5.  ncap_*_pct: 0-100.  resale_value_rating: holds_well | average | depreciates_fast
+# platform_code e.g. PQ34, PQ35, MQB.
+# If this car has an old row in the flat `vehicles` table, COPY its attributes here (real data).
+# If it's a genuinely new car, author these from a real source. Empty cell = genuinely unknown (NULL) - never invent.
 generation_code,phase_label,year_from,year_to,display_name,platform_code,safety_rating,ncap_year,ncap_adult_pct,ncap_child_pct,ncap_pedestrian_pct,ncap_safety_assist_pct,avg_market_price_eur,price_range_min_eur,price_range_max_eur,typical_mileage_range,resale_value_rating,seats_count,towing_capacity_kg
-1M,Pre-facelift,1999,2003,León Mk1 Pre-facelift,PQ34,4,2001,,,,,1300,700,2500,280000-450000 km,average,5,1400
-1M,Facelift,2003,2006,León Mk1 Facelift,PQ34,4,2001,,,,,2500,1200,4500,220000-350000 km,holds_well,5,1400
