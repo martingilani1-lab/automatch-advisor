@@ -11,10 +11,13 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
 ## Before you start
 - **Current schema (settled):** per-body dimensions live in `phase_body_dimensions`, keyed
   by `(phase_id, body_type_id)`: `length_mm`, `width_mm`, `height_mm`,
-  `ground_clearance_mm`, `curb_weight_kg`, `boot_capacity_liters`, `boot_max_liters`, plus
-  `gross_vehicle_weight_kg`, `payload_kg`, `fuel_tank_capacity_liters`. These columns are
-  NOT on `catalog_phases` (the move migration has run). Everything else phase-level (NCAP,
-  seats, towing, prices, mileage, resale, `platform_code`) stays on `catalog_phases`.
+  `ground_clearance_mm`, `curb_weight_kg`, `boot_capacity_liters`, `boot_max_liters`,
+  `gross_vehicle_weight_kg`, `payload_kg`, `fuel_tank_capacity_liters`, and `seats_count`.
+  These columns are NOT on `catalog_phases` (both move migrations have run). `seats_count`
+  moved here specifically because it varies by body, not just by phase — the Audi TT (8N)
+  Coupe seats 4 (2+2), the Roadster seats 2, and a single phase-level value can't represent
+  both. Everything else phase-level (NCAP, towing, prices, mileage, resale, `platform_code`)
+  stays on `catalog_phases`.
 - If MCP is unavailable, ask the human to run the read queries and paste results.
 - **Use the intake template + its scripts** (`scripts/new-car-template/`, read its own
   README first) instead of taking the spec free-form in chat: it's the pre-seed checklist
@@ -34,8 +37,8 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
    - Engines: code, power, torque, cylinders, emission standard, timing type, oil capacity.
    - Transmissions (real gearbox codes), drivetrain system.
    - Trims + features, component faults.
-   - Attributes: model (segment, origin_country); phase (NCAP, seats, towing, prices,
-     mileage, resale); phase × body (dimensions, weight, boot, GVW, payload, fuel tank);
+   - Attributes: model (segment, origin_country); phase (NCAP, towing, prices, mileage,
+     resale); phase × body (dimensions, weight, boot, GVW, payload, fuel tank, seats);
      config (0-100, top speed, consumption, CO2, EV specs); media; tires.
    - **Source of attributes — check the old `vehicles` table first.** Query it (live,
      read-only) for the car. If it has an old `vehicles` row (~334 legacy cars): COPY its

@@ -252,21 +252,21 @@ async function main() {
     "  model_id, generation_code, phase_label, year_from, year_to, display_name, platform_code,",
     "  safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,",
     "  avg_market_price_eur, price_range_min_eur, price_range_max_eur, typical_mileage_range,",
-    "  resale_value_rating, seats_count, towing_capacity_kg",
+    "  resale_value_rating, towing_capacity_kg",
     ")",
     "select m.id, v.generation_code, v.phase_label, v.year_from, v.year_to, v.display_name, v.platform_code,",
     "  v.safety_rating, v.ncap_year, v.ncap_adult_pct, v.ncap_child_pct, v.ncap_pedestrian_pct, v.ncap_safety_assist_pct,",
     "  v.avg_market_price_eur, v.price_range_min_eur, v.price_range_max_eur, v.typical_mileage_range,",
-    "  v.resale_value_rating, v.seats_count, v.towing_capacity_kg",
+    "  v.resale_value_rating, v.towing_capacity_kg",
     "from (",
     "  values"
   );
-  p(phases.map(ph => `    (${sTxt(ph.generation_code)}, ${sTxt(ph.phase_label)}, ${nInt(ph.year_from)}, ${nInt(ph.year_to)}, ${sTxt(ph.display_name)}, ${sTxt(ph.platform_code)}, ${nInt(ph.safety_rating)}, ${nInt(ph.ncap_year)}, ${nInt(ph.ncap_adult_pct)}, ${nInt(ph.ncap_child_pct)}, ${nInt(ph.ncap_pedestrian_pct)}, ${nInt(ph.ncap_safety_assist_pct)}, ${nInt(ph.avg_market_price_eur)}, ${nInt(ph.price_range_min_eur)}, ${nInt(ph.price_range_max_eur)}, ${sTxt(ph.typical_mileage_range)}, ${sTxt(ph.resale_value_rating)}, ${nInt(ph.seats_count)}, ${nInt(ph.towing_capacity_kg)})`).join(",\n"));
+  p(phases.map(ph => `    (${sTxt(ph.generation_code)}, ${sTxt(ph.phase_label)}, ${nInt(ph.year_from)}, ${nInt(ph.year_to)}, ${sTxt(ph.display_name)}, ${sTxt(ph.platform_code)}, ${nInt(ph.safety_rating)}, ${nInt(ph.ncap_year)}, ${nInt(ph.ncap_adult_pct)}, ${nInt(ph.ncap_child_pct)}, ${nInt(ph.ncap_pedestrian_pct)}, ${nInt(ph.ncap_safety_assist_pct)}, ${nInt(ph.avg_market_price_eur)}, ${nInt(ph.price_range_min_eur)}, ${nInt(ph.price_range_max_eur)}, ${sTxt(ph.typical_mileage_range)}, ${sTxt(ph.resale_value_rating)}, ${nInt(ph.towing_capacity_kg)})`).join(",\n"));
   p(
     ") as v(generation_code, phase_label, year_from, year_to, display_name, platform_code,",
     "  safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,",
     "  avg_market_price_eur, price_range_min_eur, price_range_max_eur, typical_mileage_range,",
-    "  resale_value_rating, seats_count, towing_capacity_kg)",
+    "  resale_value_rating, towing_capacity_kg)",
     `join catalog_models m on m.name = '${esc(car.model)}'`,
     `join catalog_brands cb on cb.id = m.brand_id and cb.name = '${esc(car.brand)}'`,
     "where not exists (",
@@ -305,8 +305,8 @@ async function main() {
 
   // ---- 7. phase_body_dimensions ----
   header("PHASE_BODY_DIMENSIONS", `${dims.length} row(s), one per (phase x body).`);
-  p("with dim_values (phase_label, body_type, length_mm, width_mm, height_mm, ground_clearance_mm, curb_weight_kg, boot_capacity_liters, boot_max_liters, gross_vehicle_weight_kg, payload_kg, fuel_tank_capacity_liters) as (", "  values");
-  p(dims.map(d => `    (${sTxt(d.phase_label)}, ${sTxt(d.body_type)}, ${nInt(d.length_mm)}, ${nInt(d.width_mm)}, ${nInt(d.height_mm)}, ${nInt(d.ground_clearance_mm)}, ${nInt(d.curb_weight_kg)}, ${nInt(d.boot_capacity_liters)}, ${nInt(d.boot_max_liters)}, ${nInt(d.gross_vehicle_weight_kg)}, ${nInt(d.payload_kg)}, ${nNum(d.fuel_tank_capacity_liters)})`).join(",\n"));
+  p("with dim_values (phase_label, body_type, length_mm, width_mm, height_mm, ground_clearance_mm, curb_weight_kg, boot_capacity_liters, boot_max_liters, gross_vehicle_weight_kg, payload_kg, fuel_tank_capacity_liters, seats_count) as (", "  values");
+  p(dims.map(d => `    (${sTxt(d.phase_label)}, ${sTxt(d.body_type)}, ${nInt(d.length_mm)}, ${nInt(d.width_mm)}, ${nInt(d.height_mm)}, ${nInt(d.ground_clearance_mm)}, ${nInt(d.curb_weight_kg)}, ${nInt(d.boot_capacity_liters)}, ${nInt(d.boot_max_liters)}, ${nInt(d.gross_vehicle_weight_kg)}, ${nInt(d.payload_kg)}, ${nNum(d.fuel_tank_capacity_liters)}, ${nInt(d.seats_count)})`).join(",\n"));
   p(
     "),",
     "phase_lookup as (",
@@ -316,8 +316,8 @@ async function main() {
     "  join catalog_brands cb on cb.id = cm.brand_id",
     `  where cb.name = '${esc(car.brand)}' and cm.name = '${esc(car.model)}' and cp.generation_code = '${esc(genCode)}'`,
     ")",
-    "insert into phase_body_dimensions (phase_id, body_type_id, length_mm, width_mm, height_mm, ground_clearance_mm, curb_weight_kg, boot_capacity_liters, boot_max_liters, gross_vehicle_weight_kg, payload_kg, fuel_tank_capacity_liters)",
-    "select p.id, bt.id, v.length_mm, v.width_mm, v.height_mm, v.ground_clearance_mm, v.curb_weight_kg, v.boot_capacity_liters, v.boot_max_liters, v.gross_vehicle_weight_kg, v.payload_kg, v.fuel_tank_capacity_liters",
+    "insert into phase_body_dimensions (phase_id, body_type_id, length_mm, width_mm, height_mm, ground_clearance_mm, curb_weight_kg, boot_capacity_liters, boot_max_liters, gross_vehicle_weight_kg, payload_kg, fuel_tank_capacity_liters, seats_count)",
+    "select p.id, bt.id, v.length_mm, v.width_mm, v.height_mm, v.ground_clearance_mm, v.curb_weight_kg, v.boot_capacity_liters, v.boot_max_liters, v.gross_vehicle_weight_kg, v.payload_kg, v.fuel_tank_capacity_liters, v.seats_count",
     "from dim_values v",
     "join phase_lookup p on p.phase_label = v.phase_label",
     "join catalog_body_types bt on bt.name = v.body_type",

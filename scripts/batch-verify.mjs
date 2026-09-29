@@ -196,6 +196,9 @@ for (const dir of carDirs) {
     // 4. attribute rows present -- phase_body_dimensions exists per (phase, body) the
     // template declared. Presence only, per the skill's "Done means addressed, not every
     // field non-null" bar -- this can't judge "intentionally NULL" vs "forgotten".
+    // seats_count now lives on phase_body_dimensions (moved off catalog_phases -- it varies
+    // by body, e.g. Audi TT Coupe seats 4 vs Roadster 2) -- this presence check already
+    // covers it implicitly, since it's the same row; no separate seats-specific check added.
     for (const d of dims) {
       const phaseId = phaseIdByLabel.get(d.phase_label);
       if (!phaseId) continue; // already flagged above

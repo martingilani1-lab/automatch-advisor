@@ -141,16 +141,19 @@ for (const f of faults) {
 const PHASE_INT_COLS = [
   "year_from", "year_to", "safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct",
   "ncap_pedestrian_pct", "ncap_safety_assist_pct", "avg_market_price_eur", "price_range_min_eur",
-  "price_range_max_eur", "seats_count", "towing_capacity_kg",
+  "price_range_max_eur", "towing_capacity_kg",
 ];
 for (const col of PHASE_INT_COLS) {
   if (phases.length && phases.every(p => (p[col] ?? "") === "")) {
     warn("phases.csv", "*", `column '${col}' is empty on every row — fine, but the seed generator MUST cast it explicitly (::integer), or Postgres infers 'unknown'/text and the INSERT fails (the Golf IV NCAP bug)`);
   }
 }
+// seats_count lives on dimensions.csv (phase x body), not phases.csv -- it varies by body
+// (e.g. Audi TT Coupe seats 4, Roadster seats 2), same reasoning as every other dimension.
 const DIM_INT_COLS = [
   "length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg",
   "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg", "payload_kg",
+  "seats_count",
 ];
 for (const col of DIM_INT_COLS) {
   if (dims.length && dims.every(d => (d[col] ?? "") === "")) {
