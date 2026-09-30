@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# import-car pipeline: per-local-state marker (batch-verify.mjs writes one into a car
+# folder once it PASSes live; batch-prep.mjs/batch-seed.mjs skip cars that have it). Not
+# shared team state — whether a car is seeded is a live-DB fact, re-derivable any time via
+# batch-verify.mjs, not something to track in git.
+scripts/cars/**/.seeded

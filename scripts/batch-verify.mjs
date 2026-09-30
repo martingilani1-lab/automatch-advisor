@@ -237,6 +237,14 @@ for (const dir of carDirs) {
   const carFail = checks.some(c => !c.ok) || checks.length === 0;
   console.log(`\n${carName}: ${carFail ? "FAIL" : "PASS"}`);
   summary.push({ carName, status: carFail ? "FAIL" : "PASS" });
+
+  // Lock file: marks this car as verified-seeded so batch-prep.mjs skips it (quietly, not
+  // as a NEEDS ATTENTION) on future runs. Only written on a full PASS -- a FAIL must never
+  // produce one, or a broken car would silently stop being checked. Gitignored (per-local
+  // state, not shared team state -- see .gitignore).
+  if (!carFail) {
+    fs.writeFileSync(path.join(dir, ".seeded"), "");
+  }
 }
 
 console.log(`\n${"=".repeat(72)}\nSUMMARY\n${"=".repeat(72)}`);

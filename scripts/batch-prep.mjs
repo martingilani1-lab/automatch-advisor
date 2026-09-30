@@ -11,11 +11,17 @@
 // reconcile.mjs and validate-template.mjs are both read-only against the live DB. No seed
 // is generated here, no writes to the DB.
 //
+// A car folder with a .seeded file (written by batch-verify.mjs once it PASSes) is SKIPPED
+// entirely — quietly, not as a NEEDS ATTENTION — since re-running reconcile/validate on an
+// already-verified-live car just produces stale-looking noise (its REUSE engines are all
+// live now, which reconcile can't distinguish from "already seeded" vs "always existed").
+// Pass --force to process it anyway (e.g. a deliberate correction to an already-seeded car).
+//
 // Run from repo root:
-//   node scripts/batch-prep.mjs <car-dir> [<car-dir> ...]
-//   node scripts/batch-prep.mjs --all                      (every folder in scripts/cars/)
+//   node scripts/batch-prep.mjs <car-dir> [<car-dir> ...] [--force]
+//   node scripts/batch-prep.mjs --all [--force]             (every folder in scripts/cars/)
 // <car-dir> may be a bare folder name (resolved under scripts/cars/) or a full path.
-// Exit code 1 if ANY car has a reconcile problem or a validate ERROR, else 0.
+// Exit code 1 if any (non-skipped) car has a reconcile problem or a validate ERROR, else 0.
 
 import fs from "fs";
 import path from "path";
@@ -45,9 +51,10 @@ function run(script, args) {
 
 const args = process.argv.slice(2);
 if (!args.length) {
-  console.error("Usage: node scripts/batch-prep.mjs <car-dir> [<car-dir> ...] | --all");
+  console.error("Usage: node scripts/batch-prep.mjs <car-dir> [<car-dir> ...] | --all [--force]");
   process.exit(1);
 }
+const force = args.includes("--force");
 const carDirs = resolveCarDirs(args);
 if (!carDirs.length) {
   console.error("No car directories resolved — check the names, or that scripts/cars/ has folders.");
@@ -60,6 +67,11 @@ for (const dir of carDirs) {
   const carName = path.basename(dir);
   if (!fs.existsSync(dir)) {
     results.push({ carName, missing: true });
+    continue;
+  }
+
+  if (fs.existsSync(path.join(dir, ".seeded")) && !force) {
+    results.push({ carName, seeded: true });
     continue;
   }
 
@@ -81,6 +93,10 @@ console.log(`BATCH PREP -- ${results.length} car(s)`);
 console.log("=".repeat(72));
 
 for (const r of results) {
+  if (r.seeded) {
+    console.log(`\n-- ${r.carName}: Skipping ${r.carName} -- already seeded (pass --force to re-process).`);
+    continue;
+  }
   console.log(`\n-- ${r.carName} ${"-".repeat(Math.max(0, 68 - r.carName.length))}`);
   if (r.missing) {
     console.log(`  MISSING -- no folder at this path, skipped.`);
@@ -97,9 +113,10 @@ for (const r of results) {
 console.log(`\n${"=".repeat(72)}\nSUMMARY\n${"=".repeat(72)}`);
 const nameWidth = Math.max(...results.map(r => r.carName.length), 8);
 for (const r of results) {
-  const status = r.missing ? "MISSING" : r.ready ? "READY" : "NEEDS ATTENTION";
+  const status = r.seeded ? "SEEDED (skipped)" : r.missing ? "MISSING" : r.ready ? "READY" : "NEEDS ATTENTION";
   console.log(`${r.carName.padEnd(nameWidth)}  ${status}`);
 }
-const anyProblem = results.some(r => r.missing || !r.ready);
-console.log(`\n${results.filter(r => r.ready).length}/${results.length} ready.`);
+const checked = results.filter(r => !r.seeded);
+const anyProblem = checked.some(r => r.missing || !r.ready);
+console.log(`\n${checked.filter(r => r.ready).length}/${checked.length} ready${results.length > checked.length ? ` (${results.length - checked.length} already seeded, skipped)` : ""}.`);
 process.exit(anyProblem ? 1 : 0);

@@ -16,6 +16,86 @@ import fs from "fs";
 import path from "path";
 import { createClient } from "../node_modules/@supabase/supabase-js/dist/index.mjs";
 
+// Column lists: SINGLE SOURCE OF TRUTH per table. Each constant below is used BOTH to
+// build the corresponding "insert into TABLE (...)" column list further down AND by the
+// live preflight check (REQUIRED_COLUMNS, derived from these same constants, immediately
+// below) — a column added to an INSERT here is automatically covered by the preflight
+// check, and vice versa, since both read the exact same array. This is what the
+// seats_count-ordering bug's fix should have been from the start: previously
+// REQUIRED_COLUMNS was a second, independently hand-typed list that could silently drift
+// from what the INSERTs actually wrote.
+const BRANDS_COLS = ["name", "country"];
+const MODELS_COLS = ["brand_id", "name", "segment", "origin_country"];
+const PHASES_COLS = [
+  "model_id", "generation_code", "phase_label", "year_from", "year_to", "display_name",
+  "platform_code", "safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct",
+  "ncap_pedestrian_pct", "ncap_safety_assist_pct", "avg_market_price_eur",
+  "price_range_min_eur", "price_range_max_eur", "typical_mileage_range",
+  "resale_value_rating", "towing_capacity_kg",
+];
+const BODY_TYPES_COLS = ["name"];
+const ENGINES_COLS = [
+  "code", "alt_codes", "display_name", "power_kw", "fuel_type", "torque_nm", "cylinders",
+  "emission_standard", "timing_type", "engine_oil_capacity_liters", "timing_replacement_km",
+];
+const TRANSMISSIONS_COLS = ["code", "type", "speeds"];
+const DIMENSIONS_COLS = [
+  "phase_id", "body_type_id", "length_mm", "width_mm", "height_mm", "ground_clearance_mm",
+  "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg",
+  "payload_kg", "fuel_tank_capacity_liters", "seats_count",
+];
+const CONFIGS_COLS = ["phase_id", "body_type_id", "engine_id", "transmission_id", "drivetrain_id"];
+const TRIMS_COLS = ["phase_id", "name", "tier"];
+const TRIM_FEATURES_COLS = ["trim_id", "feature", "is_optional"];
+// catalog_component_faults has TWO separate INSERTs (engine faults / transmission
+// faults), each writing a different subset of columns — REQUIRED_COLUMNS below is their
+// union, computed, not retyped.
+const COMPONENT_FAULTS_ENGINE_COLS = ["component_type", "engine_id", "fault", "severity"];
+const COMPONENT_FAULTS_TRANS_COLS = ["component_type", "transmission_id", "fault", "severity"];
+
+// Checked live before generating anything (see preflightSchemaCheck below). This is what
+// closes the seats_count-ordering bug class: running this script before a schema migration
+// it depends on (e.g. the phase_body_dimensions.seats_count move) has been applied now
+// fails loudly here, with NO file written, instead of writing a seed that only fails once
+// the human runs it in the SQL editor.
+const REQUIRED_COLUMNS = {
+  catalog_brands: BRANDS_COLS,
+  catalog_models: MODELS_COLS,
+  catalog_phases: PHASES_COLS,
+  catalog_body_types: BODY_TYPES_COLS,
+  catalog_engines: ENGINES_COLS,
+  catalog_transmissions: TRANSMISSIONS_COLS,
+  phase_body_dimensions: DIMENSIONS_COLS,
+  catalog_vehicle_configurations: CONFIGS_COLS,
+  catalog_trims: TRIMS_COLS,
+  catalog_trim_features: TRIM_FEATURES_COLS,
+  catalog_component_faults: [...new Set([...COMPONENT_FAULTS_ENGINE_COLS, ...COMPONENT_FAULTS_TRANS_COLS])],
+};
+
+// These scripts only have the PostgREST/supabase-js client (no direct Postgres
+// connection), so information_schema.columns isn't queryable the same way as a regular
+// table. Instead: probe each table by SELECTing its required columns (limit 0, no rows
+// fetched) — Postgres raises 42703 (undefined_column) with an exact "column X does not
+// exist" message if any are missing. The combined per-table probe is the fast path (one
+// request); only on failure does it fall back to a per-column probe to name exactly which
+// one(s) are missing.
+async function preflightSchemaCheck(sb) {
+  const missing = [];
+  for (const [table, cols] of Object.entries(REQUIRED_COLUMNS)) {
+    const { error } = await sb.from(table).select(cols.join(",")).limit(0);
+    if (!error) continue;
+    if (error.code !== "42703") {
+      missing.push({ table, col: "(table itself)", detail: error.message });
+      continue;
+    }
+    for (const col of cols) {
+      const { error: colErr } = await sb.from(table).select(col).limit(0);
+      if (colErr && colErr.code === "42703") missing.push({ table, col });
+    }
+  }
+  return missing;
+}
+
 function loadEnv() {
   const text = fs.readFileSync(".env.local", "utf8");
   return Object.fromEntries(
@@ -113,6 +193,14 @@ async function main() {
 
   const env = loadEnv();
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+
+  const missingCols = await preflightSchemaCheck(sb);
+  if (missingCols.length) {
+    for (const m of missingCols) {
+      console.error(`Preflight failed: column ${m.col} does not exist in table ${m.table} — run schema migrations first.`);
+    }
+    process.exit(1);
+  }
 
   const { data: liveBrands } = await sb.from("catalog_brands").select("name");
   const { data: liveBodyTypes } = await sb.from("catalog_body_types").select("name");
@@ -239,21 +327,16 @@ async function main() {
 
   // ---- 1. brand ----
   header("BRAND");
-  p("insert into catalog_brands (name, country)", `values ('${esc(car.brand)}', '${esc(car.brand_country)}')`, "on conflict (name) do nothing;", "");
+  p(`insert into catalog_brands (${BRANDS_COLS.join(", ")})`, `values ('${esc(car.brand)}', '${esc(car.brand_country)}')`, "on conflict (name) do nothing;", "");
 
   // ---- 2. model ----
   header("MODEL");
-  p("insert into catalog_models (brand_id, name, segment, origin_country)", `select id, '${esc(car.model)}', '${esc(car.segment)}', '${esc(car.origin_country)}'`, `from catalog_brands where name = '${esc(car.brand)}'`, "on conflict (brand_id, name) do nothing;", "");
+  p(`insert into catalog_models (${MODELS_COLS.join(", ")})`, `select id, '${esc(car.model)}', '${esc(car.segment)}', '${esc(car.origin_country)}'`, `from catalog_brands where name = '${esc(car.brand)}'`, "on conflict (brand_id, name) do nothing;", "");
 
   // ---- 3. phases ----
   header("PHASES", "every column explicitly cast.");
   p(
-    "insert into catalog_phases (",
-    "  model_id, generation_code, phase_label, year_from, year_to, display_name, platform_code,",
-    "  safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,",
-    "  avg_market_price_eur, price_range_min_eur, price_range_max_eur, typical_mileage_range,",
-    "  resale_value_rating, towing_capacity_kg",
-    ")",
+    `insert into catalog_phases (${PHASES_COLS.join(", ")})`,
     "select m.id, v.generation_code, v.phase_label, v.year_from, v.year_to, v.display_name, v.platform_code,",
     "  v.safety_rating, v.ncap_year, v.ncap_adult_pct, v.ncap_child_pct, v.ncap_pedestrian_pct, v.ncap_safety_assist_pct,",
     "  v.avg_market_price_eur, v.price_range_min_eur, v.price_range_max_eur, v.typical_mileage_range,",
@@ -278,7 +361,7 @@ async function main() {
   // ---- 4. body types ----
   if (newBodies.length) {
     header("BODY TYPES", `${newBodies.length} NEW; ${usedBodies.length - newBodies.length} already exist and are reused untouched.`);
-    p("insert into catalog_body_types (name)", `values ${newBodies.map(b => `('${esc(b)}')`).join(", ")}`, "on conflict (name) do nothing;", "");
+    p(`insert into catalog_body_types (${BODY_TYPES_COLS.join(", ")})`, `values ${newBodies.map(b => `('${esc(b)}')`).join(", ")}`, "on conflict (name) do nothing;", "");
   } else {
     header("BODY TYPES", "none — all body types used by this car already exist and are reused.");
   }
@@ -286,7 +369,7 @@ async function main() {
   // ---- 5. engines ----
   if (newEngines.length) {
     header("ENGINES", `${newEngines.length} NEW row(s). Plain INSERT ... VALUES (not a VALUES-CTE), so no casting issue.`);
-    p("insert into catalog_engines (code, alt_codes, display_name, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km)", "values");
+    p(`insert into catalog_engines (${ENGINES_COLS.join(", ")})`, "values");
     p(newEngines.map(e => `  ('${esc(e.code)}', ${arrLit(e.alt_codes)}, ${sOrNull(e.display_name)}, ${e.power_kw}, '${esc(e.fuel_type)}', ${nOrNull(e.torque_nm)}, ${sOrNull(e.cylinders)}, ${sOrNull(e.emission_standard)}, ${sOrNull(e.timing_type)}, ${nOrNull(e.engine_oil_capacity_liters)}, ${nOrNull(e.timing_replacement_km)})`).join(",\n"));
     p("on conflict (code, power_kw) do nothing;", "");
   } else {
@@ -296,7 +379,7 @@ async function main() {
   // ---- 6. transmissions ----
   if (newTrans.length) {
     header("TRANSMISSIONS", `${newTrans.length} NEW row(s). Plain INSERT ... VALUES, no casting issue.`);
-    p("insert into catalog_transmissions (code, type, speeds)", "values");
+    p(`insert into catalog_transmissions (${TRANSMISSIONS_COLS.join(", ")})`, "values");
     p(newTrans.map(t => `  ('${esc(t.code)}', '${esc(t.type)}', ${t.speeds})`).join(",\n"));
     p("on conflict (code) do nothing;", "");
   } else {
@@ -305,7 +388,7 @@ async function main() {
 
   // ---- 7. phase_body_dimensions ----
   header("PHASE_BODY_DIMENSIONS", `${dims.length} row(s), one per (phase x body).`);
-  p("with dim_values (phase_label, body_type, length_mm, width_mm, height_mm, ground_clearance_mm, curb_weight_kg, boot_capacity_liters, boot_max_liters, gross_vehicle_weight_kg, payload_kg, fuel_tank_capacity_liters, seats_count) as (", "  values");
+  p(`with dim_values (phase_label, body_type, ${DIMENSIONS_COLS.slice(2).join(", ")}) as (`, "  values");
   p(dims.map(d => `    (${sTxt(d.phase_label)}, ${sTxt(d.body_type)}, ${nInt(d.length_mm)}, ${nInt(d.width_mm)}, ${nInt(d.height_mm)}, ${nInt(d.ground_clearance_mm)}, ${nInt(d.curb_weight_kg)}, ${nInt(d.boot_capacity_liters)}, ${nInt(d.boot_max_liters)}, ${nInt(d.gross_vehicle_weight_kg)}, ${nInt(d.payload_kg)}, ${nNum(d.fuel_tank_capacity_liters)}, ${nInt(d.seats_count)})`).join(",\n"));
   p(
     "),",
@@ -316,7 +399,7 @@ async function main() {
     "  join catalog_brands cb on cb.id = cm.brand_id",
     `  where cb.name = '${esc(car.brand)}' and cm.name = '${esc(car.model)}' and cp.generation_code = '${esc(genCode)}'`,
     ")",
-    "insert into phase_body_dimensions (phase_id, body_type_id, length_mm, width_mm, height_mm, ground_clearance_mm, curb_weight_kg, boot_capacity_liters, boot_max_liters, gross_vehicle_weight_kg, payload_kg, fuel_tank_capacity_liters, seats_count)",
+    `insert into phase_body_dimensions (${DIMENSIONS_COLS.join(", ")})`,
     "select p.id, bt.id, v.length_mm, v.width_mm, v.height_mm, v.ground_clearance_mm, v.curb_weight_kg, v.boot_capacity_liters, v.boot_max_liters, v.gross_vehicle_weight_kg, v.payload_kg, v.fuel_tank_capacity_liters, v.seats_count",
     "from dim_values v",
     "join phase_lookup p on p.phase_label = v.phase_label",
@@ -357,7 +440,7 @@ async function main() {
   }).join(",\n"));
   p(
     "  )",
-    "insert into catalog_vehicle_configurations (phase_id, body_type_id, engine_id, transmission_id, drivetrain_id)",
+    `insert into catalog_vehicle_configurations (${CONFIGS_COLS.join(", ")})`,
     "select p.id, b.id, e.id, t.id, d.id",
     "from configs c",
     "join phase_lookup p on p.phase_label = c.phase_label",
@@ -375,7 +458,7 @@ async function main() {
   // ---- 9. trims ----
   if (trims.length) {
     header("TRIMS", `${trims.length} row(s).`);
-    p("insert into catalog_trims (phase_id, name, tier)", "select p.id, v.name, v.tier", "from (", "  values");
+    p(`insert into catalog_trims (${TRIMS_COLS.join(", ")})`, "select p.id, v.name, v.tier", "from (", "  values");
     p(trims.map(t => `    ('${esc(t.phase_label)}'::text, '${esc(t.name)}'::text, ${t.tier}::integer)`).join(",\n"));
     p(
       ") as v(phase_label, name, tier)",
@@ -400,7 +483,7 @@ async function main() {
   if (realFeatures.length) {
     header("TRIM FEATURES", `${realFeatures.length} row(s).`);
     p("with trim_lookup as (", "  select ct.id, cp.phase_label, ct.name", "  from catalog_trims ct", "  join catalog_phases cp on cp.id = ct.phase_id", "  join catalog_models cm on cm.id = cp.model_id", "  join catalog_brands cb on cb.id = cm.brand_id", `  where cb.name = '${esc(car.brand)}' and cm.name = '${esc(car.model)}' and cp.generation_code = '${esc(genCode)}'`, ")");
-    p("insert into catalog_trim_features (trim_id, feature, is_optional)", "select tl.id, v.feature, v.is_optional", "from (", "  values");
+    p(`insert into catalog_trim_features (${TRIM_FEATURES_COLS.join(", ")})`, "select tl.id, v.feature, v.is_optional", "from (", "  values");
     p(realFeatures.map(f => `    (${sTxt(f.phase_label)}, ${sTxt(f.trim_name)}, ${sTxt(f.feature)}, ${f.is_optional === "true" ? "true" : "false"})`).join(",\n"));
     p(
       ") as v(phase_label, trim_name, feature, is_optional)",
@@ -423,7 +506,7 @@ async function main() {
       p(engFaults.map(f => `      ('${esc(f.target_code)}'::text, ${f.target_power_kw}::integer, '${esc(f.fault)}'::text, '${esc(f.severity)}'::text)`).join(",\n"));
       p(
         "  )",
-        "insert into catalog_component_faults (component_type, engine_id, fault, severity)",
+        `insert into catalog_component_faults (${COMPONENT_FAULTS_ENGINE_COLS.join(", ")})`,
         "select 'engine', e.id, f.fault, f.severity",
         "from engine_faults f",
         "join engine_lookup e on e.code = f.target_code and e.power_kw = f.target_power_kw",
@@ -439,7 +522,7 @@ async function main() {
       p(transFaults.map(f => `      ('${esc(f.target_code)}'::text, '${esc(f.fault)}'::text, '${esc(f.severity)}'::text)`).join(",\n"));
       p(
         "  )",
-        "insert into catalog_component_faults (component_type, transmission_id, fault, severity)",
+        `insert into catalog_component_faults (${COMPONENT_FAULTS_TRANS_COLS.join(", ")})`,
         "select 'transmission', t.id, f.fault, f.severity",
         "from trans_faults f",
         "join trans_lookup t on t.code = f.target_code",

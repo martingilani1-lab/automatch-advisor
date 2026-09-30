@@ -11,9 +11,20 @@
 // resolve REUSE/CREATE and detect alt_codes drift) — this wrapper doesn't either. Nothing
 // is seeded, nothing is run against the DB, by running this script.
 //
+// This tool has no way to know when the human actually executes a generated seed file —
+// that happens later, in a completely separate SQL-editor session. So "verify after
+// seeding" can't be chained automatically; instead every car's seed generation prints the
+// exact batch-verify command to run once it's been executed, and the summary repeats it
+// as one consolidated command for the whole batch, prominently, so it isn't forgotten.
+//
+// A car folder with a .seeded file (written by batch-verify.mjs once it PASSes) is SKIPPED
+// here too, same as batch-prep.mjs — pass --force to process it anyway (e.g. a deliberate
+// correction to an already-seeded car).
+//
 // Run from repo root:
-//   node scripts/batch-seed.mjs <car-dir> [<car-dir> ...] | --all
-// Exit code 1 if any car was skipped (validation failed) or its generator errored.
+//   node scripts/batch-seed.mjs <car-dir> [<car-dir> ...] | --all [--force]
+// Exit code 1 if any car was skipped for validation failure or its generator errored.
+// (A .seeded skip does NOT count as a problem — that's the expected, quiet case.)
 
 import fs from "fs";
 import path from "path";
@@ -41,9 +52,10 @@ function run(script, args) {
 
 const args = process.argv.slice(2);
 if (!args.length) {
-  console.error("Usage: node scripts/batch-seed.mjs <car-dir> [<car-dir> ...] | --all");
+  console.error("Usage: node scripts/batch-seed.mjs <car-dir> [<car-dir> ...] | --all [--force]");
   process.exit(1);
 }
+const force = args.includes("--force");
 const carDirs = resolveCarDirs(args);
 if (!carDirs.length) {
   console.error("No car directories resolved -- check the names, or that scripts/cars/ has folders.");
@@ -56,6 +68,7 @@ console.log("=".repeat(72));
 
 let anyProblem = false;
 const written = [];
+const skippedSeeded = [];
 
 for (const dir of carDirs) {
   const carName = path.basename(dir);
@@ -64,6 +77,12 @@ for (const dir of carDirs) {
   if (!fs.existsSync(dir)) {
     console.log(`  MISSING -- no folder at this path, skipped.`);
     anyProblem = true;
+    continue;
+  }
+
+  if (fs.existsSync(path.join(dir, ".seeded")) && !force) {
+    console.log(`  Skipping ${carName} -- already seeded (pass --force to re-process).`);
+    skippedSeeded.push(carName);
     continue;
   }
 
@@ -87,10 +106,20 @@ for (const dir of carDirs) {
   }
   const m = gen.stdout.match(/Wrote (\S+)/);
   if (m) written.push({ carName, file: m[1] });
+  console.log(`  >> Once you've run this file, verify with: node scripts/batch-verify.mjs ${carName}`);
 }
 
 console.log(`\n${"=".repeat(72)}\nSUMMARY\n${"=".repeat(72)}`);
 for (const w of written) console.log(`  ${w.carName}: ${w.file}`);
+if (skippedSeeded.length) console.log(`  (skipped, already seeded: ${skippedSeeded.join(", ")})`);
 console.log(`\n${written.length}/${carDirs.length} seed file(s) written. NOT executed -- review each,`);
 console.log(`then run via the import-car skill's human-run steps (fresh SQL editor tab per file).`);
+
+if (written.length) {
+  console.log(`\n${"!".repeat(72)}`);
+  console.log(`NEXT STEP -- after running the file(s) above, verify this batch with:`);
+  console.log(`  node scripts/batch-verify.mjs ${written.map(w => w.carName).join(" ")}`);
+  console.log(`${"!".repeat(72)}`);
+}
+
 process.exit(anyProblem ? 1 : 0);
