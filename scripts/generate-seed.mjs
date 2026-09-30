@@ -353,7 +353,7 @@ async function main() {
     `join catalog_models m on m.name = '${esc(car.model)}'`,
     `join catalog_brands cb on cb.id = m.brand_id and cb.name = '${esc(car.brand)}'`,
     "where not exists (",
-    "  select 1 from catalog_phases cp where cp.model_id = m.id and cp.phase_label = v.phase_label",
+    "  select 1 from catalog_phases cp where cp.model_id = m.id and cp.generation_code = v.generation_code and cp.phase_label = v.phase_label",
     ");",
     ""
   );
@@ -562,6 +562,45 @@ async function main() {
     }
     p("commit;", "");
   }
+
+  // ---- 13. post-condition assertions ----
+  // Closes the phases-guard bug class: a silent WHERE NOT EXISTS false-positive (matching
+  // an unrelated generation's same-labeled phase, or any other cross-generation collision)
+  // would previously leave phases/configs at 0 with no error anywhere in the file. This is
+  // the LAST thing the seed does — asserts the live counts for THIS car's generation_code
+  // are exactly what this seed intends, whether those rows were just inserted or already
+  // present, and aborts loudly if not.
+  header(
+    "POST-CONDITION ASSERTIONS",
+    "Asserts exactly the expected phase and config counts for this generation_code exist live -- catches a silent guard false-positive (e.g. the phases-guard bug: matching another generation's same-labeled phase) instead of leaving it undetected."
+  );
+  p(
+    "do $$",
+    "declare",
+    "  phase_n integer;",
+    "  config_n integer;",
+    "begin",
+    "  select count(*) into phase_n",
+    "  from catalog_phases cp",
+    "  join catalog_models cm on cm.id = cp.model_id",
+    "  join catalog_brands cb on cb.id = cm.brand_id",
+    `  where cb.name = '${esc(car.brand)}' and cm.name = '${esc(car.model)}' and cp.generation_code = '${esc(genCode)}';`,
+    `  if phase_n <> ${phases.length} then`,
+    `    raise exception 'Expected ${phases.length} phase(s) for ${esc(car.brand)} ${esc(car.model)} (${esc(genCode)}), found %% -- a phase guard may have false-positived against another generation.', phase_n;`.replace("%%", "%"),
+    "  end if;",
+    "",
+    "  select count(*) into config_n",
+    "  from catalog_vehicle_configurations cvc",
+    "  join catalog_phases cp on cp.id = cvc.phase_id",
+    "  join catalog_models cm on cm.id = cp.model_id",
+    "  join catalog_brands cb on cb.id = cm.brand_id",
+    `  where cb.name = '${esc(car.brand)}' and cm.name = '${esc(car.model)}' and cp.generation_code = '${esc(genCode)}';`,
+    `  if config_n <> ${configs.length} then`,
+    `    raise exception 'Expected ${configs.length} config(s) for ${esc(car.brand)} ${esc(car.model)} (${esc(genCode)}), found %%.', config_n;`.replace("%%", "%"),
+    "  end if;",
+    "end $$;",
+    ""
+  );
 
   const sql = L.join("\n").replace(/\n{3,}/g, "\n\n");
 

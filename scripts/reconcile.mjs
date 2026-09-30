@@ -5,9 +5,19 @@
 // or already sits in another row's alt_codes — since reconcile-by-code silently assumes
 // codes are unique, and an unflagged collision means "which row do I actually reuse?".
 //
-// Read-only. Makes no writes, no matter what it finds. Run from repo root:
-//   node scripts/reconcile.mjs [template-dir]
-// Exit code 1 if any problem was found (drifted REUSE/NEW claim, or a collision), else 0.
+// Read-only by default. Makes no writes unless --fix-flags is passed. Run from repo root:
+//   node scripts/reconcile.mjs [template-dir] [--fix-flags]
+// Exit code 1 if any problem was found (drifted REUSE/NEW claim, or a collision), else 0 --
+// this is based on the report pass and is unaffected by --fix-flags (which runs after and
+// reports separately; it doesn't re-run the report against the fixed file).
+//
+// --fix-flags: rewrites reuse_or_new in engines.csv/transmissions.csv to match what's
+// actually live right now (REUSE where a live match exists, NEW where none does), and
+// prints every flag it changed. Only touches the reuse_or_new cell of rows that actually
+// need to change -- every other column, every comment, every blank line is preserved
+// byte-for-byte. Does NOT touch a row flagged as a COLLISION above (an alt_code matching
+// a different row's primary code or alt_codes) -- that's a genuine ambiguity for a human
+// to resolve, not a stale flag to auto-correct.
 
 import fs from "fs";
 import path from "path";
@@ -46,7 +56,45 @@ function readCsv(p) {
   });
 }
 
-const dir = process.argv[2] || "scripts/new-car-template";
+// Rewrites ONLY the reuse_or_new cell (always column 0 in both engines.csv and
+// transmissions.csv) of rows that need to change -- every other cell, comment, and blank
+// line is preserved verbatim from the original file. `determineCorrect(row)` returns
+// "REUSE" | "NEW" | null (null = leave this row untouched, e.g. missing code/power, or a
+// collision the caller has already decided not to touch).
+function fixReuseFlags(filePath, determineCorrect) {
+  const raw = fs.readFileSync(filePath, "utf8");
+  const allLines = raw.split("\n");
+  const isContent = l => l.trim() && !l.trim().startsWith("#");
+  const contentLines = allLines.filter(isContent);
+  if (contentLines.length < 2) return { changes: [] };
+  const header = contentLines[0];
+  const dataLines = contentLines.slice(1);
+  const parsedRows = readCsv(filePath); // same content-line filter, so this lines up 1:1 with dataLines
+
+  const changes = [];
+  const newDataLines = dataLines.map((line, i) => {
+    const row = parsedRows[i];
+    const correct = determineCorrect(row);
+    if (correct == null) return line;
+    const firstComma = line.indexOf(",");
+    const current = line.slice(0, firstComma);
+    if (current === correct) return line;
+    changes.push({ code: row.code, power_kw: row.power_kw, from: current || "(empty)", to: correct });
+    return correct + line.slice(firstComma);
+  });
+
+  if (!changes.length) return { changes };
+
+  const updatedContent = [header, ...newDataLines];
+  let ci = 0;
+  const outLines = allLines.map(l => (isContent(l) ? updatedContent[ci++] : l));
+  fs.writeFileSync(filePath, outLines.join("\n"));
+  return { changes };
+}
+
+const args = process.argv.slice(2);
+const fixFlags = args.includes("--fix-flags");
+const dir = args.find(a => !a.startsWith("--")) || "scripts/new-car-template";
 const env = loadEnv();
 const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -116,4 +164,38 @@ for (const t of trans) {
 }
 
 console.log(`\n${problems === 0 ? "No problems found." : `${problems} problem(s) found — resolve before seeding.`}`);
+
+if (fixFlags) {
+  console.log("\n=== --fix-flags ===");
+
+  const engineChanges = fixReuseFlags(path.join(dir, "engines.csv"), (row) => {
+    if (!row.code || !row.power_kw) return null;
+    const kw = Number(row.power_kw);
+    const primaryHit = liveEngines.find(le => le.code === row.code && le.power_kw === kw);
+    if (primaryHit) return "REUSE";
+    // A code that's someone else's alt_code is a collision, not a stale flag -- leave it
+    // for a human to resolve (see the COLLISION line already printed above).
+    const aliasHits = liveEngines.filter(le => (le.alt_codes || []).includes(row.code));
+    if (aliasHits.length) return null;
+    return "NEW";
+  }).changes;
+
+  const transChanges = fixReuseFlags(path.join(dir, "transmissions.csv"), (row) => {
+    if (!row.code) return null;
+    return liveTrans.some(lt => lt.code === row.code) ? "REUSE" : "NEW";
+  }).changes;
+
+  if (engineChanges.length) {
+    console.log("engines.csv:");
+    for (const c of engineChanges) console.log(`  ${c.code} (${c.power_kw}kW): ${c.from} -> ${c.to}`);
+  }
+  if (transChanges.length) {
+    console.log("transmissions.csv:");
+    for (const c of transChanges) console.log(`  ${c.code}: ${c.from} -> ${c.to}`);
+  }
+  if (!engineChanges.length && !transChanges.length) {
+    console.log("No flags needed changing.");
+  }
+}
+
 process.exit(problems > 0 ? 1 : 0);

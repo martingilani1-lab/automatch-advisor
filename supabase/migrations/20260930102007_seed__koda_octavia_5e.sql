@@ -2,7 +2,7 @@
 -- the filled intake template at scripts/cars/skoda-octavia-5e/, per the import-car skill.
 --
 -- REUSE/CREATE summary (reconciled live at generation time):
---   engines: 10 REUSE, 1 NEW (CJSA)
+--   engines: 11 REUSE, 0 NEW
 --   transmissions: 5 REUSE, 0 NEW
 --   body types: 2 REUSE, 0 NEW
 --   drivetrain systems referenced: haldex_gen5
@@ -39,12 +39,9 @@ begin
     raise exception 'catalog_body_types.''Estate'' is missing — reconcile is stale, re-check before running.';
   end if;
   if (select count(*) from catalog_engines where (code, power_kw) in (
-    ('CJZB', 63), ('CJZA', 77), ('CYVB', 81), ('CZDA', 110), ('CLHA', 77), ('CRKB', 81), ('CRBC', 110), ('CUNA', 135), ('CHHB', 162), ('CHHA', 169)
-  )) <> 10 then
+    ('CJZB', 63), ('CJZA', 77), ('CYVB', 81), ('CZDA', 110), ('CLHA', 77), ('CRKB', 81), ('CRBC', 110), ('CUNA', 135), ('CHHB', 162), ('CHHA', 169), ('CJSA', 132)
+  )) <> 11 then
     raise exception 'One or more REUSE engines are missing live — reconcile is stale, re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CJSA') then
-    raise exception 'catalog_engines.CJSA already exists — reconcile is stale (was this already seeded?), re-check before running.';
   end if;
   if (select count(*) from catalog_transmissions where code in (
     'MQ200', 'MQ250', 'DQ200', 'DQ250', 'MQ350'
@@ -91,7 +88,7 @@ from (
 join catalog_models m on m.name = 'Octavia'
 join catalog_brands cb on cb.id = m.brand_id and cb.name = 'Škoda'
 where not exists (
-  select 1 from catalog_phases cp where cp.model_id = m.id and cp.phase_label = v.phase_label
+  select 1 from catalog_phases cp where cp.model_id = m.id and cp.generation_code = v.generation_code and cp.phase_label = v.phase_label
 );
 
 -- ════════════════════════════════════════════════════════════
@@ -101,13 +98,8 @@ where not exists (
 
 -- ════════════════════════════════════════════════════════════
 -- 5. ENGINES
---    1 NEW row(s). Plain INSERT ... VALUES (not a VALUES-CTE), so no casting issue.
+--    none — all engines this car uses are REUSE, resolved by code+power_kw at config-insert time.
 -- ════════════════════════════════════════════════════════════
-
-insert into catalog_engines (code, alt_codes, display_name, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km)
-values
-  ('CJSA', '{CJSB}', '1.8 TSI', 132, 'petrol', 250, 'L4', 'Euro6', 'chain', 5.2, null)
-on conflict (code, power_kw) do nothing;
 
 -- ════════════════════════════════════════════════════════════
 -- 6. TRANSMISSIONS
@@ -266,3 +258,33 @@ on conflict (
 -- 10. COMPONENT FAULTS
 --    none supplied.
 -- ════════════════════════════════════════════════════════════
+
+-- ════════════════════════════════════════════════════════════
+-- 11. POST-CONDITION ASSERTIONS
+--    Asserts exactly the expected phase and config counts for this generation_code exist live -- catches a silent guard false-positive (e.g. the phases-guard bug: matching another generation's same-labeled phase) instead of leaving it undetected.
+-- ════════════════════════════════════════════════════════════
+
+do $$
+declare
+  phase_n integer;
+  config_n integer;
+begin
+  select count(*) into phase_n
+  from catalog_phases cp
+  join catalog_models cm on cm.id = cp.model_id
+  join catalog_brands cb on cb.id = cm.brand_id
+  where cb.name = 'Škoda' and cm.name = 'Octavia' and cp.generation_code = '5E';
+  if phase_n <> 2 then
+    raise exception 'Expected 2 phase(s) for Škoda Octavia (5E), found % -- a phase guard may have false-positived against another generation.', phase_n;
+  end if;
+
+  select count(*) into config_n
+  from catalog_vehicle_configurations cvc
+  join catalog_phases cp on cp.id = cvc.phase_id
+  join catalog_models cm on cm.id = cp.model_id
+  join catalog_brands cb on cb.id = cm.brand_id
+  where cb.name = 'Škoda' and cm.name = 'Octavia' and cp.generation_code = '5E';
+  if config_n <> 76 then
+    raise exception 'Expected 76 config(s) for Škoda Octavia (5E), found %.', config_n;
+  end if;
+end $$;

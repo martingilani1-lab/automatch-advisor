@@ -2,8 +2,8 @@
 -- the filled intake template at scripts/cars/vw-golf-5g/, per the import-car skill.
 --
 -- REUSE/CREATE summary (reconciled live at generation time):
---   engines: 0 REUSE, 13 NEW (CJZB, CJZA, CYVB, CZCA, CHPA, CZDA, CHHB, CHHA, CJXC, CLHA, CRKB, CRBC, CUNA)
---   transmissions: 4 REUSE, 2 NEW (MQ350, DQ381)
+--   engines: 13 REUSE, 0 NEW
+--   transmissions: 6 REUSE, 0 NEW
 --   body types: 3 REUSE, 0 NEW
 --   drivetrain systems referenced: haldex_gen5
 --   brand: REUSE. model: Golf (assumed NEW unless already present).
@@ -41,55 +41,15 @@ begin
   if not exists (select 1 from catalog_body_types where name = 'Estate') then
     raise exception 'catalog_body_types.''Estate'' is missing — reconcile is stale, re-check before running.';
   end if;
-  if exists (select 1 from catalog_engines where code = 'CJZB') then
-    raise exception 'catalog_engines.CJZB already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CJZA') then
-    raise exception 'catalog_engines.CJZA already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CYVB') then
-    raise exception 'catalog_engines.CYVB already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CZCA') then
-    raise exception 'catalog_engines.CZCA already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CHPA') then
-    raise exception 'catalog_engines.CHPA already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CZDA') then
-    raise exception 'catalog_engines.CZDA already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CHHB') then
-    raise exception 'catalog_engines.CHHB already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CHHA') then
-    raise exception 'catalog_engines.CHHA already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CJXC') then
-    raise exception 'catalog_engines.CJXC already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CLHA') then
-    raise exception 'catalog_engines.CLHA already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CRKB') then
-    raise exception 'catalog_engines.CRKB already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CRBC') then
-    raise exception 'catalog_engines.CRBC already exists — reconcile is stale (was this already seeded?), re-check before running.';
-  end if;
-  if exists (select 1 from catalog_engines where code = 'CUNA') then
-    raise exception 'catalog_engines.CUNA already exists — reconcile is stale (was this already seeded?), re-check before running.';
+  if (select count(*) from catalog_engines where (code, power_kw) in (
+    ('CJZB', 63), ('CJZA', 77), ('CYVB', 81), ('CZCA', 92), ('CHPA', 103), ('CZDA', 110), ('CHHB', 162), ('CHHA', 169), ('CJXC', 221), ('CLHA', 77), ('CRKB', 81), ('CRBC', 110), ('CUNA', 135)
+  )) <> 13 then
+    raise exception 'One or more REUSE engines are missing live — reconcile is stale, re-check before running.';
   end if;
   if (select count(*) from catalog_transmissions where code in (
-    'MQ200', 'MQ250', 'DQ200', 'DQ250'
-  )) <> 4 then
+    'MQ200', 'MQ250', 'DQ200', 'DQ250', 'MQ350', 'DQ381'
+  )) <> 6 then
     raise exception 'One or more REUSE transmissions are missing live — reconcile is stale, re-check before running.';
-  end if;
-  if exists (select 1 from catalog_transmissions where code = 'MQ350') then
-    raise exception 'catalog_transmissions.MQ350 already exists — reconcile is stale, re-check before running.';
-  end if;
-  if exists (select 1 from catalog_transmissions where code = 'DQ381') then
-    raise exception 'catalog_transmissions.DQ381 already exists — reconcile is stale, re-check before running.';
   end if;
 end $$;
 
@@ -131,7 +91,7 @@ from (
 join catalog_models m on m.name = 'Golf'
 join catalog_brands cb on cb.id = m.brand_id and cb.name = 'Volkswagen'
 where not exists (
-  select 1 from catalog_phases cp where cp.model_id = m.id and cp.phase_label = v.phase_label
+  select 1 from catalog_phases cp where cp.model_id = m.id and cp.generation_code = v.generation_code and cp.phase_label = v.phase_label
 );
 
 -- ════════════════════════════════════════════════════════════
@@ -141,36 +101,13 @@ where not exists (
 
 -- ════════════════════════════════════════════════════════════
 -- 5. ENGINES
---    13 NEW row(s). Plain INSERT ... VALUES (not a VALUES-CTE), so no casting issue.
+--    none — all engines this car uses are REUSE, resolved by code+power_kw at config-insert time.
 -- ════════════════════════════════════════════════════════════
-
-insert into catalog_engines (code, alt_codes, display_name, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km)
-values
-  ('CJZB', '{}', '1.2 TSI', 63, 'petrol', null, 'L4', 'Euro5', 'belt', 4.0, null),
-  ('CJZA', '{}', '1.2 TSI', 77, 'petrol', null, 'L4', 'Euro5', 'belt', 4.0, null),
-  ('CYVB', '{}', '1.2 TSI', 81, 'petrol', null, 'L4', 'Euro6', 'belt', 4.0, null),
-  ('CZCA', '{}', '1.4 TSI', 92, 'petrol', null, 'L4', 'Euro5', 'belt', 4.0, null),
-  ('CHPA', '{CPTA}', '1.4 TSI', 103, 'petrol', null, 'L4', 'Euro5', 'belt', 4.0, null),
-  ('CZDA', '{}', '1.4 TSI', 110, 'petrol', null, 'L4', 'Euro6', 'belt', 4.0, null),
-  ('CHHB', '{}', '2.0 TSI', 162, 'petrol', null, 'L4', 'Euro6', 'chain', 5.7, null),
-  ('CHHA', '{}', '2.0 TSI', 169, 'petrol', null, 'L4', 'Euro6', 'chain', 5.7, null),
-  ('CJXC', '{}', '2.0 TSI R', 221, 'petrol', null, 'L4', 'Euro6', 'chain', 5.7, null),
-  ('CLHA', '{}', '1.6 TDI', 77, 'diesel', null, 'L4', 'Euro5', 'belt', 4.7, null),
-  ('CRKB', '{}', '1.6 TDI', 81, 'diesel', null, 'L4', 'Euro6', 'belt', 4.7, null),
-  ('CRBC', '{CRLB}', '2.0 TDI', 110, 'diesel', null, 'L4', 'Euro6', 'belt', 4.7, null),
-  ('CUNA', '{}', '2.0 TDI', 135, 'diesel', null, 'L4', 'Euro6', 'belt', 4.7, null)
-on conflict (code, power_kw) do nothing;
 
 -- ════════════════════════════════════════════════════════════
 -- 6. TRANSMISSIONS
---    2 NEW row(s). Plain INSERT ... VALUES, no casting issue.
+--    none — all transmissions this car uses are REUSE.
 -- ════════════════════════════════════════════════════════════
-
-insert into catalog_transmissions (code, type, speeds)
-values
-  ('MQ350', 'manual', 6),
-  ('DQ381', 'dct_wet', 7)
-on conflict (code) do nothing;
 
 -- ════════════════════════════════════════════════════════════
 -- 7. PHASE_BODY_DIMENSIONS
@@ -351,3 +288,33 @@ on conflict (
 -- 10. COMPONENT FAULTS
 --    none supplied.
 -- ════════════════════════════════════════════════════════════
+
+-- ════════════════════════════════════════════════════════════
+-- 11. POST-CONDITION ASSERTIONS
+--    Asserts exactly the expected phase and config counts for this generation_code exist live -- catches a silent guard false-positive (e.g. the phases-guard bug: matching another generation's same-labeled phase) instead of leaving it undetected.
+-- ════════════════════════════════════════════════════════════
+
+do $$
+declare
+  phase_n integer;
+  config_n integer;
+begin
+  select count(*) into phase_n
+  from catalog_phases cp
+  join catalog_models cm on cm.id = cp.model_id
+  join catalog_brands cb on cb.id = cm.brand_id
+  where cb.name = 'Volkswagen' and cm.name = 'Golf' and cp.generation_code = '5G';
+  if phase_n <> 2 then
+    raise exception 'Expected 2 phase(s) for Volkswagen Golf (5G), found % -- a phase guard may have false-positived against another generation.', phase_n;
+  end if;
+
+  select count(*) into config_n
+  from catalog_vehicle_configurations cvc
+  join catalog_phases cp on cp.id = cvc.phase_id
+  join catalog_models cm on cm.id = cp.model_id
+  join catalog_brands cb on cb.id = cm.brand_id
+  where cb.name = 'Volkswagen' and cm.name = 'Golf' and cp.generation_code = '5G';
+  if config_n <> 101 then
+    raise exception 'Expected 101 config(s) for Volkswagen Golf (5G), found %.', config_n;
+  end if;
+end $$;
