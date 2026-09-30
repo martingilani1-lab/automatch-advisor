@@ -6,6 +6,8 @@
 // Checks:
 //   - config-grid rows reference an engine (code+power_kw) that's actually in engines.csv
 //   - config-grid 'x' cells reference a gearbox code that's actually in transmissions.csv
+//     (transmissions.csv is unit_code only post catalog_transmissions -> transmission_units
+//     consolidation -- no reuse_or_new/type/speeds columns anymore)
 //   - fault severity values are in the recommended vocabulary (critical/moderate/minor —
 //     not a live CHECK constraint today, flagged for consistency, not schema truth)
 //   - phases.csv / dimensions.csv numeric columns that are empty on EVERY row — not wrong,
@@ -94,7 +96,7 @@ const grids = gridFiles.map(f => ({ file: f, rows: readGrid(path.join(dir, f)) }
 
 // 1 & 2: config rows reference real engines/gearboxes
 const engineKeys = new Set(engines.filter(e => e.code && e.power_kw).map(e => `${e.code}|${e.power_kw}`));
-const gearboxCodes = new Set(trans.filter(t => t.code).map(t => t.code));
+const gearboxCodes = new Set(trans.filter(t => t.unit_code).map(t => t.unit_code));
 const usedEngineKeys = new Set();
 
 for (const g of grids) {

@@ -1,0 +1,13 @@
+unit_code
+MQ200
+MQ250
+DQ200
+DQ250
+MQ350
+# All 5 resolve live -- MQ350 was CREATEd by the Golf 5G seed (this car's own template lists
+# it since Octavia's own configs don't need to create it themselves; it must exist live by
+# the time this car is seeded, same forward-looking note as the engines above). DQ381 is not
+# used by any Octavia config either.
+# Post catalog_transmissions -> transmission_units consolidation: unit_code now resolves
+# directly against transmission_units.code/alt_codes -- no more reuse_or_new/type/speeds
+# columns, no CREATE path (see CLAUDE.md).

@@ -50,22 +50,31 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
      onto each real body of the phase (per-body precision is authored later).
    - Anything the human doesn't supply stays NULL — do not fill gaps by guessing.
 
-2. **Reconcile → REUSE/CREATE table.** Run `node scripts/reconcile.mjs` — it queries the
-   live DB for every engine (`code`, `power_kw`, and `alt_codes`) and transmission (`code`)
-   in the filled `engines.csv`/`transmissions.csv`, prints the REUSE/CREATE table with
-   resolved ids, and flags alias collisions (a code that's already another row's primary
-   code or already sits in another row's `alt_codes` — the León `BCB`→`AUS` case). Doing
-   this by hand instead is fine too, but match on the same keys:
+2. **Reconcile → REUSE/CREATE (engines) + RESOLVED/MISSING (transmissions) tables.** Run
+   `node scripts/reconcile.mjs` — it queries the live DB for every engine (`code`,
+   `power_kw`, and `alt_codes`) in `engines.csv` and prints the REUSE/CREATE table with
+   resolved ids, flagging alias collisions (a code that's already another row's primary code
+   or already sits in another row's `alt_codes` — the León `BCB`→`AUS` case). Separately, for
+   every `unit_code` in `transmissions.csv` it prints RESOLVED (with the matched
+   `transmission_units` code, id, `family`, and `speeds` — eyeball that it's really the same
+   physical gearbox) or MISSING. Doing this by hand instead is fine too, but match on the
+   same keys:
    - **Engine** = `(code, power_kw)`, also checking `alt_codes`.
-   - **Transmission** = the real gearbox `code` — **NEVER speed count** (a "5-speed manual"
-     is not evidence of the same unit as another 5-speed manual already in the DB).
+   - **Transmission** = the real gearbox `code` against `transmission_units.code` or
+     `alt_codes` — **NEVER speed count** (a "5-speed manual" is not evidence of the same
+     unit as another 5-speed manual already in the DB). There is no CREATE path for
+     transmissions: `transmission_units` is shared reference data, not seeded per-car. A
+     MISSING `unit_code` **STOPS the import** — add the unit via its own reviewed migration
+     first (see the transmission_units linking-audit workflow), then re-run reconcile. Do
+     not guess, and do not have `generate-seed.mjs` create a placeholder row inline — it
+     can't; there's nothing to create.
    - **Drivetrain system** = `code`.
    Get human sign-off on the table before writing any seed.
 
 3. **Seed, in dependency order**, into review-only file(s) in `supabase/migrations/`
    (timestamp-prefixed, comments explain *why*):
    brand/model (reuse if present) → phases → NEW dictionary entries only (engines,
-   transmissions, drivetrain) → configurations → trims/features → component faults →
+   drivetrain — never transmissions, see step 2) → configurations → trims/features → component faults →
    attributes (model, phase, phase × body dimensions) → media → tires.
    - Resolve every FK by code/name via subquery or CTE — never a hand-typed UUID.
    - Idempotency: `ON CONFLICT` only where a real unique constraint exists; otherwise

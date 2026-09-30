@@ -1,0 +1,16 @@
+unit_code
+02J
+02M
+09G
+02E
+# 02E: spec said type 'dual_clutch', which isn't in catalog_transmissions.type's frozen
+# CHECK vocabulary (dct_dry/dct_wet/dct/torque_converter/cvt/manual/amt/single_speed) --
+# writing it as given would fail the live constraint. Mapped to dct_wet: the historical 02E
+# (first 6-speed DSG, debuted on this car) is a documented wet-clutch design, matching both
+# the vocabulary and reality, not a guess.
+# Also REUSE, not NEW as the spec said -- 02E already exists live (type=dct_wet, speeds=6,
+# exactly matching this row) -- confirmed via reconcile before this fix.
+# Post catalog_transmissions -> transmission_units consolidation: 02E resolves via
+# transmission_units.alt_codes to 'VW DQ250' (02E is the DQ250 family code -- same physical
+# unit as the DQ250 code used elsewhere, now one row). 09G resolves to
+# 'Aisin 09G (TF-60SN)'.

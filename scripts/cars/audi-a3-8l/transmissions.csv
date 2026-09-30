@@ -1,0 +1,10 @@
+unit_code
+02J
+02K
+01M
+02M
+09A
+# All 5 reconfirmed live just now. No new transmissions for the A3.
+# Post catalog_transmissions -> transmission_units consolidation: unit_code now resolves
+# directly against transmission_units.code/alt_codes (VW 02J/02K/01M/02M, Jatco 09A
+# (JF506E)) -- no more reuse_or_new/type/speeds columns, no CREATE path (see CLAUDE.md).

@@ -38,20 +38,24 @@ const ENGINES_COLS = [
   "code", "alt_codes", "display_name", "power_kw", "fuel_type", "torque_nm", "cylinders",
   "emission_standard", "timing_type", "engine_oil_capacity_liters", "timing_replacement_km",
 ];
-const TRANSMISSIONS_COLS = ["code", "type", "speeds"];
+// transmission_units is reference data (not seeded per-car — see CLAUDE.md "a gearbox with
+// no unit STOPS the import"), but its columns are still checked live here since every
+// config/fault INSERT below resolves against code/alt_codes and would fail confusingly if
+// either were missing.
+const TRANSMISSION_UNITS_COLS = ["id", "code", "alt_codes"];
 const DIMENSIONS_COLS = [
   "phase_id", "body_type_id", "length_mm", "width_mm", "height_mm", "ground_clearance_mm",
   "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg",
   "payload_kg", "fuel_tank_capacity_liters", "seats_count",
 ];
-const CONFIGS_COLS = ["phase_id", "body_type_id", "engine_id", "transmission_id", "drivetrain_id"];
+const CONFIGS_COLS = ["phase_id", "body_type_id", "engine_id", "unit_id", "drivetrain_id"];
 const TRIMS_COLS = ["phase_id", "name", "tier"];
 const TRIM_FEATURES_COLS = ["trim_id", "feature", "is_optional"];
 // catalog_component_faults has TWO separate INSERTs (engine faults / transmission
 // faults), each writing a different subset of columns — REQUIRED_COLUMNS below is their
 // union, computed, not retyped.
 const COMPONENT_FAULTS_ENGINE_COLS = ["component_type", "engine_id", "fault", "severity"];
-const COMPONENT_FAULTS_TRANS_COLS = ["component_type", "transmission_id", "fault", "severity"];
+const COMPONENT_FAULTS_TRANS_COLS = ["component_type", "unit_id", "fault", "severity"];
 
 // Checked live before generating anything (see preflightSchemaCheck below). This is what
 // closes the seats_count-ordering bug class: running this script before a schema migration
@@ -64,7 +68,7 @@ const REQUIRED_COLUMNS = {
   catalog_phases: PHASES_COLS,
   catalog_body_types: BODY_TYPES_COLS,
   catalog_engines: ENGINES_COLS,
-  catalog_transmissions: TRANSMISSIONS_COLS,
+  transmission_units: TRANSMISSION_UNITS_COLS,
   phase_body_dimensions: DIMENSIONS_COLS,
   catalog_vehicle_configurations: CONFIGS_COLS,
   catalog_trims: TRIMS_COLS,
@@ -205,18 +209,30 @@ async function main() {
   const { data: liveBrands } = await sb.from("catalog_brands").select("name");
   const { data: liveBodyTypes } = await sb.from("catalog_body_types").select("name");
   const { data: liveEngines } = await sb.from("catalog_engines").select("code, power_kw, alt_codes");
-  const { data: liveTrans } = await sb.from("catalog_transmissions").select("code");
+  const { data: liveUnits } = await sb.from("transmission_units").select("id, code, alt_codes");
   const { data: liveDrivetrains } = await sb.from("drivetrain_systems").select("code");
 
   const liveEngineMap = new Map(liveEngines.map(e => [`${e.code}|${e.power_kw}`, e]));
-  const liveTransSet = new Set(liveTrans.map(t => t.code));
   const liveBodySet = new Set(liveBodyTypes.map(b => b.name));
   const liveDrivetrainSet = new Set(liveDrivetrains.map(d => d.code));
 
+  // Transmission match is by real gearbox identity, never speed count (CLAUDE.md "Adding a
+  // new car / model — RULES"): a unit_code resolves if it's a transmission_units.code OR
+  // sits in that row's alt_codes. There is no CREATE path here anymore — a gearbox with no
+  // matching unit is a hard STOP (see the unresolved-codes check below), not something this
+  // script can seed inline.
+  const resolveUnit = code => liveUnits.find(u => u.code === code || (u.alt_codes || []).includes(code));
+
   const reuseEngines = engines.filter(e => e.reuse_or_new === "REUSE" && e.code && e.power_kw);
   const newEngines = engines.filter(e => e.reuse_or_new === "NEW" && e.code && e.power_kw);
-  const reuseTrans = trans.filter(t => t.reuse_or_new === "REUSE" && t.code);
-  const newTrans = trans.filter(t => t.reuse_or_new === "NEW" && t.code);
+  const usedUnitCodes = [...new Set(trans.map(t => t.unit_code).filter(Boolean))];
+  const unresolvedUnitCodes = usedUnitCodes.filter(c => !resolveUnit(c));
+
+  if (unresolvedUnitCodes.length) {
+    console.error(`${dir}/transmissions.csv references unit_code(s) with no matching transmission_units row: ${unresolvedUnitCodes.join(", ")}`);
+    console.error("STOP — per CLAUDE.md: a gearbox with no matching unit blocks the import. Add the unit via its own reviewed migration first (see the transmission_units linking-audit workflow); this script does not create transmission rows.");
+    process.exit(1);
+  }
 
   const usedBodies = [...new Set(dims.map(d => d.body_type).filter(Boolean))];
   const newBodies = usedBodies.filter(b => !liveBodySet.has(b));
@@ -245,7 +261,7 @@ async function main() {
     "--",
     "-- REUSE/CREATE summary (reconciled live at generation time):",
     `--   engines: ${reuseEngines.length} REUSE, ${newEngines.length} NEW${newEngines.length ? ` (${newEngines.map(e => e.code).join(", ")})` : ""}`,
-    `--   transmissions: ${reuseTrans.length} REUSE, ${newTrans.length} NEW${newTrans.length ? ` (${newTrans.map(t => t.code).join(", ")})` : ""}`,
+    `--   transmissions: ${usedUnitCodes.length} unit_code(s) referenced, all resolved live against transmission_units (${usedUnitCodes.join(", ")})`,
     `--   body types: ${usedBodies.length - newBodies.length} REUSE, ${newBodies.length} NEW${newBodies.length ? ` (${newBodies.join(", ")})` : ""}`,
     `--   drivetrain systems referenced: ${usedDrivetrains.length ? usedDrivetrains.join(", ") : "none (FWD only)"}`,
     `--   brand: ${liveBrands.some(b => b.name === car.brand) ? "REUSE" : "NEW"}. model: ${car.model} (assumed NEW unless already present).`,
@@ -299,16 +315,9 @@ async function main() {
     p(`    raise exception 'catalog_engines.${esc(e.code)} already exists — reconcile is stale (was this already seeded?), re-check before running.';`);
     p("  end if;");
   }
-  if (reuseTrans.length) {
-    p("  if (select count(*) from catalog_transmissions where code in (");
-    p(`    ${reuseTrans.map(t => `'${esc(t.code)}'`).join(", ")}`);
-    p(`  )) <> ${reuseTrans.length} then`);
-    p("    raise exception 'One or more REUSE transmissions are missing live — reconcile is stale, re-check before running.';");
-    p("  end if;");
-  }
-  for (const t of newTrans) {
-    p(`  if exists (select 1 from catalog_transmissions where code = '${esc(t.code)}') then`);
-    p(`    raise exception 'catalog_transmissions.${esc(t.code)} already exists — reconcile is stale, re-check before running.';`);
+  for (const uc of usedUnitCodes) {
+    p(`  if not exists (select 1 from transmission_units where code = '${esc(uc)}' or '${esc(uc)}' = any(alt_codes)) then`);
+    p(`    raise exception 'No transmission_units row matches unit_code ''${esc(uc)}'' — reconcile is stale, re-check before running.';`);
     p("  end if;");
   }
   p("end $$;", "");
@@ -376,15 +385,10 @@ async function main() {
     header("ENGINES", "none — all engines this car uses are REUSE, resolved by code+power_kw at config-insert time.");
   }
 
-  // ---- 6. transmissions ----
-  if (newTrans.length) {
-    header("TRANSMISSIONS", `${newTrans.length} NEW row(s). Plain INSERT ... VALUES, no casting issue.`);
-    p(`insert into catalog_transmissions (${TRANSMISSIONS_COLS.join(", ")})`, "values");
-    p(newTrans.map(t => `  ('${esc(t.code)}', '${esc(t.type)}', ${t.speeds})`).join(",\n"));
-    p("on conflict (code) do nothing;", "");
-  } else {
-    header("TRANSMISSIONS", "none — all transmissions this car uses are REUSE.");
-  }
+  // ---- transmissions: no INSERT here at all — every unit_code was already confirmed to
+  // resolve against a live transmission_units row before generation started (the
+  // unresolvedUnitCodes check above). transmission_units is reference data, never seeded
+  // per-car; configs below resolve it by code/alt_codes.
 
   // ---- 7. phase_body_dimensions ----
   header("PHASE_BODY_DIMENSIONS", `${dims.length} row(s), one per (phase x body).`);
@@ -425,13 +429,13 @@ async function main() {
     "  engine_lookup as (",
     "    select id, code, power_kw from catalog_engines",
     "  ),",
-    "  trans_lookup as (",
-    "    select id, code from catalog_transmissions",
+    "  unit_lookup as (",
+    "    select id, code, alt_codes from transmission_units",
     "  ),",
     "  dt_lookup as (",
     `    select id, code from drivetrain_systems${usedDrivetrains.length ? ` where code in (${usedDrivetrains.map(d => `'${esc(d)}'`).join(", ")})` : " where false"}`,
     "  ),",
-    "  configs (phase_label, body_name, engine_code, engine_power_kw, trans_code, dt_code) as (",
+    "  configs (phase_label, body_name, engine_code, engine_power_kw, unit_code, dt_code) as (",
     "    values"
   );
   p(configs.map(c => {
@@ -441,15 +445,15 @@ async function main() {
   p(
     "  )",
     `insert into catalog_vehicle_configurations (${CONFIGS_COLS.join(", ")})`,
-    "select p.id, b.id, e.id, t.id, d.id",
+    "select p.id, b.id, e.id, u.id, d.id",
     "from configs c",
     "join phase_lookup p on p.phase_label = c.phase_label",
     "join body_lookup b on b.name = c.body_name",
     "join engine_lookup e on e.code = c.engine_code and e.power_kw = c.engine_power_kw",
-    "join trans_lookup t on t.code = c.trans_code",
+    "join unit_lookup u on u.code = c.unit_code or c.unit_code = any(u.alt_codes)",
     "left join dt_lookup d on d.code = c.dt_code",
     "on conflict (",
-    "  phase_id, body_type_id, engine_id, transmission_id,",
+    "  phase_id, body_type_id, engine_id, unit_id,",
     "  coalesce(drivetrain_id, '00000000-0000-0000-0000-000000000000'::uuid)",
     ") do nothing;",
     ""
@@ -517,17 +521,18 @@ async function main() {
       );
     }
     if (transFaults.length) {
-      const keys = [...new Set(transFaults.map(f => `'${esc(f.target_code)}'`))];
-      p("with", "  trans_lookup as (", `    select id, code from catalog_transmissions where code in (${keys.join(", ")})`, "  ),", "  trans_faults (target_code, fault, severity) as (", "    values");
+      // Matched by real gearbox identity (code or alt_codes), same as configs above — never
+      // by speed count.
+      p("with", "  unit_lookup as (", "    select id, code, alt_codes from transmission_units", "  ),", "  trans_faults (target_code, fault, severity) as (", "    values");
       p(transFaults.map(f => `      ('${esc(f.target_code)}'::text, '${esc(f.fault)}'::text, '${esc(f.severity)}'::text)`).join(",\n"));
       p(
         "  )",
         `insert into catalog_component_faults (${COMPONENT_FAULTS_TRANS_COLS.join(", ")})`,
-        "select 'transmission', t.id, f.fault, f.severity",
+        "select 'transmission', u.id, f.fault, f.severity",
         "from trans_faults f",
-        "join trans_lookup t on t.code = f.target_code",
+        "join unit_lookup u on u.code = f.target_code or f.target_code = any(u.alt_codes)",
         "where not exists (",
-        "  select 1 from catalog_component_faults ccf where ccf.transmission_id = t.id and ccf.fault = f.fault",
+        "  select 1 from catalog_component_faults ccf where ccf.unit_id = u.id and ccf.fault = f.fault",
         ");",
         ""
       );
@@ -612,7 +617,7 @@ async function main() {
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, sql);
   console.log(`Wrote ${outPath}`);
-  console.log(`  engines: ${reuseEngines.length} REUSE, ${newEngines.length} NEW | transmissions: ${reuseTrans.length} REUSE, ${newTrans.length} NEW`);
+  console.log(`  engines: ${reuseEngines.length} REUSE, ${newEngines.length} NEW | transmissions: ${usedUnitCodes.length} unit_code(s) resolved`);
   console.log(`  body types: ${newBodies.length} NEW | configs: ${configs.length} | trims: ${trims.length} | faults: ${engFaults.length + transFaults.length}`);
   if (aliasUpdates.length) console.log(`  ALIAS DRIFT: ${aliasUpdates.map(u => u.code).join(", ")} — guarded UPDATE section included`);
   console.log("  NOT executed. Review before running.");

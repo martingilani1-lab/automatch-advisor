@@ -1,0 +1,12 @@
+unit_code
+02K
+02J
+02M
+01M
+09G
+# 09G: the Aisin 6-speed auto introduced at the facelift, per spec -- confirmed absent live
+# at the time (this car's own seed CREATEd the catalog_transmissions row for it).
+# Post catalog_transmissions -> transmission_units consolidation: 09G resolves via
+# transmission_units.alt_codes to 'Aisin 09G (TF-60SN)' -- unit_code now resolves directly
+# against transmission_units.code/alt_codes, no more reuse_or_new/type/speeds columns, no
+# CREATE path (see CLAUDE.md).

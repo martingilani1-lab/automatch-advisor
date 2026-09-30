@@ -24,7 +24,9 @@ by anything except the helper scripts' own header-skipping, which ignores them e
 3. `dimensions.csv` — one row per phase × body: dimensions, weight, boot, GVW, payload,
    fuel tank.
 4. `engines.csv` — every engine, marked REUSE or NEW.
-5. `transmissions.csv` — every gearbox, marked REUSE or NEW.
+5. `transmissions.csv` — every gearbox this car uses, by real `unit_code`. No REUSE/NEW here
+   — `transmission_units` is shared reference data, not seeded per-car; every `unit_code`
+   must resolve live (see "Reuse vs new" below) or the import STOPS.
 6. `drivetrains.csv` — optional, one row per AWD/4x4 system this car uses beyond plain FWD
    (column: `drivetrain_code`, e.g. `haldex_gen1`). Skip the file entirely for an FWD-only
    car. Used by `gen-config-grid.mjs` (below) to include AWD columns in the grid.
@@ -46,12 +48,17 @@ Three helper scripts live in `scripts/` (one level up from this folder), all rea
 against the live DB — none of them write or seed anything.
 
 - **`node scripts/reconcile.mjs [template-dir]`** — reads the filled `engines.csv` +
-  `transmissions.csv`, queries the live DB, and prints a REUSE/CREATE table with resolved
-  ids. Flags alias collisions: a code that's already another row's primary code, or already
-  sits in another row's `alt_codes` — the case that broke silently before (León's `BCB`
-  badge resolving to `AUS`, not a new row). Also flags where the template's own
-  `reuse_or_new` column has drifted from what's actually live (a seed run since the
-  template was filled, for example). Exit code 1 if anything needs resolving.
+  `transmissions.csv`, queries the live DB, and prints two tables: a REUSE/CREATE table for
+  engines with resolved ids (flags alias collisions: a code that's already another row's
+  primary code, or already sits in another row's `alt_codes` — the case that broke silently
+  before, León's `BCB` badge resolving to `AUS`, not a new row), and a RESOLVED/MISSING table
+  for transmissions — every `unit_code` matched against live `transmission_units.code` or
+  `alt_codes` (never speed count), printing the resolved unit's `family`/`speeds` so you can
+  eyeball it's really the right physical gearbox. A MISSING transmission is a hard STOP, not
+  a CREATE — add the unit via its own reviewed migration first. Also flags where an engine's
+  `reuse_or_new` column has drifted from what's actually live (a seed run since the template
+  was filled, for example) — transmissions have no such flag to drift. Exit code 1 if
+  anything needs resolving.
 - **`node scripts/gen-config-grid.mjs [template-dir] [--force]`** — pre-generates the config
   grid's columns (see below). Won't overwrite a `configs-<phase>.csv` that already has an
   `x` mark in it unless `--force` is passed, so re-running it after you've started marking
@@ -94,9 +101,12 @@ migration files — they may not have run, or may have drifted.
 
 - **Engine:** match by `code` + `power_kw`, and also check whether the code appears in
   another engine's `alt_codes`. REUSE if found under either.
-- **Transmission:** match by the real gearbox `code` only. **NEVER match by speed count** —
-  a "5-speed manual" is not evidence it's the same unit as another 5-speed manual already
-  in the DB.
+- **Transmission:** no REUSE/NEW decision — `unit_code` must RESOLVE against a live
+  `transmission_units` row (`code` or `alt_codes`), matched by the real gearbox identity
+  only. **NEVER match by speed count** — a "5-speed manual" is not evidence it's the same
+  unit as another 5-speed manual already in the DB. A `unit_code` that doesn't resolve is a
+  hard STOP: add the unit via its own reviewed migration first (see the transmission_units
+  linking-audit workflow) — do not create one inline and do not guess.
 - **Drivetrain system:** match by `code`.
 - Engines that genuinely differ by emissions generation (Euro 2 vs Euro 3) or hardware
   generation are separate rows with distinct primary codes; `alt_codes` is only for

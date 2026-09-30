@@ -1,23 +1,33 @@
 // Reconcile step (CLAUDE.md "Adding a new car / model — RULES", rules 1-2) as a script
 // instead of a hand-typed prompt: reads the filled engines.csv + transmissions.csv from a
-// new-car intake template, queries the LIVE DB, and prints the REUSE/CREATE table with
-// resolved ids. Flags alias collisions — a code that's already another row's primary code,
-// or already sits in another row's alt_codes — since reconcile-by-code silently assumes
-// codes are unique, and an unflagged collision means "which row do I actually reuse?".
+// new-car intake template, queries the LIVE DB, and prints the REUSE/CREATE table (engines)
+// and the RESOLVED/MISSING table (transmissions) with resolved ids. Flags engine alias
+// collisions — a code that's already another row's primary code, or already sits in another
+// row's alt_codes — since reconcile-by-code silently assumes codes are unique, and an
+// unflagged collision means "which row do I actually reuse?".
+//
+// Transmissions have NO create path (post catalog_transmissions -> transmission_units
+// consolidation): transmissions.csv is just unit_code, matched against the live, reference-
+// only transmission_units.code or alt_codes — never speed count. A MISSING unit_code is a
+// hard STOP per CLAUDE.md, not something this script or generate-seed.mjs creates inline;
+// see the transmission_units linking-audit workflow to add a new unit first. For every
+// RESOLVED unit_code this prints the unit's family and speeds too, so a human can eyeball
+// that the resolved unit is really the right physical gearbox before signing off.
 //
 // Read-only by default. Makes no writes unless --fix-flags is passed. Run from repo root:
 //   node scripts/reconcile.mjs [template-dir] [--fix-flags]
-// Exit code 1 if any problem was found (drifted REUSE/NEW claim, or a collision), else 0 --
-// this is based on the report pass and is unaffected by --fix-flags (which runs after and
-// reports separately; it doesn't re-run the report against the fixed file).
+// Exit code 1 if any problem was found (drifted REUSE/NEW claim, an engine collision, or a
+// MISSING transmission unit_code), else 0 -- this is based on the report pass and is
+// unaffected by --fix-flags (which runs after and reports separately; it doesn't re-run the
+// report against the fixed file).
 //
-// --fix-flags: rewrites reuse_or_new in engines.csv/transmissions.csv to match what's
-// actually live right now (REUSE where a live match exists, NEW where none does), and
-// prints every flag it changed. Only touches the reuse_or_new cell of rows that actually
-// need to change -- every other column, every comment, every blank line is preserved
-// byte-for-byte. Does NOT touch a row flagged as a COLLISION above (an alt_code matching
-// a different row's primary code or alt_codes) -- that's a genuine ambiguity for a human
-// to resolve, not a stale flag to auto-correct.
+// --fix-flags: engines ONLY (transmissions have no reuse_or_new flag to fix anymore).
+// Rewrites reuse_or_new in engines.csv to match what's actually live right now (REUSE where
+// a live match exists, NEW where none does), and prints every flag it changed. Only touches
+// the reuse_or_new cell of rows that actually need to change -- every other column, every
+// comment, every blank line is preserved byte-for-byte. Does NOT touch a row flagged as a
+// COLLISION above (an alt_code matching a different row's primary code or alt_codes) --
+// that's a genuine ambiguity for a human to resolve, not a stale flag to auto-correct.
 
 import fs from "fs";
 import path from "path";
@@ -103,7 +113,7 @@ const trans = readCsv(path.join(dir, "transmissions.csv"));
 
 const { data: liveEngines, error: e1 } = await sb.from("catalog_engines").select("id, code, power_kw, alt_codes");
 if (e1) throw e1;
-const { data: liveTrans, error: e2 } = await sb.from("catalog_transmissions").select("id, code");
+const { data: liveUnits, error: e2 } = await sb.from("transmission_units").select("id, code, alt_codes, family, speeds");
 if (e2) throw e2;
 
 let problems = 0;
@@ -149,17 +159,13 @@ for (const e of engines) {
 
 console.log("\n=== TRANSMISSIONS ===");
 for (const t of trans) {
-  if (!t.code) continue;
-  const hit = liveTrans.find(lt => lt.code === t.code);
-  const claimed = (t.reuse_or_new || "").toUpperCase();
+  if (!t.unit_code) continue;
+  const hit = liveUnits.find(lu => lu.code === t.unit_code || (lu.alt_codes || []).includes(t.unit_code));
   if (hit) {
-    const mismatch = claimed === "NEW" ? "  !! template says NEW but this exists live" : "";
-    console.log(`REUSE  ${t.code} -> ${hit.id}${mismatch}`);
-    if (mismatch) problems++;
+    console.log(`RESOLVED  ${t.unit_code} -> ${hit.code} (${hit.id})  family=${hit.family}  speeds=${hit.speeds ?? "?"}`);
   } else {
-    const mismatch = claimed === "REUSE" ? "  !! template says REUSE but nothing matches live" : "";
-    console.log(`CREATE ${t.code}${mismatch}`);
-    if (mismatch) problems++;
+    console.log(`MISSING   ${t.unit_code} -> no transmission_units row matches (checked code and alt_codes) -- STOP, add the unit first (see transmission_units linking-audit workflow), do not guess or create inline`);
+    problems++;
   }
 }
 
@@ -180,20 +186,12 @@ if (fixFlags) {
     return "NEW";
   }).changes;
 
-  const transChanges = fixReuseFlags(path.join(dir, "transmissions.csv"), (row) => {
-    if (!row.code) return null;
-    return liveTrans.some(lt => lt.code === row.code) ? "REUSE" : "NEW";
-  }).changes;
-
+  // transmissions.csv has no reuse_or_new flag anymore -- unit_code either resolves live or
+  // it's a MISSING/STOP, nothing to fix mechanically.
   if (engineChanges.length) {
     console.log("engines.csv:");
     for (const c of engineChanges) console.log(`  ${c.code} (${c.power_kw}kW): ${c.from} -> ${c.to}`);
-  }
-  if (transChanges.length) {
-    console.log("transmissions.csv:");
-    for (const c of transChanges) console.log(`  ${c.code}: ${c.from} -> ${c.to}`);
-  }
-  if (!engineChanges.length && !transChanges.length) {
+  } else {
     console.log("No flags needed changing.");
   }
 }

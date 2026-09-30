@@ -1,5 +1,9 @@
-# One row per gearbox. code = the REAL gearbox code (02J, MQ250, DQ200...).
-#   Match/reuse by this code ONLY - NEVER by speed count (a "5-speed manual" is not evidence of the same unit).
-# reuse_or_new: decide after checking the live DB by code (see scripts/reconcile.mjs).
-# type: manual | torque_converter | dct_dry | dct_wet | dct | cvt | amt | single_speed
-reuse_or_new,code,type,speeds
+# One row per gearbox this car uses. unit_code = the REAL gearbox code (02J, MQ250, DQ200...).
+#   Match ONLY by this code (or an alt_code of the same unit) - NEVER by speed count (a
+#   "5-speed manual" is not evidence of the same unit).
+# There is no REUSE/NEW decision here anymore: transmission_units is shared reference data,
+# not seeded per-car. Run scripts/reconcile.mjs -- every unit_code must RESOLVE against a
+# live transmission_units row (by code or alt_codes). A MISSING unit_code is a hard STOP:
+# add the unit via its own reviewed migration first (see the transmission_units linking-audit
+# workflow) before continuing this car's import. Never guess, never create one inline.
+unit_code

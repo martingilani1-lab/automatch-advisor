@@ -1,0 +1,14 @@
+unit_code
+MQ200
+MQ250
+DQ200
+DQ250
+MQ350
+DQ381
+# type 'dual_clutch' from the spec is invalid (not in the frozen CHECK vocabulary) --
+# mapped to dct_dry (DQ200, DQ381... no: DQ200 is dry, DQ250/DQ381 are wet) per your
+# override note. DQ381 is CREATEd per your decision but not referenced by any config row
+# yet -- sits in the dictionary unused, ready for a future car/config.
+# Post catalog_transmissions -> transmission_units consolidation: unit_code now resolves
+# directly against transmission_units.code/alt_codes -- no more reuse_or_new/type/speeds
+# columns, no CREATE path (see CLAUDE.md).

@@ -1,9 +1,13 @@
 // Post-seed verification (import-car skill step 4) across a batch of cars, done in one
 // command instead of hand-writing per-car queries after each seed run. For every car
 // folder: checks that what actually landed live matches what the template declared --
-// config count per phase, zero duplicate dictionary rows (engines by code+power_kw,
-// transmissions by code), no orphan engines (an engine in engines.csv that no live config
-// for this car references), and that every declared phase/body attribute row exists
+// config count per phase, zero duplicate engine dictionary rows (by code+power_kw),
+// no orphan engines (an engine in engines.csv that no live config for this car references),
+// every declared transmissions.csv unit_code resolves to a live transmission_units row and
+// is actually used by >=1 of this car's configs (fails on a MISSING unit the same way an
+// orphan engine fails -- see the transmission_units consolidation: there is no more
+// catalog_transmissions row to duplicate-check, units are shared reference data, not
+// per-car dictionary entries), and that every declared phase/body attribute row exists
 // (phase_body_dimensions -- presence, not "every column non-null", matching the skill's
 // own "Done means" bar: addressed, not necessarily filled).
 //
@@ -105,6 +109,7 @@ const env = loadEnv();
 const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 const summary = [];
+let allUnits = null; // transmission_units is shared reference data -- fetch once, reuse across every car in the batch.
 
 for (const dir of carDirs) {
   const carName = path.basename(dir);
@@ -173,12 +178,14 @@ for (const dir of carDirs) {
     // car's own configs, not orphaned from this seed specifically).
     const phaseIds = [...phaseIdByLabel.values()];
     let usedEngineIds = new Set();
+    let usedUnitIds = new Set();
     if (phaseIds.length) {
       const { data: liveConfigs } = await sb
         .from("catalog_vehicle_configurations")
-        .select("engine_id")
+        .select("engine_id, unit_id")
         .in("phase_id", phaseIds);
       usedEngineIds = new Set((liveConfigs || []).map(c => c.engine_id));
+      usedUnitIds = new Set((liveConfigs || []).map(c => c.unit_id));
     }
     for (const e of engines) {
       if (!e.code || !e.power_kw) continue;
@@ -191,6 +198,24 @@ for (const dir of carDirs) {
       if (!engRow) { fail(`engine ${e.code} (${e.power_kw}kW): not found live.`); continue; }
       if (usedEngineIds.has(engRow.id)) pass(`engine ${e.code} (${e.power_kw}kW): used in >=1 config`);
       else fail(`engine ${e.code} (${e.power_kw}kW): ORPHAN -- exists live but no config for this car references it`);
+    }
+
+    // 3b. transmissions -- unit_code must resolve to a live transmission_units row (code or
+    // alt_codes) and that unit must actually be used by >=1 of this car's configs. Unlike
+    // engines, a resolved-but-unused unit isn't flagged as a fresh "orphan" concern the same
+    // way (units are shared reference data seeded once, not per-car) -- but for THIS car's
+    // own seed, a declared unit_code that no config ends up using still means the seed
+    // didn't do what the template said, so it's still a FAIL, not a WARN.
+    if (allUnits === null) {
+      const { data } = await sb.from("transmission_units").select("id, code, alt_codes");
+      allUnits = data || [];
+    }
+    for (const t of trans) {
+      if (!t.unit_code) continue;
+      const hit = allUnits.find(u => u.code === t.unit_code || (u.alt_codes || []).includes(t.unit_code));
+      if (!hit) { fail(`transmission unit_code ${t.unit_code}: MISSING -- no transmission_units row matches (code or alt_codes).`); continue; }
+      if (usedUnitIds.has(hit.id)) pass(`transmission unit_code ${t.unit_code}: resolved -> ${hit.code}, used in >=1 config`);
+      else fail(`transmission unit_code ${t.unit_code}: resolved -> ${hit.code}, but no config for this car references it`);
     }
 
     // 4. attribute rows present -- phase_body_dimensions exists per (phase, body) the
@@ -215,9 +240,12 @@ for (const dir of carDirs) {
     }
   }
 
-  // 2. duplicate dictionary rows -- scoped to this car's own codes (a global scan would
-  // also catch pre-existing duplication unrelated to this car's seed; scoping here keeps
-  // the report about what THIS car's seed did).
+  // 2. duplicate engine dictionary rows -- scoped to this car's own codes (a global scan
+  // would also catch pre-existing duplication unrelated to this car's seed; scoping here
+  // keeps the report about what THIS car's seed did). No equivalent check for transmissions
+  // any more -- transmission_units.code is UNIQUE-constrained live, and units are shared
+  // reference data seeded once outside any car's seed, not a per-car dictionary entry that
+  // could be accidentally re-created.
   for (const e of engines) {
     if (!e.code) continue;
     const { data: rows } = await sb.from("catalog_engines").select("power_kw").eq("code", e.code);
@@ -226,11 +254,6 @@ for (const dir of carDirs) {
     for (const [kw, n] of byPower) {
       if (n > 1) fail(`DUPLICATE engine ${e.code} (${kw}kW): ${n} rows live`);
     }
-  }
-  for (const t of trans) {
-    if (!t.code) continue;
-    const { count } = await sb.from("catalog_transmissions").select("*", { count: "exact", head: true }).eq("code", t.code);
-    if (count > 1) fail(`DUPLICATE transmission ${t.code}: ${count} rows live`);
   }
 
   for (const c of checks) console.log(`  [${c.ok ? "PASS" : "FAIL"}] ${c.msg}`);

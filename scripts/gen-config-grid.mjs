@@ -46,7 +46,7 @@ for (const [name, rows] of [["phases.csv", phases], ["dimensions.csv", dims], ["
   }
 }
 
-const gearboxCodes = [...new Set(trans.map(t => t.code).filter(Boolean))];
+const gearboxCodes = [...new Set(trans.map(t => t.unit_code).filter(Boolean))];
 const dtCodes = ["FWD", ...new Set(drivetrains.map(d => d.drivetrain_code).filter(Boolean))];
 const engineRows = engines.filter(e => e.code && e.power_kw).map(e => [e.code, e.power_kw]);
 

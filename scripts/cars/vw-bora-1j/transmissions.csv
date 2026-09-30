@@ -1,0 +1,10 @@
+unit_code
+02J
+02K
+01M
+02M
+09A
+# All 5 already established live from prior PQ34-platform seeds. No new transmissions.
+# Post catalog_transmissions -> transmission_units consolidation: unit_code now resolves
+# directly against transmission_units.code/alt_codes -- no more reuse_or_new/type/speeds
+# columns, no CREATE path (see CLAUDE.md).
