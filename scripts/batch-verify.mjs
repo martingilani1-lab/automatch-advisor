@@ -41,20 +41,42 @@ function loadEnv() {
   );
 }
 
+// RFC4180: a doubled quote ("") inside a quoted field is a literal quote, not a close+reopen.
+// The previous version toggled inQ on every '"' and dropped all of them -- correct for a
+// field that's merely wrapped in quotes, but it silently stripped quote characters that were
+// meant to survive as literal text (e.g. a fault description quoting "Kangarooing").
+function parseCsvLine(line) {
+  const cells = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else {
+        cur += c;
+      }
+    } else if (c === '"') {
+      inQ = true;
+    } else if (c === ",") {
+      cells.push(cur);
+      cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  cells.push(cur);
+  return cells;
+}
+
 function readCsv(p) {
   if (!fs.existsSync(p)) return [];
   const lines = fs.readFileSync(p, "utf8").split("\n").filter(l => l.trim() && !l.trim().startsWith("#"));
   if (!lines.length) return [];
-  const header = lines[0].split(",");
+  const header = parseCsvLine(lines[0]);
   return lines.slice(1).map(line => {
-    const cells = [];
-    let cur = "", inQ = false;
-    for (const c of line) {
-      if (c === '"') inQ = !inQ;
-      else if (c === "," && !inQ) { cells.push(cur); cur = ""; }
-      else cur += c;
-    }
-    cells.push(cur);
+    const cells = parseCsvLine(line);
     const row = {};
     header.forEach((h, i) => (row[h] = (cells[i] ?? "").trim()));
     return row;
@@ -140,6 +162,15 @@ for (const dir of carDirs) {
 
   const genCode = phases[0].generation_code;
 
+  // A blank/NULL generation_code is a FAIL, not a quiet pass-through -- even for a car
+  // that's deliberately mid-pending on a real code being supplied later (e.g. Cupra
+  // Terramar as of this writing). Treating it as a temporary, flagged state rather than
+  // a silently-accepted one matches the standing "NULL over invention" discipline: NULL
+  // is a valid value to SEED, but it should never be a value this check quietly ignores.
+  if (genCode === "" || genCode == null) {
+    fail(`generation_code: EMPTY/NULL for this car's phases -- flagged until a real code is supplied (not auto-passed).`);
+  }
+
   const { data: brandRow } = await sb.from("catalog_brands").select("id").eq("name", car.brand).maybeSingle();
   const { data: modelRow } = brandRow
     ? await sb.from("catalog_models").select("id").eq("brand_id", brandRow.id).eq("name", car.model).maybeSingle()
@@ -148,11 +179,14 @@ for (const dir of carDirs) {
   if (!brandRow || !modelRow) {
     fail(`brand/model not found live (${car.brand} / ${car.model}) -- seed likely not run yet.`);
   } else {
-    const { data: livePhases } = await sb
-      .from("catalog_phases")
-      .select("id, phase_label")
-      .eq("model_id", modelRow.id)
-      .eq("generation_code", genCode);
+    // A blank genCode means generation_code is genuinely NULL live (see generate-seed.mjs's
+    // genCodeSql comment) -- .eq("generation_code", "") would silently match zero rows
+    // against a NULL column, so this must branch to .is(...) instead.
+    let phasesQuery = sb.from("catalog_phases").select("id, phase_label").eq("model_id", modelRow.id);
+    phasesQuery = (genCode === "" || genCode == null)
+      ? phasesQuery.is("generation_code", null)
+      : phasesQuery.eq("generation_code", genCode);
+    const { data: livePhases } = await phasesQuery;
     const phaseIdByLabel = new Map((livePhases || []).map(p => [p.phase_label, p.id]));
 
     // 1. config count per phase
@@ -207,15 +241,28 @@ for (const dir of carDirs) {
     // own seed, a declared unit_code that no config ends up using still means the seed
     // didn't do what the template said, so it's still a FAIL, not a WARN.
     if (allUnits === null) {
-      const { data } = await sb.from("transmission_units").select("id, code, alt_codes");
+      const { data } = await sb.from("transmission_units").select("id, code, alt_codes, reliability_note, maintenance_note");
       allUnits = data || [];
     }
     for (const t of trans) {
       if (!t.unit_code) continue;
       const hit = allUnits.find(u => u.code === t.unit_code || (u.alt_codes || []).includes(t.unit_code));
       if (!hit) { fail(`transmission unit_code ${t.unit_code}: MISSING -- no transmission_units row matches (code or alt_codes).`); continue; }
-      if (usedUnitIds.has(hit.id)) pass(`transmission unit_code ${t.unit_code}: resolved -> ${hit.code}, used in >=1 config`);
-      else fail(`transmission unit_code ${t.unit_code}: resolved -> ${hit.code}, but no config for this car references it`);
+      if (usedUnitIds.has(hit.id)) {
+        pass(`transmission unit_code ${t.unit_code}: resolved -> ${hit.code}, used in >=1 config`);
+        // A unit this car's own configs actually use, left with no reliability_note or
+        // maintenance_note, is a real content gap in shared reference data -- flagged as
+        // a FAIL here (not just a WARN) since it's reachable from a live, seeded car, not
+        // a dormant/never-referenced row.
+        const missingNotes = [];
+        if (hit.reliability_note == null) missingNotes.push("reliability_note");
+        if (hit.maintenance_note == null) missingNotes.push("maintenance_note");
+        if (missingNotes.length) {
+          fail(`transmission unit_code ${t.unit_code}: resolved -> ${hit.code}, used in >=1 config, but missing ${missingNotes.join(" and ")} (NULL on a used unit).`);
+        }
+      } else {
+        fail(`transmission unit_code ${t.unit_code}: resolved -> ${hit.code}, but no config for this car references it`);
+      }
     }
 
     // 4. attribute rows present -- phase_body_dimensions exists per (phase, body) the

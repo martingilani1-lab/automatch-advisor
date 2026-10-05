@@ -37,21 +37,43 @@ function loadEnv() {
   );
 }
 
+// RFC4180: a doubled quote ("") inside a quoted field is a literal quote, not a close+reopen.
+// The previous version toggled inQ on every '"' and dropped all of them -- correct for a
+// field that's merely wrapped in quotes, but it silently stripped quote characters that were
+// meant to survive as literal text (e.g. a fault description quoting "Kangarooing").
+function parseCsvLine(line) {
+  const cells = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else {
+        cur += c;
+      }
+    } else if (c === '"') {
+      inQ = true;
+    } else if (c === ",") {
+      cells.push(cur);
+      cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  cells.push(cur);
+  return cells;
+}
+
 function readCsv(p) {
   if (!fs.existsSync(p)) return [];
   const raw = fs.readFileSync(p, "utf8").split("\n");
   const contentLines = raw.map((l, i) => [l, i + 1]).filter(([l]) => l.trim() && !l.trim().startsWith("#"));
   if (!contentLines.length) return [];
-  const header = contentLines[0][0].split(",");
+  const header = parseCsvLine(contentLines[0][0]);
   return contentLines.slice(1).map(([line, lineNum]) => {
-    const cells = [];
-    let cur = "", inQ = false;
-    for (const c of line) {
-      if (c === '"') inQ = !inQ;
-      else if (c === "," && !inQ) { cells.push(cur); cur = ""; }
-      else cur += c;
-    }
-    cells.push(cur);
+    const cells = parseCsvLine(line);
     const row = { __line: lineNum };
     header.forEach((h, i) => (row[h] = (cells[i] ?? "").trim()));
     return row;
