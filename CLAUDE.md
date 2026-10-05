@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+**Read first for catalog_ schema / car-import work:** [`docs/STATUS.md`](docs/STATUS.md) — live catalog counts, the intake→seed→verify pipeline, and current open items. Keep it current at the end of a session that touches the catalog; it's a living snapshot, not a historical record.
+
 ## ⚠️ Next.js version warning
 
 This project pins `next@16.2.7`, which is newer than most training data and has breaking changes vs. the Next.js you may know (APIs, conventions, file structure). **Before writing or changing any Next.js-specific code** (routing, route handlers, config, data fetching), check `node_modules/next/dist/docs/` for the current API and heed any deprecation notices there.
