@@ -329,6 +329,12 @@ function parseSectionG(text) {
         inherits.push(parseInherit(line, { section: "G", group: "configs", targetPhase: heading }));
         continue;
       }
+      // A non-bullet annotation line -- e.g. "*(Explicit definition required ... Cannot
+      // inherit.)*" -- isn't a parse error, it's a human-readable note with no data of its
+      // own (same leniency section D's own "*(Note: ...)*" line already gets for free,
+      // since parseMdTable only ever reads lines starting with '|'). Only a real bullet
+      // (starts with '-') is actually a config-matrix data line.
+      if (!line.startsWith("-")) continue;
       const m = line.match(CONFIG_BULLET_RE);
       if (!m) {
         problems.push(`G. CONFIG MATRIX: unparseable line under "${heading}": "${line}"`);

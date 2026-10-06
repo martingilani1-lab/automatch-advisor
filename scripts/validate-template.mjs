@@ -25,6 +25,9 @@
 //     "DRAFT" — an early catch (before a seed even exists) alongside batch-verify.mjs's
 //     post-seed version of the same check, so an unreviewed draft note can't go live
 //     unnoticed
+//   - engines.csv alt_codes never collide with another engine's real primary code, either
+//     within this template or anywhere live — an alt_code that's actually someone else's
+//     own code is always a mistake, never a legitimate alias
 //
 // Run from repo root: node scripts/validate-template.mjs [template-dir]
 // Exit code 1 if any ERROR was found; WARNINGs alone exit 0.
@@ -242,6 +245,37 @@ async function main() {
       for (const field of ["reliability_note", "maintenance_note"]) {
         if (d[field] && d[field].startsWith("DRAFT")) {
           err("(live reference data)", "*", `drivetrain_systems '${d.code}'.${field} starts with 'DRAFT' -- not yet reviewed, must not stay live`);
+        }
+      }
+    }
+  }
+
+  // 8: an alt_code must never equal any engine's own primary code, anywhere in the
+  // catalog -- caught the hard way on the Audi A4 (B9) intake: CYRB's alt_code was given
+  // as DKNA, and DKNA's alt_code as DNPA, when DKNA and DNPA are each already their own
+  // separate, genuinely different live engine (not an alternate code for CYRB/DKNA at
+  // all). alt_codes means "other codes for THIS SAME physical unit at THIS SAME power" --
+  // a value that's actually someone else's primary code is always wrong, never a
+  // legitimate alias, so this is an ERROR, not a WARN. Checked both within this template
+  // (cheap, catches it before even querying live) and against the full live catalog.
+  {
+    const templateCodes = new Set(engines.filter(e => e.code).map(e => e.code));
+    for (const e of engines) {
+      if (!e.alt_codes) continue;
+      for (const alt of e.alt_codes.split("|").map(s => s.trim()).filter(Boolean)) {
+        if (templateCodes.has(alt)) {
+          err("engines.csv", e.__line, `alt_code '${alt}' on engine ${e.code} is itself another engine's primary code IN THIS TEMPLATE -- alt_codes is only for alternate codes of the SAME physical unit, never another engine's real code`);
+        }
+      }
+    }
+    const { data: liveEngines, error: e3 } = await sb.from("catalog_engines").select("code");
+    if (e3) throw e3;
+    const liveCodes = new Set((liveEngines || []).map(le => le.code));
+    for (const e of engines) {
+      if (!e.alt_codes) continue;
+      for (const alt of e.alt_codes.split("|").map(s => s.trim()).filter(Boolean)) {
+        if (liveCodes.has(alt)) {
+          err("engines.csv", e.__line, `alt_code '${alt}' on engine ${e.code} is already a live engine's own primary code -- alt_codes is only for alternate codes of the SAME physical unit, never another engine's real code`);
         }
       }
     }

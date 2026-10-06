@@ -140,6 +140,9 @@ Notes:
 - Engines that genuinely differ by emissions generation (Euro 2 → Euro 3) or hardware
   revision are separate rows with distinct primary codes — `alt_codes` is only for the
   *same physical unit at the same power*.
+- `hybrid_type` `MHEV` covers both 12V and 48V mild hybrid systems — the voltage isn't a
+  separate axis in this schema; if it matters for a specific engine, say so in
+  `display_name` or a fault/note, not by inventing a new `hybrid_type` value.
 
 ## E. GEARBOXES
 
