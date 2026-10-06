@@ -21,10 +21,12 @@
 //   - configs: source = any phase sharing the same platform_code (model/generation
 //     unconstrained). Copies the whole engine x gearbox x drivetrain matrix, keeping only
 //     rows whose body is among the TARGET's own declared bodies (silent drop, not an error).
-//     ANY EXCEPT clause on a configs INHERIT is unsupported -> STOP (no override syntax is
-//     defined for this group -- verified against real Golf VII 5G Pre-facelift/Facelift
-//     config-grid diffs: real facelift drift is cell-level engine/gearbox changes, not
-//     expressible as "copy minus a few named engines" even if that syntax existed).
+//     EXCEPT no <code> is the one supported override: removes that engine's rows entirely
+//     from the copied matrix. Rule (confirmed): allowed whenever the resulting target
+//     engine set is a SUBSET of the source's (i.e. EXCEPT only ever REMOVES, never adds) --
+//     STOP only if a clause isn't the "no <code>" form (no other override syntax is defined
+//     for this group; real facelift drift is cell-level engine/gearbox changes per the real
+//     Golf VII 5G Pre-facelift/Facelift grids, not expressible as a field-value override).
 //   - trims: inheritance forbidden, always explicit, no FORCE override.
 // Universal: resolve against THIS SAME DOCUMENT first (earlier blocks), then live DB. Fill
 // only empty target cells, never overwrite an explicit value. Missing/ambiguous source ->
@@ -246,11 +248,26 @@ const ENGINE_FIELDS = [
   "timing_replacement_km", "hybrid_type",
 ];
 
+const REUSE_SHORTHAND_RE = /^REUSE\s+(\S+)@(\d+)\s*kW\s*$/i;
+
 // D. ENGINES -- one table, header-name-keyed (no reuse_or_new column in the document --
-// computed later, see resolveEngines). NULL tokens already blanked by mapNullTokens.
+// computed later, see resolveEngines), PLUS optional bare "REUSE <CODE>@<kW>kW" lines
+// (e.g. "REUSE CVNA@110kW") -- a shorthand for an engine that's already fully specified
+// live: no need to retype its columns just to reference it. Each shorthand line becomes a
+// placeholder row with nothing but {code, power_kw} filled; liveResolve replaces it with
+// the real row pulled from catalog_engines (every ENGINE_FIELDS column), or STOPs if it
+// doesn't actually exist live -- unlike a full table row, "REUSE" shorthand is a claim the
+// engine already exists, not something this script can create.
 function parseSectionD(text) {
-  const { rows } = parseMdTable(text.split("\n"));
-  return rows.map(mapNullTokens);
+  const lines = text.split("\n");
+  const tableLines = lines.filter(l => l.trim().startsWith("|"));
+  const { rows } = parseMdTable(tableLines);
+  const reuseRefs = [];
+  for (const l of lines) {
+    const m = l.trim().match(REUSE_SHORTHAND_RE);
+    if (m) reuseRefs.push({ code: m[1], power_kw: m[2] });
+  }
+  return { rows: rows.map(mapNullTokens), reuseRefs };
 }
 
 // E. GEARBOXES -- single-column table, header already named unit_code.
@@ -493,11 +510,25 @@ function resolveDimensions(directive, doc, problems, fills) {
   }
 }
 
-function resolveConfigs(directive, doc, problems) {
-  if (directive.exceptClauses.length) {
-    problems.push(`INHERIT configs FROM ${directive.source.brand} ${directive.source.model} ${directive.source.generation} ${directive.source.phase} (${directive.context.targetPhase}): EXCEPT clause(s) [${directive.exceptClauses.map(c => `"${c}"`).join(", ")}] are not a supported override form for group 'configs' -- no per-engine exclusion syntax is defined for this group (only the automatic target-body restriction).`);
-    return;
+function resolveConfigs(directive, doc, problems, fills) {
+  // EXCEPT no <code> is the one supported override -- it only ever REMOVES an engine from
+  // the copied matrix, so the resulting target engine set is always a subset of the
+  // source's. That's exactly the confirmed rule ("allow when target engines are a subset of
+  // source engines; STOP only when the target adds an engine the source doesn't have") --
+  // since "no <code>" can't add anything, it can never trigger that STOP; it's rejected
+  // here only if it ISN'T that form (no other override syntax is defined for this group).
+  const excludeCodes = [];
+  let hadUnsupportedClause = false;
+  for (const clause of directive.exceptClauses) {
+    const m = clause.match(/^no\s+(\S+)$/i);
+    if (!m) {
+      problems.push(`INHERIT configs FROM ${directive.source.brand} ${directive.source.model} ${directive.source.generation} ${directive.source.phase} (${directive.context.targetPhase}): EXCEPT clause "${clause}" is not supported -- configs only supports "no <engine_code>" (removes that engine; the result is always a subset of the source, so nothing else needs confirming), nothing else.`);
+      hadUnsupportedClause = true;
+      continue;
+    }
+    excludeCodes.push(m[1]);
   }
+  if (hadUnsupportedClause) return;
   const targetPhase = directive.context.targetPhase;
   const targetPlatform = (doc.phases.find(p => p.phase_label === targetPhase) || {}).platform_code;
   const sourceMatchesThisDoc = directive.source.brand === doc.car.brand && directive.source.model === doc.car.model;
@@ -512,12 +543,18 @@ function resolveConfigs(directive, doc, problems) {
   }
   const targetBodies = new Set(doc.dims.filter(d => d.phase_label === targetPhase).map(d => d.body_type));
   const sourceRows = doc.configsByPhase[directive.source.phase] || [];
-  const copied = sourceRows.map(r => ({
-    engine_code: r.engine_code,
-    power_kw: r.power_kw,
-    combos: r.combos.filter(c => targetBodies.has(c.body)),
-  })).filter(r => r.combos.length);
+  const copied = sourceRows
+    .filter(r => !excludeCodes.includes(r.engine_code))
+    .map(r => ({
+      engine_code: r.engine_code,
+      power_kw: r.power_kw,
+      combos: r.combos.filter(c => targetBodies.has(c.body)),
+    }))
+    .filter(r => r.combos.length);
   doc.configsByPhase[targetPhase] = copied;
+  if (excludeCodes.length) {
+    fills.push(`configs-${targetPhase}.csv: copied from ${directive.source.brand} ${directive.source.model} ${directive.source.generation} ${directive.source.phase}, excluding engine(s) [${excludeCodes.join(", ")}] (EXCEPT no <code>)`);
+  }
 }
 
 function resolveInherits(doc, problems, fills) {
@@ -532,7 +569,7 @@ function resolveInherits(doc, problems, fills) {
     }
     if (directive.group === "phase attributes") resolvePhaseAttributes(directive, doc, problems, fills);
     else if (directive.group === "dimensions") resolveDimensions(directive, doc, problems, fills);
-    else if (directive.group === "configs") resolveConfigs(directive, doc, problems);
+    else if (directive.group === "configs") resolveConfigs(directive, doc, problems, fills);
   }
 }
 
@@ -545,8 +582,23 @@ async function liveResolve(doc, problems) {
   const env = loadEnv();
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-  const { data: liveEngines, error: e1 } = await sb.from("catalog_engines").select("id, code, power_kw, alt_codes");
+  const { data: liveEngines, error: e1 } = await sb.from("catalog_engines").select(`id, ${ENGINE_FIELDS.join(", ")}`);
   if (e1) throw e1;
+
+  // "REUSE <CODE>@<kW>kW" shorthand (section D) -- pull the full row from live rather than
+  // requiring the human to retype a fully-known engine's specs. Unlike a full table row,
+  // this is a claim the engine already exists: no live match -> STOP, never a NEW fallback.
+  for (const ref of doc.reuseRefs) {
+    const kw = Number(ref.power_kw);
+    const hit = liveEngines.find(le => le.code === ref.code && le.power_kw === kw);
+    if (!hit) {
+      problems.push(`engines.csv: "REUSE ${ref.code}@${ref.power_kw}kW" has no matching live catalog_engines row (checked code+power_kw) -- this shorthand only references an already-existing engine; use a full table row to add a NEW one`);
+      continue;
+    }
+    const row = { reuse_or_new: "REUSE" };
+    for (const f of ENGINE_FIELDS) row[f] = Array.isArray(hit[f]) ? hit[f].join("|") : (hit[f] ?? "");
+    doc.engines.push(row);
+  }
   const { data: liveUnits, error: e2 } = await sb.from("transmission_units").select("id, code, alt_codes, family, speeds");
   if (e2) throw e2;
 
@@ -618,7 +670,7 @@ async function main() {
   const car = sections.A ? parseSectionA(sections.A) : {};
   const { phases, inherits: bInherits } = sections.B ? parseSectionB(sections.B) : { phases: [], inherits: [] };
   const { dims, inherits: cInherits } = sections.C ? parseSectionC(sections.C) : { dims: [], inherits: [] };
-  const engines = sections.D ? parseSectionD(sections.D) : [];
+  const { rows: engines, reuseRefs } = sections.D ? parseSectionD(sections.D) : { rows: [], reuseRefs: [] };
   const transUnits = sections.E ? parseSectionE(sections.E) : [];
   const drivetrains = sections.F ? parseSectionF(sections.F) : [];
   const { configsByPhase, inherits: gInherits, problems: gProblems } = sections.G ? parseSectionG(sections.G) : { configsByPhase: {}, inherits: [], problems: [] };
@@ -631,7 +683,7 @@ async function main() {
     if (p.typical_mileage_range) p.typical_mileage_range = normalizeMileageRange(p.typical_mileage_range);
   }
 
-  const doc = { car, phases, dims, engines, transUnits, drivetrains, configsByPhase, trims, trimFeatures, allInherits: [...bInherits, ...cInherits, ...gInherits] };
+  const doc = { car, phases, dims, engines, reuseRefs, transUnits, drivetrains, configsByPhase, trims, trimFeatures, allInherits: [...bInherits, ...cInherits, ...gInherits] };
 
   resolveInherits(doc, problems, fills);
 
