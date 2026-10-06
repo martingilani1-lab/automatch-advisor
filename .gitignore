@@ -45,3 +45,9 @@ next-env.d.ts
 # shared team state — whether a car is seeded is a live-DB fact, re-derivable any time via
 # batch-verify.mjs, not something to track in git.
 scripts/cars/**/.seeded
+
+# import-car pipeline: disposable working state for the car currently being authored
+# (scripts/cars/<slug>/ -- see that folder's own README). The committed seed migration
+# under supabase/migrations/ is the permanent record of what was seeded; this folder is
+# scratch space to get there, not meant to be kept per car.
+scripts/cars/
