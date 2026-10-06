@@ -20,6 +20,11 @@
 //   - orphan engines: rows in engines.csv never marked 'x' in any config grid
 //   - dimensions.csv body types that don't exist live (informational — may be an
 //     intentional NEW body type, or a typo; not auto-distinguishable)
+//   - no live transmission_units or drivetrain_systems row (global, not scoped to this
+//     car) has a reliability_note/maintenance_note still starting with the literal string
+//     "DRAFT" — an early catch (before a seed even exists) alongside batch-verify.mjs's
+//     post-seed version of the same check, so an unreviewed draft note can't go live
+//     unnoticed
 //
 // Run from repo root: node scripts/validate-template.mjs [template-dir]
 // Exit code 1 if any ERROR was found; WARNINGs alone exit 0.
@@ -202,10 +207,11 @@ for (const col of DIM_INT_COLS) {
 }
 
 async function main() {
+  const env = loadEnv();
+  const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+
   // 6: body types vs live
   if (dims.length) {
-    const env = loadEnv();
-    const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     const { data: liveBody, error } = await sb.from("catalog_body_types").select("name");
     if (error) throw error;
     const liveNames = new Set((liveBody || []).map(b => b.name));
@@ -213,6 +219,30 @@ async function main() {
     for (const b of templateBodies) {
       if (!liveNames.has(b)) {
         warn("dimensions.csv", "*", `body type '${b}' does not exist live — will be CREATEd by the seed. Confirm that's intended, not a typo of: ${[...liveNames].join(", ")}`);
+      }
+    }
+  }
+
+  // 7: no live transmission_units/drivetrain_systems note still starts with "DRAFT" --
+  // global, not scoped to this car's own units, since the point is catching a forgotten
+  // draft systemically (see batch-verify.mjs's post-seed version of this same check).
+  {
+    const { data: units, error: e1 } = await sb.from("transmission_units").select("code, reliability_note, maintenance_note");
+    if (e1) throw e1;
+    for (const u of units || []) {
+      for (const field of ["reliability_note", "maintenance_note"]) {
+        if (u[field] && u[field].startsWith("DRAFT")) {
+          err("(live reference data)", "*", `transmission_units '${u.code}'.${field} starts with 'DRAFT' -- not yet reviewed, must not stay live`);
+        }
+      }
+    }
+    const { data: drivetrains, error: e2 } = await sb.from("drivetrain_systems").select("code, reliability_note, maintenance_note");
+    if (e2) throw e2;
+    for (const d of drivetrains || []) {
+      for (const field of ["reliability_note", "maintenance_note"]) {
+        if (d[field] && d[field].startsWith("DRAFT")) {
+          err("(live reference data)", "*", `drivetrain_systems '${d.code}'.${field} starts with 'DRAFT' -- not yet reviewed, must not stay live`);
+        }
       }
     }
   }

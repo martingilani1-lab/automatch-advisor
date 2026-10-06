@@ -284,11 +284,21 @@ gets a provenance note in the review printout.
 
 ## 10. Worked example — the real Audi A4 (B9) intake document
 
-This is a real document, not a hypothetical — every rule above was checked against it, and
-it correctly produces exactly 4 STOPs when run through `intake-to-template.mjs` as-is
-(`ML401`/`DL382`/`AL552` don't resolve live as gearboxes, `torsen_t3` doesn't resolve live as
-a drivetrain) — a useful document to test the parser against after any change to this file
-or the script, since its STOP count is a known, previously-verified baseline.
+This is a real document, not a hypothetical — every rule above was checked against it. As
+shown here (after `ML401`/`DL382`/`AL552` were added to `transmission_units`, and `torsen_t3`
+was resolved to the already-live `quattro_torsen` — the real B9 V6 Tiptronic quattro system,
+confirmed the same physical thing, not a new one), it runs through `intake-to-template.mjs`
+with **0 STOPs**, all 32 `INHERIT` fills applied correctly, every file written. Still useful
+to re-run after any change to this file or the script, as a known-clean baseline — a
+regression would show up as a STOP where there wasn't one before.
+
+Running it further through `reconcile.mjs`/`validate-template.mjs` (this script's own job
+stops at INHERIT + REUSE/NEW + transmission/drivetrain resolution, deliberately — see §9)
+still correctly surfaces this document's two remaining real content issues, both pre-existing
+in the source data, neither this script's responsibility to catch: `emission_standard`
+`'Euro 6'` (the space — `validate-template.mjs`'s job, not this one's) and fault `severity`
+`'severe'` (not in the `critical`/`moderate`/`minor` vocabulary). Both would need fixing
+before a real seed could be generated from this document.
 
 ```markdown
 # Intake — Audi A4 (B9)
@@ -381,7 +391,7 @@ INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate 5-door EXCEPT length_mm
 |---|
 | FWD |
 | quattro_ultra |
-| torsen_t3 |
+| quattro_torsen |
 
 ## G. CONFIG MATRIX
 
@@ -389,12 +399,12 @@ INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate 5-door EXCEPT length_mm
 - Pre-facelift: CVNA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate 5-door]
 - Pre-facelift: CVKB 140kW + DL382 + FWD → [Sedan 4-door, Estate 5-door]
 - Pre-facelift: CYRB 185kW + DL382 + quattro_ultra → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CWGD 260kW + AL552 + torsen_t3 → [Sedan 4-door, Estate 5-door]
+- Pre-facelift: CWGD 260kW + AL552 + quattro_torsen → [Sedan 4-door, Estate 5-door]
 - Pre-facelift: DEUA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate 5-door]
 - Pre-facelift: DETA 140kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate 5-door]
 - Pre-facelift: DETA 140kW + DL382 + quattro_ultra → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CSWB 160kW + DL382 + torsen_t3 → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CRTC 200kW + AL552 + torsen_t3 → [Sedan 4-door, Estate 5-door]
+- Pre-facelift: CSWB 160kW + DL382 + quattro_torsen → [Sedan 4-door, Estate 5-door]
+- Pre-facelift: CRTC 200kW + AL552 + quattro_torsen → [Sedan 4-door, Estate 5-door]
 
 **Facelift (2019 – 2024):**
 INHERIT configs FROM Audi A4 B9 Pre-facelift EXCEPT no CVNA, EXCEPT no CSWB, EXCEPT no CRTC
@@ -415,11 +425,6 @@ INHERIT configs FROM Audi A4 B9 Pre-facelift EXCEPT no CVNA, EXCEPT no CSWB, EXC
 | engine | CWGD | Rocker arm bearing wear on early EA839 V6 engines leading to camshaft scoring and misfires if oil changes were neglected. | severe |
 | engine | DETA | Coolant leak from the vacuum-controlled coolant pump shroud (water pump housing) requiring complete assembly replacement. | moderate |
 ```
-
-Note on this example specifically: its `configs` `INHERIT` (`EXCEPT no CVNA, EXCEPT no
-CSWB, EXCEPT no CRTC`) is now valid and does NOT STOP — it's exactly the supported
-subset-only exclusion form. The 4 STOPs this document produces are all live-reference
-misses (§E/§F), not anything about the `configs` line.
 
 ---
 

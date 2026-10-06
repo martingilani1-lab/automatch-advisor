@@ -317,6 +317,42 @@ for (const dir of carDirs) {
   }
 }
 
+// Global reference-data check, independent of which car(s) this run happens to touch --
+// a DRAFT note (transmission_units.*_note or drivetrain_systems.*_note starting with the
+// literal string "DRAFT") must never sit on a live page unnoticed. Scoped to the whole
+// table, not just units/systems this run's cars reference, since the point is to catch a
+// forgotten draft systemically, not only when something happens to exercise it (the DL382/
+// ML401/AL552 drafts that prompted this check could otherwise go unnoticed for months on a
+// car nobody re-verifies). Runs once per invocation, not once per car.
+console.log(`\n${"=".repeat(72)}\nreference data (transmission_units / drivetrain_systems)\n${"=".repeat(72)}`);
+{
+  const draftChecks = [];
+  const { data: unitsForDraft } = allUnits !== null
+    ? { data: allUnits }
+    : await sb.from("transmission_units").select("id, code, reliability_note, maintenance_note");
+  for (const u of unitsForDraft || []) {
+    for (const field of ["reliability_note", "maintenance_note"]) {
+      if (u[field] && u[field].startsWith("DRAFT")) {
+        draftChecks.push({ ok: false, msg: `transmission_units '${u.code}'.${field} starts with 'DRAFT' -- not yet reviewed, must not stay live` });
+      }
+    }
+  }
+  const { data: drivetrainsForDraft } = await sb.from("drivetrain_systems").select("code, reliability_note, maintenance_note");
+  for (const d of drivetrainsForDraft || []) {
+    for (const field of ["reliability_note", "maintenance_note"]) {
+      if (d[field] && d[field].startsWith("DRAFT")) {
+        draftChecks.push({ ok: false, msg: `drivetrain_systems '${d.code}'.${field} starts with 'DRAFT' -- not yet reviewed, must not stay live` });
+      }
+    }
+  }
+  if (draftChecks.length) {
+    for (const c of draftChecks) console.log(`  [FAIL] ${c.msg}`);
+  } else {
+    console.log("  [PASS] no DRAFT-prefixed note on any transmission_units or drivetrain_systems row");
+  }
+  summary.push({ carName: "(reference data)", status: draftChecks.length ? "FAIL" : "PASS" });
+}
+
 console.log(`\n${"=".repeat(72)}\nSUMMARY\n${"=".repeat(72)}`);
 const nameWidth = Math.max(...summary.map(s => s.carName.length), 8);
 for (const s of summary) console.log(`${s.carName.padEnd(nameWidth)}  ${s.status}`);
