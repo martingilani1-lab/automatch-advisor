@@ -10,6 +10,10 @@
 //     consolidation -- no reuse_or_new/type/speeds columns anymore)
 //   - fault severity values are in the recommended vocabulary (critical/moderate/minor —
 //     not a live CHECK constraint today, flagged for consistency, not schema truth)
+//   - engines.csv emission_standard values are in the frozen, spaceless vocabulary a real
+//     catalog_engines CHECK constraint enforces live (catalog_engines_emission_standard_check,
+//     added in 20261006140000_normalize_emission_standard.sql) — this one IS schema truth,
+//     catching a bad value here instead of at seed-run time
 //   - phases.csv / dimensions.csv numeric columns that are empty on EVERY row — not wrong,
 //     but the seed generator MUST cast these explicitly (::integer) or Postgres will infer
 //     'unknown'/text and the INSERT will fail (the Golf IV all-NULL-NCAP bug)
@@ -158,6 +162,18 @@ for (const f of faults) {
   }
   if (f.component_type && !f.fault) {
     err("faults.csv", f.__line, `fault text is empty for ${f.component_type} ${f.target_code}`);
+  }
+}
+
+// 4b: emission_standard vocabulary — mirrors the live CHECK constraint
+// (catalog_engines_emission_standard_check, added in 20261006140000_normalize_emission_standard.sql)
+// exactly, spaceless spellings only ('Euro 6d' is the old, now-normalized-away spelling —
+// catching it here instead of at seed-run time against a constraint that didn't exist
+// before this check was added).
+const ALLOWED_EMISSION_STANDARD = ["Euro1", "Euro2", "Euro3", "Euro4", "Euro5", "Euro6", "Euro6c", "Euro6d", "Euro6e"];
+for (const e of engines) {
+  if (e.emission_standard && !ALLOWED_EMISSION_STANDARD.includes(e.emission_standard)) {
+    err("engines.csv", e.__line, `emission_standard '${e.emission_standard}' is not in the frozen vocabulary (${ALLOWED_EMISSION_STANDARD.join(", ")}) — the live catalog_engines CHECK constraint will reject this; a space ('Euro 6d') is the usual mistake, not a new standard`);
   }
 }
 
