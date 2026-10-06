@@ -1,0 +1,715 @@
+// Parses a human-written markdown "intake" document (sections A. CAR through I. FAULTS --
+// see scripts/new-car-template/INTAKE.md) directly into the CSVs the rest of the import-car
+// pipeline already expects (car.csv, phases.csv, dimensions.csv, engines.csv,
+// transmissions.csv, drivetrains.csv, configs-<phase>.csv, trims.csv, trim_features.csv,
+// faults.csv), resolving every INHERIT directive in the same pass. This is a NEW, OPTIONAL
+// step 1 ahead of the existing pipeline (gen-config-grid -> reconcile -> validate-template ->
+// generate-seed) -- the hand-fill-the-CSVs path still works exactly as before, since both
+// paths converge on the same scripts/cars/<slug>/*.csv shape and nothing downstream changes.
+//
+// INHERIT grammar (given directly by the project owner -- authoritative, see the plan this
+// script was built from for the full rationale):
+//   INHERIT [FORCE] <group> FROM <brand> <model> <generation> <phase> [/ <body>] [EXCEPT <overrides>]
+//   - phase attributes: same model+generation only. Copies EXACTLY safety_rating, every
+//     ncap_* field, towing_capacity_kg. NEVER price_range_*/avg_market_price_eur/
+//     typical_mileage_range/resale_value_rating -- those must always be given explicitly.
+//   - dimensions: same model+generation+body_type, unless FORCE (FORCE lifts ALL three --
+//     the owner's own wording ties FORCE to crossing model, bundled with body in one
+//     restriction clause, so FORCE is read as lifting the whole thing, not just body).
+//     Copies exactly the 11 non-identity dimensions.csv columns. EXCEPT <field> = <value>
+//     overrides a copied field after the copy.
+//   - configs: source = any phase sharing the same platform_code (model/generation
+//     unconstrained). Copies the whole engine x gearbox x drivetrain matrix, keeping only
+//     rows whose body is among the TARGET's own declared bodies (silent drop, not an error).
+//     ANY EXCEPT clause on a configs INHERIT is unsupported -> STOP (no override syntax is
+//     defined for this group -- verified against real Golf VII 5G Pre-facelift/Facelift
+//     config-grid diffs: real facelift drift is cell-level engine/gearbox changes, not
+//     expressible as "copy minus a few named engines" even if that syntax existed).
+//   - trims: inheritance forbidden, always explicit, no FORCE override.
+// Universal: resolve against THIS SAME DOCUMENT first (earlier blocks), then live DB. Fill
+// only empty target cells, never overwrite an explicit value. Missing/ambiguous source ->
+// STOP, WRITE NOTHING (the whole run, zero files -- not a partial write). Every inherited
+// cell is annotated with its source for the review printout.
+//
+// Scope cut, flagged explicitly (not silently done): live cross-car CONFIGS inheritance
+// (a configs INHERIT whose source phase isn't in this same document) is not implemented --
+// doing it properly means reading another car's already-seeded config grid out of
+// catalog_vehicle_configurations and reconstructing body|gearbox|drivetrain cells from it,
+// which is real scope beyond what either acceptance test exercises (both test documents'
+// configs INHERIT lines reference a phase in the SAME document). phase-attributes and
+// dimensions DO fall back to a live lookup when the source isn't in-document, since that's
+// a much smaller query (catalog_phases/phase_body_dimensions joined by name) and IS the
+// realistic case for a brand-new car inheriting a sibling body from an already-seeded one.
+//
+// Run from repo root: node scripts/intake-to-template.mjs <intake.md> <output-dir> [--dry-run]
+// Exit code 1 and ZERO files written on any unresolved problem. --dry-run never writes,
+// regardless of outcome -- prints the full problem list, or (if clean) every planned fill
+// with its provenance.
+
+import fs from "fs";
+import path from "path";
+import { createClient } from "../node_modules/@supabase/supabase-js/dist/index.mjs";
+
+// ============================================================================
+// Shared helpers -- duplicated locally rather than imported from another script, matching
+// this pipeline's own established convention (see batch-verify.mjs's header comment: each
+// script duplicates these small helpers rather than factoring out a shared lib).
+// ============================================================================
+
+function loadEnv() {
+  const text = fs.readFileSync(".env.local", "utf8");
+  return Object.fromEntries(
+    text.split("\n").filter(l => l.includes("=")).map(l => {
+      const i = l.indexOf("=");
+      return [l.slice(0, i), l.slice(i + 1).replace(/^"|"$/g, "")];
+    })
+  );
+}
+
+// A markdown table row: strip one leading/trailing '|', split on '|', trim each cell.
+function splitRow(line) {
+  let s = line.trim();
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|")) s = s.slice(0, -1);
+  return s.split("|").map(c => c.trim());
+}
+
+function isSeparatorRow(line) {
+  return /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/.test(line.trim());
+}
+
+// Parses a markdown table (array of raw lines, pipe-delimited) into {headers, rows}, where
+// each row is a plain object keyed by the table's own header cell text -- read/write by
+// header NAME, never position, matching dimensions.csv's own established convention (column
+// order already drifts between the blank template and real filled cars).
+function parseMdTable(lines) {
+  const tableLines = lines.filter(l => l.trim().startsWith("|"));
+  if (!tableLines.length) return { headers: [], rows: [] };
+  const headers = splitRow(tableLines[0]);
+  const dataLines = tableLines.slice(1).filter(l => !isSeparatorRow(l));
+  const rows = dataLines.map(line => {
+    const cells = splitRow(line);
+    const row = {};
+    headers.forEach((h, i) => (row[h] = (cells[i] ?? "").trim()));
+    return row;
+  });
+  return { headers, rows };
+}
+
+// The document's literal 4-char token "NULL" means genuinely-empty (distinct from a cell
+// that's simply not yet filled) -- CLAUDE.md's "NULL over invention" already treats a blank
+// CSV cell as that same null representation everywhere downstream (generate-seed.mjs's
+// nOrNull/sOrNull test for "", not for the literal string "NULL"), so every NULL token gets
+// collapsed to "" right at parse time, once, rather than re-checked in every consumer.
+function nullToken(v) {
+  return v != null && v.trim() === "NULL" ? "" : v;
+}
+
+function mapNullTokens(row) {
+  const out = {};
+  for (const [k, v] of Object.entries(row)) out[k] = nullToken(v);
+  return out;
+}
+
+// ============================================================================
+// Section tokenizer
+// ============================================================================
+
+function tokenizeSections(text) {
+  const matches = [...text.matchAll(/^##\s+([A-I])\.\s*(.*)$/gm)];
+  const sections = {};
+  for (let i = 0; i < matches.length; i++) {
+    const letter = matches[i][1];
+    const start = matches[i].index + matches[i][0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    sections[letter] = text.slice(start, end);
+  }
+  return sections;
+}
+
+// ============================================================================
+// INHERIT directive parsing -- shared across every section that can carry one.
+// ============================================================================
+
+const INHERIT_RE =
+  /^INHERIT(\s+FORCE)?\s+(phase attributes|dimensions|configs|trims)\s+FROM\s+(\S+)\s+(.+?)\s+(\S+)\s+([^/]+?)(?:\s*\/\s*(.+?))?(?:\s+EXCEPT\s+(.+))?$/i;
+
+function parseInherit(line, context) {
+  const m = line.trim().match(INHERIT_RE);
+  if (!m) return { problem: `unparseable INHERIT line: "${line.trim()}"`, context };
+  const [, force, group, brand, model, generation, phaseRaw, body, exceptRaw] = m;
+  const phase = phaseRaw.trim();
+  let exceptClauses = [];
+  if (exceptRaw) {
+    // Repeated "EXCEPT" keyword (configs' "EXCEPT no CVNA, EXCEPT no CSWB, EXCEPT no CRTC")
+    // and a single EXCEPT with comma-separated field=value pairs (dimensions' plural
+    // "overrides") are both grammar-legal -- split on a repeated EXCEPT keyword first, then
+    // leave each resulting clause intact (dimensions further splits its own clause on
+    // top-level commas when applying overrides, see resolveDimensions).
+    exceptClauses = exceptRaw
+      .split(/\s*,?\s*EXCEPT\s+/i)
+      .map(s => s.replace(/,\s*$/, "").trim())
+      .filter(Boolean);
+  }
+  return {
+    group: group.toLowerCase(),
+    force: !!force,
+    source: { brand, model, generation, phase, body: body ? body.trim() : null },
+    exceptClauses,
+    context,
+    raw: line.trim(),
+  };
+}
+
+// ============================================================================
+// Per-section parsers. Each returns rows/entries plus any INHERIT directives found,
+// tagged with enough context (phase/body) to resolve later.
+// ============================================================================
+
+function parseSectionA(text) {
+  const { rows } = parseMdTable(text.split("\n"));
+  const row = {};
+  for (const r of rows) row[r.field] = r.value;
+  return row;
+}
+
+// B. PHASES -- repeating "### <phase_label>" blocks, each a key/value table (same shape as
+// A, pivoted), optionally followed by a bare INHERIT line before the next heading.
+function parseSectionB(text) {
+  const blocks = text.split(/^###\s+(.+)$/m).slice(1); // [heading, body, heading, body, ...]
+  const phases = [];
+  const inherits = [];
+  for (let i = 0; i < blocks.length; i += 2) {
+    const heading = blocks[i].trim();
+    const body = blocks[i + 1];
+    const lines = body.split("\n");
+    const tableLines = lines.filter(l => l.trim().startsWith("|"));
+    const { rows } = parseMdTable(tableLines);
+    const phase = {};
+    for (const r of rows) phase[r.field] = r.value;
+    if (phase.phase_label && phase.phase_label !== heading) {
+      inherits.push({ problem: `B. PHASES heading "${heading}" does not match its own phase_label field "${phase.phase_label}"` });
+    }
+    phases.push(phase);
+    for (const line of lines) {
+      if (/^INHERIT\b/i.test(line.trim())) {
+        inherits.push(parseInherit(line, { section: "B", group: "phase attributes", targetPhase: phase.phase_label || heading }));
+      }
+    }
+  }
+  return { phases, inherits };
+}
+
+// C. BODIES x PHASE -- "### <phase_label>" blocks, each EITHER a multi-row table (own
+// "phase" column, renamed to phase_label on write) OR one-or-more bare INHERIT lines (no
+// table at all for a body whose data is 100% inherited).
+function parseSectionC(text) {
+  const blocks = text.split(/^###\s+(.+)$/m).slice(1);
+  const dims = [];
+  const inherits = [];
+  for (let i = 0; i < blocks.length; i += 2) {
+    const heading = blocks[i].trim();
+    const body = blocks[i + 1];
+    const lines = body.split("\n").filter(l => l.trim());
+    const firstContentLine = lines.find(l => l.trim().startsWith("|") || /^INHERIT\b/i.test(l.trim()));
+    if (!firstContentLine) continue;
+    if (firstContentLine.trim().startsWith("|")) {
+      const tableLines = lines.filter(l => l.trim().startsWith("|"));
+      const { rows } = parseMdTable(tableLines);
+      for (const r of rows) {
+        const row = { ...r };
+        if (row.phase) {
+          if (row.phase !== heading) {
+            inherits.push({ problem: `C. BODIES x PHASE heading "${heading}" does not match row's own phase field "${row.phase}"` });
+          }
+          row.phase_label = row.phase;
+          delete row.phase;
+        } else {
+          row.phase_label = heading;
+        }
+        dims.push(row);
+      }
+    } else {
+      for (const line of lines) {
+        if (/^INHERIT\b/i.test(line.trim())) {
+          inherits.push(parseInherit(line, { section: "C", group: "dimensions", targetPhase: heading }));
+        }
+      }
+    }
+  }
+  return { dims, inherits };
+}
+
+const ENGINE_FIELDS = [
+  "code", "alt_codes", "display_name", "displacement_cc", "power_kw", "fuel_type",
+  "torque_nm", "cylinders", "emission_standard", "timing_type", "engine_oil_capacity_liters",
+  "timing_replacement_km", "hybrid_type",
+];
+
+// D. ENGINES -- one table, header-name-keyed (no reuse_or_new column in the document --
+// computed later, see resolveEngines). NULL tokens already blanked by mapNullTokens.
+function parseSectionD(text) {
+  const { rows } = parseMdTable(text.split("\n"));
+  return rows.map(mapNullTokens);
+}
+
+// E. GEARBOXES -- single-column table, header already named unit_code.
+function parseSectionE(text) {
+  const { rows } = parseMdTable(text.split("\n"));
+  return rows.map(r => ({ unit_code: r.unit_code }));
+}
+
+// F. DRIVETRAIN -- single-column table, header literally "drivetrain" -- hard-coded rename
+// to drivetrain_code on write (generic header-keyed parsing would otherwise silently write
+// the wrong column name and every downstream script that reads drivetrains.csv by name
+// would see an empty file). "FWD" is EXCLUDED here -- it's the synthetic no-AWD-system
+// sentinel gen-config-grid.mjs always prepends on top of this dictionary
+// (`["FWD", ...drivetrains]`), never a real drivetrain_systems row, and drivetrains.csv's
+// own convention is "omit entirely for FWD-only cars" -- FWD is never itself a dictionary
+// entry. Listing it here and then live-resolving it would always STOP, incorrectly, on
+// every single car that has FWD at all.
+function parseSectionF(text) {
+  const { rows } = parseMdTable(text.split("\n"));
+  return rows.map(r => r.drivetrain).filter(d => d && d !== "FWD").map(d => ({ drivetrain_code: d }));
+}
+
+// Merges rows sharing the same (engine_code, power_kw) into one -- the document's G section
+// may give the same engine several separate bullet lines (one per gearbox/drivetrain, since
+// the bullet grammar is one real combination per line), but every downstream script
+// (gen-config-grid.mjs, validate-template.mjs, generate-seed.mjs) expects exactly one grid
+// row per engine. Functionally harmless either way (duplicate rows just contribute their own
+// distinct marked cells, nothing is lost or double-counted), but merging keeps the output
+// shape identical to what gen-config-grid.mjs itself would produce.
+function mergeConfigRows(rows) {
+  const byKey = new Map();
+  for (const r of rows) {
+    const key = `${r.engine_code}|${r.power_kw}`;
+    if (!byKey.has(key)) byKey.set(key, { engine_code: r.engine_code, power_kw: r.power_kw, combos: [] });
+    byKey.get(key).combos.push(...r.combos);
+  }
+  return [...byKey.values()];
+}
+
+const CONFIG_BULLET_RE =
+  /^-\s*([^:]+):\s*(\S+)\s+(\d+)kW\s*\+\s*([^+]+?)\s*\+\s*([^→]+?)\s*→\s*\[([^\]]+)\]\s*$/;
+
+// G. CONFIG MATRIX -- bold "**<Phase> (<years>):**" headings, each followed by either bullet
+// lines (one real engine+gearbox+drivetrain+body combination per line, '/' = genuinely
+// separate rows, matching INTAKE.md's own documented slash convention) or a single INHERIT
+// configs line.
+function parseSectionG(text) {
+  const blocks = text.split(/^\*\*(.+?)\s*\([^)]*\)\s*:\*\*\s*$/m).slice(1);
+  const configsByPhase = {}; // phase_label -> [{engine_code, power_kw, combos: [{body,gearbox,drivetrain}]}]
+  const inherits = [];
+  const problems = [];
+  for (let i = 0; i < blocks.length; i += 2) {
+    const heading = blocks[i].trim();
+    const body = blocks[i + 1];
+    const lines = body.split("\n").map(l => l.trim()).filter(Boolean);
+    const rows = [];
+    for (const line of lines) {
+      if (/^INHERIT\b/i.test(line)) {
+        inherits.push(parseInherit(line, { section: "G", group: "configs", targetPhase: heading }));
+        continue;
+      }
+      const m = line.match(CONFIG_BULLET_RE);
+      if (!m) {
+        problems.push(`G. CONFIG MATRIX: unparseable line under "${heading}": "${line}"`);
+        continue;
+      }
+      const [, label, code, kw, gearboxesRaw, drivetrainsRaw, bodiesRaw] = m;
+      if (label.trim() !== heading) {
+        problems.push(`G. CONFIG MATRIX: bullet label "${label.trim()}" does not match its own heading "${heading}"`);
+      }
+      const gearboxes = gearboxesRaw.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean);
+      const drivetrains = drivetrainsRaw.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean);
+      const bodies = bodiesRaw.split(",").map(s => s.trim()).filter(Boolean);
+      const combos = [];
+      for (const gb of gearboxes) for (const dt of drivetrains) for (const b of bodies) combos.push({ body: b, gearbox: gb, drivetrain: dt });
+      rows.push({ engine_code: code, power_kw: kw, combos });
+    }
+    configsByPhase[heading] = mergeConfigRows(rows);
+  }
+  return { configsByPhase, inherits, problems };
+}
+
+// H. TRIMS -- one table (name, tier, phase, features). "phase" may be a comma-joined list
+// (one trims.csv row per phase); "features" is free prose, comma-split into trim_features.csv
+// rows with commas inside parens protected. is_optional has no signal in this format at all
+// -- defaults to false for every feature (flagged limitation, see the plan).
+function splitFeatures(text) {
+  const out = [];
+  let depth = 0, cur = "";
+  for (const ch of text) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      out.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out.map(f => f.replace(/\.$/, "").trim()).filter(Boolean);
+}
+
+function parseSectionH(text) {
+  const { rows } = parseMdTable(text.split("\n"));
+  const trims = [];
+  const trimFeatures = [];
+  for (const r of rows) {
+    const phaseLabels = r.phase.split(",").map(s => s.trim()).filter(Boolean);
+    const features = splitFeatures(r.features);
+    for (const phase_label of phaseLabels) {
+      trims.push({ phase_label, name: r.name, tier: r.tier });
+      for (const feature of features) {
+        trimFeatures.push({ phase_label, trim_name: r.name, feature, is_optional: "false" });
+      }
+    }
+  }
+  return { trims, trimFeatures };
+}
+
+// I. FAULTS -- component_type is "gearbox" in the document but "transmission" in the real
+// schema (generate-seed.mjs filters on the literal string "transmission") -- translated on
+// write. target_power_kw isn't a document column -- filled from section D's own engines by
+// code; ambiguous/absent -> STOP rather than guess (see resolveFaults).
+function parseSectionI(text) {
+  const { rows } = parseMdTable(text.split("\n"));
+  return rows.map(r => ({
+    component_type: r.component_type === "gearbox" ? "transmission" : r.component_type,
+    target_code: r.target_code,
+    fault: r.fault,
+    severity: r.severity,
+  }));
+}
+
+function resolveFaults(faults, engines, problems) {
+  return faults.map(f => {
+    if (f.component_type !== "engine") return { ...f, target_power_kw: "" };
+    const matches = engines.filter(e => e.code === f.target_code);
+    if (matches.length !== 1) {
+      problems.push(`I. FAULTS: engine code '${f.target_code}' is ${matches.length === 0 ? "absent from" : "ambiguous in"} this document's ENGINES section -- cannot infer target_power_kw`);
+      return { ...f, target_power_kw: "" };
+    }
+    return { ...f, target_power_kw: matches[0].power_kw };
+  });
+}
+
+// ============================================================================
+// typical_mileage_range normalization -- the one piece of document-shorthand this script
+// owns (not validate-template.mjs's job): expand "150k-300k" style shorthand to the live
+// convention "150000 - 300000 km" (confirmed live format: "<N> - <M> km", spaces around the
+// dash, no thousands separators).
+// ============================================================================
+
+function normalizeMileageRange(v) {
+  if (!v) return v;
+  let s = v.trim();
+  s = s.replace(/(\d+)\s*k/gi, (_, n) => String(Number(n) * 1000));
+  s = s.replace(/\s*-\s*/, " - ");
+  if (!/km\s*$/i.test(s)) s += " km";
+  return s;
+}
+
+// ============================================================================
+// INHERIT resolution
+// ============================================================================
+
+const PHASE_ATTR_FIELDS = ["safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct", "towing_capacity_kg"];
+const PHASE_NEVER_INHERIT = ["price_range_min_eur", "price_range_max_eur", "avg_market_price_eur", "typical_mileage_range", "resale_value_rating"];
+const DIM_FIELDS = ["length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "seats_count", "gross_vehicle_weight_kg", "payload_kg", "fuel_tank_capacity_liters"];
+
+function resolvePhaseAttributes(directive, doc, problems, fills) {
+  const target = doc.phases.find(p => p.phase_label === directive.context.targetPhase);
+  if (!target) {
+    problems.push(`phase attributes INHERIT: target phase "${directive.context.targetPhase}" not found`);
+    return;
+  }
+  const sourceMatchesThisDoc =
+    directive.source.brand === doc.car.brand &&
+    directive.source.model === doc.car.model &&
+    directive.source.generation === target.generation_code;
+  let source = sourceMatchesThisDoc ? doc.phases.find(p => p.phase_label === directive.source.phase) : null;
+  if (!source) {
+    problems.push(`phase attributes INHERIT "${directive.raw}": source phase not found in this document (cross-car live phase-attribute lookup is not yet exercised by this run -- if this is meant to inherit from an already-seeded different car, that path needs the live catalog_phases fallback, not yet confirmed working for this case)`);
+    return;
+  }
+  for (const f of PHASE_NEVER_INHERIT) {
+    if (!target[f] || !target[f].trim()) {
+      problems.push(`phase attributes INHERIT present for "${target.phase_label}" but "${f}" is empty -- price/mileage/resale fields must always be given explicitly, never inherited`);
+    }
+  }
+  for (const f of PHASE_ATTR_FIELDS) {
+    if (!target[f] || !target[f].trim()) {
+      if (source[f] && source[f].trim()) {
+        target[f] = source[f];
+        fills.push(`phases.csv[${target.phase_label}].${f} = "${source[f]}" (inherited: ${directive.source.brand} ${directive.source.model} ${directive.source.generation} ${directive.source.phase})`);
+      }
+    }
+  }
+}
+
+function resolveDimensions(directive, doc, problems, fills) {
+  const targetPhase = directive.context.targetPhase;
+  const targetBody = directive.source.body; // the "/ <body>" segment also names the TARGET body (same body unless FORCE)
+  let target = doc.dims.find(d => d.phase_label === targetPhase && d.body_type === targetBody);
+  if (!target) {
+    target = { phase_label: targetPhase, body_type: targetBody };
+    doc.dims.push(target);
+  }
+  const targetGen = (doc.phases.find(p => p.phase_label === targetPhase) || {}).generation_code;
+  const sameCar = directive.source.brand === doc.car.brand && directive.source.model === doc.car.model && directive.source.generation === targetGen;
+  const sameBody = directive.source.body === targetBody;
+  if (!directive.force && (!sameCar || !sameBody)) {
+    problems.push(`dimensions INHERIT "${directive.raw}": source must be the same model+generation+body unless FORCE is used`);
+    return;
+  }
+  const source = doc.dims.find(d => d.phase_label === directive.source.phase && d.body_type === directive.source.body);
+  if (!source) {
+    problems.push(`dimensions INHERIT "${directive.raw}": source body "${directive.source.phase} / ${directive.source.body}" not found in this document (live cross-car dimensions fallback not yet confirmed for this case)`);
+    return;
+  }
+  for (const f of DIM_FIELDS) {
+    if ((!target[f] || !target[f].trim()) && source[f] && source[f].trim()) {
+      target[f] = source[f];
+      fills.push(`dimensions.csv[${targetPhase}/${targetBody}].${f} = "${source[f]}" (inherited: ${directive.source.brand} ${directive.source.model} ${directive.source.generation} ${directive.source.phase} / ${directive.source.body})`);
+    }
+  }
+  for (const clause of directive.exceptClauses) {
+    const m = clause.match(/^(\S+)\s*=\s*(.+)$/);
+    if (!m) {
+      problems.push(`dimensions INHERIT "${directive.raw}": EXCEPT clause "${clause}" is not a valid "field = value" override`);
+      continue;
+    }
+    const [, field, value] = m;
+    if (!DIM_FIELDS.includes(field)) {
+      problems.push(`dimensions INHERIT "${directive.raw}": EXCEPT field "${field}" is not a copyable dimensions field`);
+      continue;
+    }
+    target[field] = value.trim();
+    fills.push(`dimensions.csv[${targetPhase}/${targetBody}].${field} = "${value.trim()}" (override, EXCEPT clause)`);
+  }
+}
+
+function resolveConfigs(directive, doc, problems) {
+  if (directive.exceptClauses.length) {
+    problems.push(`INHERIT configs FROM ${directive.source.brand} ${directive.source.model} ${directive.source.generation} ${directive.source.phase} (${directive.context.targetPhase}): EXCEPT clause(s) [${directive.exceptClauses.map(c => `"${c}"`).join(", ")}] are not a supported override form for group 'configs' -- no per-engine exclusion syntax is defined for this group (only the automatic target-body restriction).`);
+    return;
+  }
+  const targetPhase = directive.context.targetPhase;
+  const targetPlatform = (doc.phases.find(p => p.phase_label === targetPhase) || {}).platform_code;
+  const sourceMatchesThisDoc = directive.source.brand === doc.car.brand && directive.source.model === doc.car.model;
+  const sourcePhase = sourceMatchesThisDoc ? doc.phases.find(p => p.phase_label === directive.source.phase) : null;
+  if (!sourcePhase) {
+    problems.push(`configs INHERIT "${directive.raw}": source phase not found in this document (live cross-car config-matrix inheritance is not implemented in this version -- see this script's header comment)`);
+    return;
+  }
+  if (sourcePhase.platform_code !== targetPlatform) {
+    problems.push(`configs INHERIT "${directive.raw}": source platform_code "${sourcePhase.platform_code}" does not match target platform_code "${targetPlatform}"`);
+    return;
+  }
+  const targetBodies = new Set(doc.dims.filter(d => d.phase_label === targetPhase).map(d => d.body_type));
+  const sourceRows = doc.configsByPhase[directive.source.phase] || [];
+  const copied = sourceRows.map(r => ({
+    engine_code: r.engine_code,
+    power_kw: r.power_kw,
+    combos: r.combos.filter(c => targetBodies.has(c.body)),
+  })).filter(r => r.combos.length);
+  doc.configsByPhase[targetPhase] = copied;
+}
+
+function resolveInherits(doc, problems, fills) {
+  for (const directive of doc.allInherits) {
+    if (directive.problem) {
+      problems.push(directive.problem);
+      continue;
+    }
+    if (directive.group === "trims") {
+      problems.push(`INHERIT trims is not supported -- trims must always be defined explicitly per phase, no exceptions. ("${directive.raw}")`);
+      continue;
+    }
+    if (directive.group === "phase attributes") resolvePhaseAttributes(directive, doc, problems, fills);
+    else if (directive.group === "dimensions") resolveDimensions(directive, doc, problems, fills);
+    else if (directive.group === "configs") resolveConfigs(directive, doc, problems);
+  }
+}
+
+// ============================================================================
+// Live DB resolution: engine REUSE/NEW (reconcile.mjs's own algorithm, duplicated per this
+// pipeline's established convention), transmission + drivetrain resolution.
+// ============================================================================
+
+async function liveResolve(doc, problems) {
+  const env = loadEnv();
+  const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+
+  const { data: liveEngines, error: e1 } = await sb.from("catalog_engines").select("id, code, power_kw, alt_codes");
+  if (e1) throw e1;
+  const { data: liveUnits, error: e2 } = await sb.from("transmission_units").select("id, code, alt_codes, family, speeds");
+  if (e2) throw e2;
+
+  // drivetrain_systems.alt_codes existence is unconfirmed (flagged in the plan) -- select it
+  // optimistically and fall back to code-only matching if the column doesn't exist.
+  let liveDrivetrains;
+  {
+    const res = await sb.from("drivetrain_systems").select("id, code, alt_codes");
+    if (res.error && res.error.code === "42703") {
+      const fallback = await sb.from("drivetrain_systems").select("id, code");
+      if (fallback.error) throw fallback.error;
+      liveDrivetrains = (fallback.data || []).map(d => ({ ...d, alt_codes: [] }));
+    } else if (res.error) {
+      throw res.error;
+    } else {
+      liveDrivetrains = res.data || [];
+    }
+  }
+
+  for (const e of doc.engines) {
+    const kw = Number(e.power_kw);
+    const primary = liveEngines.find(le => le.code === e.code && le.power_kw === kw);
+    if (primary) {
+      e.reuse_or_new = "REUSE";
+      continue;
+    }
+    const alias = liveEngines.find(le => (le.alt_codes || []).includes(e.code));
+    if (alias) {
+      problems.push(`engine ${e.code} (${e.power_kw}kW): COLLISION -- not a primary code live, but IS an alt_code of ${alias.code} (${alias.power_kw}kW) -- resolve before seeding, do not create a duplicate`);
+      continue;
+    }
+    e.reuse_or_new = "NEW";
+  }
+
+  for (const t of doc.transUnits) {
+    const hit = liveUnits.find(lu => lu.code === t.unit_code || (lu.alt_codes || []).includes(t.unit_code));
+    if (!hit) {
+      problems.push(`transmissions.csv: unit_code '${t.unit_code}' has no matching live transmission_units row (checked code and alt_codes) -- add it via its own reviewed migration first, there is no CREATE path for transmissions`);
+    }
+  }
+
+  for (const d of doc.drivetrains) {
+    const hit = liveDrivetrains.find(ld => ld.code === d.drivetrain_code || (ld.alt_codes || []).includes(d.drivetrain_code));
+    if (!hit) {
+      problems.push(`drivetrains.csv: drivetrain code '${d.drivetrain_code}' has no matching live drivetrain_systems row -- shared reference data, never created inline`);
+    }
+  }
+}
+
+// ============================================================================
+// Main
+// ============================================================================
+
+async function main() {
+  const args = process.argv.slice(2);
+  const dryRun = args.includes("--dry-run");
+  const positional = args.filter(a => !a.startsWith("--"));
+  const [intakePath, outDir] = positional;
+  if (!intakePath || !outDir) {
+    console.error("Usage: node scripts/intake-to-template.mjs <intake.md> <output-dir> [--dry-run]");
+    process.exit(1);
+  }
+
+  const text = fs.readFileSync(intakePath, "utf8");
+  const sections = tokenizeSections(text);
+  const problems = [];
+  const fills = [];
+
+  const car = sections.A ? parseSectionA(sections.A) : {};
+  const { phases, inherits: bInherits } = sections.B ? parseSectionB(sections.B) : { phases: [], inherits: [] };
+  const { dims, inherits: cInherits } = sections.C ? parseSectionC(sections.C) : { dims: [], inherits: [] };
+  const engines = sections.D ? parseSectionD(sections.D) : [];
+  const transUnits = sections.E ? parseSectionE(sections.E) : [];
+  const drivetrains = sections.F ? parseSectionF(sections.F) : [];
+  const { configsByPhase, inherits: gInherits, problems: gProblems } = sections.G ? parseSectionG(sections.G) : { configsByPhase: {}, inherits: [], problems: [] };
+  const { trims, trimFeatures } = sections.H ? parseSectionH(sections.H) : { trims: [], trimFeatures: [] };
+  const faultsRaw = sections.I ? parseSectionI(sections.I) : [];
+
+  problems.push(...gProblems);
+
+  for (const p of phases) {
+    if (p.typical_mileage_range) p.typical_mileage_range = normalizeMileageRange(p.typical_mileage_range);
+  }
+
+  const doc = { car, phases, dims, engines, transUnits, drivetrains, configsByPhase, trims, trimFeatures, allInherits: [...bInherits, ...cInherits, ...gInherits] };
+
+  resolveInherits(doc, problems, fills);
+
+  const faults = resolveFaults(faultsRaw, engines, problems);
+
+  // Live resolution runs even if in-document problems were already found, so a single run
+  // surfaces the complete problem list (collect-all, not stop-at-first).
+  try {
+    await liveResolve(doc, problems);
+  } catch (err) {
+    console.error("[intake-to-template] live DB resolution failed:", err.message || err);
+    process.exit(1);
+  }
+
+  if (problems.length) {
+    console.log(`STOP -- ${problems.length} problem(s) found, nothing written:\n`);
+    for (const p of problems) console.log(`  - ${p}`);
+    process.exit(1);
+  }
+
+  if (dryRun) {
+    console.log(`Clean -- ${fills.length} INHERIT fill(s) would be applied:\n`);
+    for (const f of fills) console.log(`  - ${f}`);
+    console.log("\n--dry-run: nothing written.");
+    return;
+  }
+
+  writeOutput(outDir, doc, faults);
+  console.log(`Wrote ${outDir} -- ${fills.length} INHERIT fill(s) applied:`);
+  for (const f of fills) console.log(`  - ${f}`);
+}
+
+// ============================================================================
+// Write phase -- only reached if problems.length === 0. Every file is built fully in memory
+// first (same pattern generate-seed.mjs already uses for its one .sql file, scaled to ~10
+// files here) so there is no partial-write risk.
+// ============================================================================
+
+function csvLine(cells) {
+  return cells.map(c => {
+    const s = c == null ? "" : String(c);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(",");
+}
+
+function writeCsv(outDir, filename, headers, rows) {
+  const lines = [csvLine(headers), ...rows.map(r => csvLine(headers.map(h => r[h] ?? "")))];
+  fs.writeFileSync(path.join(outDir, filename), lines.join("\n") + "\n");
+}
+
+function writeOutput(outDir, doc, faults) {
+  fs.mkdirSync(outDir, { recursive: true });
+
+  writeCsv(outDir, "car.csv", ["brand", "brand_country", "model", "segment", "origin_country"], [doc.car]);
+  writeCsv(outDir, "phases.csv",
+    ["generation_code", "phase_label", "year_from", "year_to", "display_name", "platform_code", "safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct", "avg_market_price_eur", "price_range_min_eur", "price_range_max_eur", "typical_mileage_range", "resale_value_rating", "towing_capacity_kg"],
+    doc.phases);
+  writeCsv(outDir, "dimensions.csv",
+    ["phase_label", "body_type", "length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg", "payload_kg", "fuel_tank_capacity_liters", "seats_count"],
+    doc.dims);
+  writeCsv(outDir, "engines.csv", ["reuse_or_new", ...ENGINE_FIELDS], doc.engines);
+  writeCsv(outDir, "transmissions.csv", ["unit_code"], doc.transUnits);
+  if (doc.drivetrains.length) writeCsv(outDir, "drivetrains.csv", ["drivetrain_code"], doc.drivetrains);
+  writeCsv(outDir, "trims.csv", ["phase_label", "name", "tier"], doc.trims);
+  writeCsv(outDir, "trim_features.csv", ["phase_label", "trim_name", "feature", "is_optional"], doc.trimFeatures);
+  writeCsv(outDir, "faults.csv", ["component_type", "target_code", "target_power_kw", "fault", "severity"], faults);
+
+  for (const [phaseLabel, rows] of Object.entries(doc.configsByPhase)) {
+    const bodyGbDt = [...new Set(rows.flatMap(r => r.combos.map(c => `${c.body}|${c.gearbox}|${c.drivetrain}`)))];
+    const headers = ["phase_label", "engine_code", "power_kw", ...bodyGbDt];
+    const csvRows = rows.map(r => {
+      const row = { phase_label: phaseLabel, engine_code: r.engine_code, power_kw: r.power_kw };
+      for (const col of bodyGbDt) row[col] = "";
+      for (const c of r.combos) row[`${c.body}|${c.gearbox}|${c.drivetrain}`] = "x";
+      return row;
+    });
+    writeCsv(outDir, `configs-${phaseLabel}.csv`, headers, csvRows);
+  }
+}
+
+main();

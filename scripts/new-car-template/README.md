@@ -18,6 +18,13 @@ by anything except the helper scripts' own header-skipping, which ignores them e
 
 ## Files, in fill order
 
+0. **(Optional, recommended whenever this car shares phase attributes, dimensions, or a
+   config matrix with a sibling phase or platform-mate car)** Write a markdown intake
+   document (`INTAKE.md`'s section format, A–I) instead of filling 1–10 by hand, and run
+   `node scripts/intake-to-template.mjs <doc.md> <this-dir>` — it generates everything
+   through item 10 below (including the config grid) in one pass, with every `INHERIT`
+   directive already resolved against the document and the live DB. Missing/ambiguous
+   source → STOP, nothing written. Skip to item 11 (`validate-template.mjs`) afterward.
 1. `car.csv` — brand, model, segment, origin.
 2. `phases.csv` — one row per phase: facelift boundary, platform code, NCAP, prices,
    mileage, resale, seats, towing.

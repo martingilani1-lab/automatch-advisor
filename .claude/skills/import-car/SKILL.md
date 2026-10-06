@@ -19,6 +19,11 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
   both. Everything else phase-level (NCAP, towing, prices, mileage, resale, `platform_code`)
   stays on `catalog_phases`.
 - If MCP is unavailable, ask the human to run the read queries and paste results.
+- **A markdown intake document can replace step 1 entirely** (see "Steps" below, step 0) —
+  write an A–I intake doc instead of filling the CSVs by hand, especially for a car that
+  shares phase attributes, dimensions, or a config matrix with a sibling phase or
+  platform-mate car (`INHERIT` resolves that in the same pass). Skip straight to step 2
+  afterward.
 - **Use the intake template + its scripts** (`scripts/new-car-template/`, read its own
   README first) instead of taking the spec free-form in chat: it's the pre-seed checklist
   that guarantees every attribute area gets *addressed*, and three read-only scripts do the
@@ -29,6 +34,16 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
   template.
 
 ## Steps
+
+0. **(Optional) Markdown intake path.** Write a single A–I markdown intake document (see
+   `scripts/new-car-template/INTAKE.md` for the section format) and run `node
+   scripts/intake-to-template.mjs <doc.md> scripts/cars/<slug>/` — it fills every CSV from
+   step 1 below, including the config grid(s), and resolves every `INHERIT` directive
+   (`phase attributes`, `dimensions`, `configs` — never `trims`) against earlier blocks in
+   the same document first, then the live DB. Missing/ambiguous source → STOP, zero files
+   written; the printed problem list collects every issue in one pass, not just the first.
+   Skip straight to step 2 (reconcile) once it writes cleanly. For a car simple enough to
+   skip the markdown doc, step 1's manual CSV fill is unchanged.
 
 1. **Human supplies the full spec.**
    - Phases, including the facelift boundary and `platform_code`.

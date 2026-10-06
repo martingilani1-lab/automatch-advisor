@@ -40,9 +40,24 @@ Terramar.
 
 One car at a time (or several, via the batch scripts), always in this order:
 
-1. **Intake**: copy `scripts/new-car-template/` to `scripts/cars/<slug>/`, fill the CSVs
-   (car, phases, dimensions, engines, transmissions, drivetrains, trims, faults). See that
-   folder's own `README.md` for the file-by-file guide.
+1. **Intake** — two paths, both converge on the same `scripts/cars/<slug>/*.csv` shape;
+   nothing downstream cares which one produced its input.
+   - **1a (markdown path):** write an A–I markdown intake doc (see
+     `scripts/new-car-template/INTAKE.md`) and run
+     `node scripts/intake-to-template.mjs <doc.md> scripts/cars/<slug>/` — fills every CSV,
+     including `configs-<phase>.csv`, and resolves every `INHERIT` directive (phase
+     attributes, dimensions, config matrix — never trims) against earlier blocks in the
+     same document first, then the live DB. Missing/ambiguous source → STOP, zero files
+     written. Recommended whenever the car shares phase attributes, dimensions, or a config
+     matrix with a sibling phase or platform-mate car — that's exactly what `INHERIT` is
+     for. Step 2 (`gen-config-grid.mjs`) becomes a harmless no-op afterward, since this path
+     already wrote the config grid(s) directly (its own "already has an `x` mark, skip
+     unless `--force`" guard just no-ops).
+   - **1b (manual path, unchanged):** copy `scripts/new-car-template/` to
+     `scripts/cars/<slug>/`, fill the CSVs by hand (car, phases, dimensions, engines,
+     transmissions, drivetrains, trims, faults). See that folder's own `README.md` for the
+     file-by-file guide. Fine for a car simple enough that writing a markdown doc is
+     overhead.
 2. **`node scripts/gen-config-grid.mjs <dir>`** — pre-generates the config grid's columns
    from the filled dimensions/transmissions/drivetrains, so columns are never hand-typed.
    Mark the grid, then:
