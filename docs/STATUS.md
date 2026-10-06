@@ -4,7 +4,10 @@ Read this first when picking up catalog_ schema / car-import work. Keep it curre
 end of each session — this is a living snapshot, not a historical record (git history is
 the record; see CLAUDE.md "Adding a new car / model — RULES").
 
-Last updated: 2026-10-06.
+Last updated: 2026-10-06. RLS is enabled with public-read policies on all 17 catalog
+tables the Supabase advisor flagged (confirmed live: `rls_on = true`, 1 select policy
+each), and `catalog_engines.DXDB` (1.5 eTSI 110kW) now has `hybrid_type = 'MHEV'`
+confirmed live — both closed, details folded out of Open items below.
 
 ## Catalog state (live counts)
 
@@ -109,17 +112,32 @@ report, for reviewing several cars' decisions at once before generating anything
     (the other 3: `DNFB`/245, `DNPA`/150, `DNPA`/195).
   None of this blocks anything currently live (NULL over invention, rule 7) — it's a
   real-source-data enrichment pass still pending for this car.
-- **MQB Evo hybrid/eHybrid gap — partially closed, one real naming gap found**: Golf
-  (CD1), Octavia (NX), and A3 (8Y) now carry real MHEV/PHEV engines with `hybrid_type`
-  correctly set (`DLAB` 1.0 eTSI → `MHEV`, `DFYA` 1.5 eTSI → `MHEV`, `DGEA` 1.4 eHybrid →
-  `PHEV`) — the gap noted here earlier is closed for these three. Still zero hybrid/PHEV
-  engines on Passat (CJ), Superb (PY), Tiguan (CT), Kodiaq (PS), León/Cupra León (KL),
-  Formentor (KM7), Terramar, Multivan (T7), Caddy (SB) — real eHybrid/PHEV variants exist
-  for several of these (Passat GTE, Tiguan eHybrid, Cupra León VZe, Formentor VZe) and
-  aren't seeded. Separately: **`DXDB` (1.5 eTSI 110kW)** — used by Terramar, Kodiaq (PS),
-  Superb (PY), Passat (CJ), and Tiguan (CT) — is named "eTSI" exactly like the confirmed-MHEV
-  engines above but has `hybrid_type` NULL on every one of its 5 live rows. Needs the same
-  real-source confirmation `DLAB`/`DFYA` got, not an assumption either way.
+- **MQB Evo hybrid/eHybrid gap — partially closed**: Golf (CD1), Octavia (NX), and A3
+  (8Y) now carry real MHEV/PHEV engines with `hybrid_type` correctly set (`DLAB` 1.0
+  eTSI → `MHEV`, `DFYA` 1.5 eTSI → `MHEV`, `DGEA` 1.4 eHybrid → `PHEV`). `DXDB` (1.5 eTSI
+  110kW — one `catalog_engines` row, reused by 6 configs across 5 generations: Terramar,
+  Kodiaq PS, Superb PY ×2 body types, Passat CJ, Tiguan CT) also now has `hybrid_type =
+  'MHEV'` (`20261006120000_set_dxdb_hybrid_type_mhev.sql`, run and confirmed live
+  2026-10-06). Still zero hybrid/PHEV engines on Passat (CJ), Superb (PY), Tiguan (CT),
+  Kodiaq (PS), León/Cupra León (KL), Formentor (KM7), Terramar, Multivan (T7), Caddy
+  (SB) beyond that one shared `DXDB` row — real eHybrid/PHEV variants exist for several
+  of these (Passat GTE, Tiguan eHybrid, Cupra León VZe, Formentor VZe) and aren't seeded.
+- **RLS — done**: all 17 tables the Supabase advisor flagged as exposed now have RLS
+  enabled with one public-read policy each (`20261006110000_enable_rls_public_read.sql`,
+  run and confirmed live 2026-10-06: `rls_on = true`, 1 select policy, on every one of
+  the 17). No write policy on any table — the service-role key the app actually uses
+  bypasses RLS and needs none; a write still requires it. The old flat
+  `vehicles`/`engines`/`transmissions` tables weren't in the flagged 17 and already had
+  RLS enabled — untouched.
+- **`transmissions_faults_backup` — candidate to drop, no action taken**: a backup table
+  sitting in `public` (now RLS-enabled alongside everything else, but still dead weight)
+  and not referenced by any route handler or script. An earlier approximate row-count
+  listing showed 0, but that figure comes from Postgres's `pg_class.reltuples` estimate —
+  the same mechanism that under-reported `drivetrain_systems` earlier this session (3
+  vs. the real 25) — so its actual row count hasn't been confirmed with a real `count(*)`
+  yet. Flagging for a future `DROP TABLE` migration, file-only, human-run per the
+  standing destructive-SQL rule, after that count is actually confirmed — not dropping
+  it now, just noting it so it doesn't get rediscovered cold.
 - **Attribute-completeness audit** (last full re-run 2026-10-05, covered 46 of the current
   49 generations — Golf CD1, Octavia NX, and A3 8Y were added after that pass and aren't
   reflected below; A3 8Y's real gaps are itemized separately above): no generation has
