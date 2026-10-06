@@ -129,15 +129,19 @@ report, for reviewing several cars' decisions at once before generating anything
   bypasses RLS and needs none; a write still requires it. The old flat
   `vehicles`/`engines`/`transmissions` tables weren't in the flagged 17 and already had
   RLS enabled — untouched.
-- **`transmissions_faults_backup` — candidate to drop, no action taken**: a backup table
-  sitting in `public` (now RLS-enabled alongside everything else, but still dead weight)
-  and not referenced by any route handler or script. An earlier approximate row-count
-  listing showed 0, but that figure comes from Postgres's `pg_class.reltuples` estimate —
-  the same mechanism that under-reported `drivetrain_systems` earlier this session (3
-  vs. the real 25) — so its actual row count hasn't been confirmed with a real `count(*)`
-  yet. Flagging for a future `DROP TABLE` migration, file-only, human-run per the
-  standing destructive-SQL rule, after that count is actually confirmed — not dropping
-  it now, just noting it so it doesn't get rediscovered cold.
+- **`transmissions_faults_backup` — keep for now, drop decision tied to retiring the old
+  `transmissions` table**: 594 rows, a manual pre-cleanup snapshot of the legacy
+  `transmissions` table's `cons`/`common_faults` columns, taken outside this repo's
+  pipeline (no migration or script anywhere in this repo created it — confirmed by full
+  grep + `git log --all -p`). Verified live 2026-10-06, every row checked against the
+  current `transmissions` table by id: 0 rows missing, 404 identical, 190 changed —
+  and every one of those 190 changed only by removing generic scheduled-maintenance
+  lines ("fluid change at Xk km", "oil service", "service history", etc.), confirmed
+  exhaustively (two successive pattern sweeps over every dropped array item across all
+  594 rows left zero unmatched). No real fault or con was lost. Not safe to drop in
+  isolation yet only because it still sits in `public` as its own table — the plan is to
+  drop it together with the old `transmissions` table once that's retired, not
+  separately. RLS is enabled on it in the meantime (see above).
 - **Attribute-completeness audit** (last full re-run 2026-10-05, covered 46 of the current
   49 generations — Golf CD1, Octavia NX, and A3 8Y were added after that pass and aren't
   reflected below; A3 8Y's real gaps are itemized separately above): no generation has
