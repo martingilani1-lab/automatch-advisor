@@ -93,18 +93,26 @@ phase whose bodies are 100% inherited):
 | phase | body_type | length_mm | width_mm | height_mm | ground_clearance_mm | curb_weight_kg | boot_capacity_liters | boot_max_liters | seats_count | gross_vehicle_weight_kg | payload_kg | fuel_tank_capacity_liters |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Pre-facelift | Sedan 4-door | 4726 | 1842 | 1427 | 135 | 1450 | 480 | 965 | 5 | 1965 | 515 | 54 |
-| Pre-facelift | Estate 5-door | 4725 | 1842 | 1434 | 135 | 1535 | 495 | 1495 | 5 | 2095 | 560 | 54 |
+| Pre-facelift | Estate | 4725 | 1842 | 1434 | 135 | 1535 | 495 | 1495 | 5 | 2095 | 560 | 54 |
 
 ### Facelift
 INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Sedan 4-door EXCEPT length_mm = 4762
-INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate 5-door EXCEPT length_mm = 4762
+INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate EXCEPT length_mm = 4762
 ```
 
-`body_type` REUSEs an existing live body-type name wherever the body genuinely is one of
-them (`Hatchback 3-door`, `Hatchback 5-door`, `Liftback`, `Sedan 4-door`, `Estate`,
-`Coupe 2-door`, `Roadster 2-door`, `Cabriolet` — this list grows; check live, don't assume
-it's complete). `seats_count` lives HERE, not on a phase — it varies by body, not just by
-phase (a TT Coupe seats 4, the Roadster seats 2).
+**`body_type` must be one of the live `catalog_body_types` names, quoted exactly** — REUSE
+the real spelling wherever the body genuinely is one of them. Confirmed live as of this
+writing: `Cabriolet 2-door`, `Coupe 2-door`, `Estate`, `Hatchback 3-door`, `Hatchback 5-door`,
+`Liftback`, `MPV 5-door`, `Roadster 2-door`, `Sedan 4-door`, `SUV 5-door`, `SUV Coupe 5-door`
+— this list grows; re-check live, don't assume it's complete or still current. **An
+unrecognized `body_type` is a STOP, not a soft warning** — `Estate 5-door` when the live
+name is `Estate` is exactly the near-duplicate mistake this guards against (it happened in
+an earlier draft of the worked example in §10, which is why this note exists). The only way
+to introduce a genuinely new body type is a standalone `NEW BODY: <name>` line anywhere in
+this section — it survives into `dimensions.csv` as a `# NEW BODY: <name>` leading comment,
+so `validate-template.mjs` (which never sees this document, only the CSV) honors the same
+declaration. `seats_count` lives HERE, not on a phase — it varies by body, not just by phase
+(a TT Coupe seats 4, the Roadster seats 2).
 
 ## D. ENGINES
 
@@ -188,8 +196,8 @@ line per real factory combination, OR a single `INHERIT configs` line:
 ## G. CONFIG MATRIX
 
 **Pre-facelift (2015 – 2019):**
-- Pre-facelift: CVNA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CYRB 185kW + DL382 + quattro_ultra → [Sedan 4-door, Estate 5-door]
+- Pre-facelift: CVNA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate]
+- Pre-facelift: CYRB 185kW + DL382 + quattro_ultra → [Sedan 4-door, Estate]
 
 **Facelift (2019 – 2024):**
 INHERIT configs FROM Audi A4 B9 Pre-facelift EXCEPT no CVNA
@@ -368,11 +376,11 @@ INHERIT phase attributes FROM Audi A4 B9 Pre-facelift
 | phase | body_type | length_mm | width_mm | height_mm | ground_clearance_mm | curb_weight_kg | boot_capacity_liters | boot_max_liters | seats_count | gross_vehicle_weight_kg | payload_kg | fuel_tank_capacity_liters |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Pre-facelift | Sedan 4-door | 4726 | 1842 | 1427 | 135 | 1450 | 480 | 965 | 5 | 1965 | 515 | 54 |
-| Pre-facelift | Estate 5-door | 4725 | 1842 | 1434 | 135 | 1535 | 495 | 1495 | 5 | 2095 | 560 | 54 |
+| Pre-facelift | Estate | 4725 | 1842 | 1434 | 135 | 1535 | 495 | 1495 | 5 | 2095 | 560 | 54 |
 
 ### Facelift
 INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Sedan 4-door EXCEPT length_mm = 4762
-INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate 5-door EXCEPT length_mm = 4762
+INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate EXCEPT length_mm = 4762
 
 ## D. ENGINES
 *(Note: Longitudinal EA211, EA888 Gen3/Gen3b, and EA288/EA897 diesels. Timing replacement is NULL for chain-driven engines).*
@@ -405,15 +413,15 @@ INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate 5-door EXCEPT length_mm
 ## G. CONFIG MATRIX
 
 **Pre-facelift (2015 – 2019):**
-- Pre-facelift: CVNA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CVKB 140kW + DL382 + FWD → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CYRB 185kW + DL382 + quattro_ultra → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CWGD 260kW + AL552 + quattro_torsen → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: DEUA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: DETA 140kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: DETA 140kW + DL382 + quattro_ultra → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CSWB 160kW + DL382 + quattro_torsen → [Sedan 4-door, Estate 5-door]
-- Pre-facelift: CRTC 200kW + AL552 + quattro_torsen → [Sedan 4-door, Estate 5-door]
+- Pre-facelift: CVNA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate]
+- Pre-facelift: CVKB 140kW + DL382 + FWD → [Sedan 4-door, Estate]
+- Pre-facelift: CYRB 185kW + DL382 + quattro_ultra → [Sedan 4-door, Estate]
+- Pre-facelift: CWGD 260kW + AL552 + quattro_torsen → [Sedan 4-door, Estate]
+- Pre-facelift: DEUA 110kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate]
+- Pre-facelift: DETA 140kW + ML401 / DL382 + FWD → [Sedan 4-door, Estate]
+- Pre-facelift: DETA 140kW + DL382 + quattro_ultra → [Sedan 4-door, Estate]
+- Pre-facelift: CSWB 160kW + DL382 + quattro_torsen → [Sedan 4-door, Estate]
+- Pre-facelift: CRTC 200kW + AL552 + quattro_torsen → [Sedan 4-door, Estate]
 
 **Facelift (2019 – 2024):**
 INHERIT configs FROM Audi A4 B9 Pre-facelift EXCEPT no CVNA, EXCEPT no CSWB, EXCEPT no CRTC

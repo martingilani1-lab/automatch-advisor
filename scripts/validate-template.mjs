@@ -18,8 +18,8 @@
 //     but the seed generator MUST cast these explicitly (::integer) or Postgres will infer
 //     'unknown'/text and the INSERT will fail (the Golf IV all-NULL-NCAP bug)
 //   - orphan engines: rows in engines.csv never marked 'x' in any config grid
-//   - dimensions.csv body types that don't exist live (informational — may be an
-//     intentional NEW body type, or a typo; not auto-distinguishable)
+//   - dimensions.csv body types that don't exist live — ERROR unless this same file has a
+//     leading "# NEW BODY: <name>" comment declaring it deliberate, never auto-guessed
 //   - no live transmission_units or drivetrain_systems row (global, not scoped to this
 //     car) has a reliability_note/maintenance_note still starting with the literal string
 //     "DRAFT" — an early catch (before a seed even exists) alongside batch-verify.mjs's
@@ -119,6 +119,20 @@ const warn = (file, row, msg) => problems.push({ level: "WARN", file, row, msg }
 
 const phases = readCsv(path.join(dir, "phases.csv"));
 const dims = readCsv(path.join(dir, "dimensions.csv"));
+// "# NEW BODY: <name>" leading comments in dimensions.csv are intake-to-template.mjs's way
+// of carrying a deliberate "this body type is genuinely new, not a typo" declaration
+// through into the CSV -- readCsv() above already strips every '#' line, so re-read the
+// raw file separately just for these markers.
+const declaredNewBodies = new Set();
+{
+  const dimsPath = path.join(dir, "dimensions.csv");
+  if (fs.existsSync(dimsPath)) {
+    for (const line of fs.readFileSync(dimsPath, "utf8").split("\n")) {
+      const m = line.trim().match(/^#\s*NEW BODY:\s*(.+)$/i);
+      if (m) declaredNewBodies.add(m[1].trim());
+    }
+  }
+}
 const engines = readCsv(path.join(dir, "engines.csv"));
 const trans = readCsv(path.join(dir, "transmissions.csv"));
 const faults = readCsv(path.join(dir, "faults.csv"));
@@ -213,15 +227,21 @@ async function main() {
   const env = loadEnv();
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-  // 6: body types vs live
+  // 6: body types vs live -- ERROR, not a soft WARN. "Estate 5-door" slipping through as a
+  // near-duplicate of the real live "Estate" is exactly the mistake a WARN let through
+  // unnoticed before. The one way to legitimately introduce a real new body type is a
+  // "# NEW BODY: <name>" leading comment in this same dimensions.csv (written by
+  // intake-to-template.mjs from a "NEW BODY: <name>" line in the source document, or added
+  // by hand for the manual-CSV path) -- without it, an unrecognized name is always treated
+  // as a typo, never silently accepted.
   if (dims.length) {
     const { data: liveBody, error } = await sb.from("catalog_body_types").select("name");
     if (error) throw error;
     const liveNames = new Set((liveBody || []).map(b => b.name));
     const templateBodies = new Set(dims.map(d => d.body_type).filter(Boolean));
     for (const b of templateBodies) {
-      if (!liveNames.has(b)) {
-        warn("dimensions.csv", "*", `body type '${b}' does not exist live — will be CREATEd by the seed. Confirm that's intended, not a typo of: ${[...liveNames].join(", ")}`);
+      if (!liveNames.has(b) && !declaredNewBodies.has(b)) {
+        err("dimensions.csv", "*", `body type '${b}' does not exist live and isn't declared with "# NEW BODY: ${b}" -- typo of one of [${[...liveNames].sort().join(", ")}], or a genuinely new body type that needs that explicit marker`);
       }
     }
   }

@@ -39,6 +39,12 @@
 // and a stale G section after an E/F edit (e.g. a renamed drivetrain code) is exactly the
 // silent-mismatch case this exists to catch.
 //
+// A section C body_type that doesn't exist live is an ERROR (STOP), not a soft warning --
+// unless section C also has a standalone "NEW BODY: <name>" line for it, in which case
+// it's written through as a real new body type, no STOP. That marker survives into
+// dimensions.csv as a "# NEW BODY: <name>" leading comment, so validate-template.mjs (CSV
+// only, never sees this document) honors the same declaration.
+//
 // Scope cut, flagged explicitly (not silently done): live cross-car CONFIGS inheritance
 // (a configs INHERIT whose source phase isn't in this same document) is not implemented --
 // doing it properly means reading another car's already-seeded config grid out of
@@ -211,14 +217,26 @@ function parseSectionB(text) {
 // C. BODIES x PHASE -- "### <phase_label>" blocks, each EITHER a multi-row table (own
 // "phase" column, renamed to phase_label on write) OR one-or-more bare INHERIT lines (no
 // table at all for a body whose data is 100% inherited).
+// "NEW BODY: <name>" is a standalone line (anywhere in section C, not tied to one phase
+// block -- a body type is a car-wide fact, not a per-phase one) that explicitly marks a
+// body_type as a genuinely new one, not a typo of a live name. Without this marker, an
+// unrecognized body_type is a STOP (see validateBodyTypes) -- NULL over invention extends
+// to body types too: a new one must be a deliberate, named decision, never a silent guess.
+const NEW_BODY_RE = /^NEW BODY:\s*(.+)$/i;
+
 function parseSectionC(text) {
+  const newBodies = new Set();
+  for (const line of text.split("\n")) {
+    const m = line.trim().match(NEW_BODY_RE);
+    if (m) newBodies.add(m[1].trim());
+  }
   const blocks = text.split(/^###\s+(.+)$/m).slice(1);
   const dims = [];
   const inherits = [];
   for (let i = 0; i < blocks.length; i += 2) {
     const heading = blocks[i].trim();
     const body = blocks[i + 1];
-    const lines = body.split("\n").filter(l => l.trim());
+    const lines = body.split("\n").filter(l => l.trim() && !NEW_BODY_RE.test(l.trim()));
     const firstContentLine = lines.find(l => l.trim().startsWith("|") || /^INHERIT\b/i.test(l.trim()));
     if (!firstContentLine) continue;
     if (firstContentLine.trim().startsWith("|")) {
@@ -245,7 +263,7 @@ function parseSectionC(text) {
       }
     }
   }
-  return { dims, inherits };
+  return { dims, inherits, newBodies };
 }
 
 const ENGINE_FIELDS = [
@@ -668,6 +686,22 @@ async function liveResolve(doc, problems) {
     }
   }
 
+  // Body types: an unrecognized body_type is an ERROR (STOP), not a soft warning --
+  // "Estate 5-door" when the live name is "Estate" is exactly the kind of near-duplicate
+  // CLAUDE.md's own intake rules already warn against ("REUSE the exact existing spelling,
+  // don't invent a near-duplicate"), and a silent WARN let it through undetected before.
+  // The one escape hatch is an explicit "NEW BODY: <name>" line in section C -- a real new
+  // body type is a deliberate, named decision, never a guess this script makes for you.
+  const { data: liveBodyTypes, error: e4 } = await sb.from("catalog_body_types").select("name");
+  if (e4) throw e4;
+  const liveBodyNames = new Set((liveBodyTypes || []).map(b => b.name));
+  const usedBodies = new Set(doc.dims.map(d => d.body_type).filter(Boolean));
+  for (const b of usedBodies) {
+    if (!liveBodyNames.has(b) && !doc.newBodies.has(b)) {
+      problems.push(`dimensions.csv: body_type '${b}' does not exist live and isn't declared with "NEW BODY: ${b}" -- typo of one of [${[...liveBodyNames].sort().join(", ")}], or a genuinely new body type that needs that explicit marker`);
+    }
+  }
+
   for (const e of doc.engines) {
     const kw = Number(e.power_kw);
     const primary = liveEngines.find(le => le.code === e.code && le.power_kw === kw);
@@ -719,7 +753,7 @@ async function main() {
 
   const car = sections.A ? parseSectionA(sections.A) : {};
   const { phases, inherits: bInherits } = sections.B ? parseSectionB(sections.B) : { phases: [], inherits: [] };
-  const { dims, inherits: cInherits } = sections.C ? parseSectionC(sections.C) : { dims: [], inherits: [] };
+  const { dims, inherits: cInherits, newBodies } = sections.C ? parseSectionC(sections.C) : { dims: [], inherits: [], newBodies: new Set() };
   const { rows: engines, reuseRefs } = sections.D ? parseSectionD(sections.D) : { rows: [], reuseRefs: [] };
   const transUnits = sections.E ? parseSectionE(sections.E) : [];
   const drivetrains = sections.F ? parseSectionF(sections.F) : [];
@@ -733,7 +767,7 @@ async function main() {
     if (p.typical_mileage_range) p.typical_mileage_range = normalizeMileageRange(p.typical_mileage_range);
   }
 
-  const doc = { car, phases, dims, engines, reuseRefs, transUnits, drivetrains, configsByPhase, trims, trimFeatures, allInherits: [...bInherits, ...cInherits, ...gInherits] };
+  const doc = { car, phases, dims, engines, reuseRefs, transUnits, drivetrains, configsByPhase, trims, trimFeatures, newBodies, allInherits: [...bInherits, ...cInherits, ...gInherits] };
 
   resolveInherits(doc, problems, fills);
 
@@ -781,8 +815,8 @@ function csvLine(cells) {
   }).join(",");
 }
 
-function writeCsv(outDir, filename, headers, rows) {
-  const lines = [csvLine(headers), ...rows.map(r => csvLine(headers.map(h => r[h] ?? "")))];
+function writeCsv(outDir, filename, headers, rows, leadingComments = []) {
+  const lines = [...leadingComments, csvLine(headers), ...rows.map(r => csvLine(headers.map(h => r[h] ?? "")))];
   fs.writeFileSync(path.join(outDir, filename), lines.join("\n") + "\n");
 }
 
@@ -793,9 +827,13 @@ function writeOutput(outDir, doc, faults) {
   writeCsv(outDir, "phases.csv",
     ["generation_code", "phase_label", "year_from", "year_to", "display_name", "platform_code", "safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct", "avg_market_price_eur", "price_range_min_eur", "price_range_max_eur", "typical_mileage_range", "resale_value_rating", "towing_capacity_kg"],
     doc.phases);
+  // "# NEW BODY: <name>" leading comments survive into the CSV so validate-template.mjs --
+  // which only ever sees the CSV, never this document -- can recognize the same explicit
+  // "this is deliberately new, not a typo" declaration downstream.
   writeCsv(outDir, "dimensions.csv",
     ["phase_label", "body_type", "length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg", "payload_kg", "fuel_tank_capacity_liters", "seats_count"],
-    doc.dims);
+    doc.dims,
+    [...doc.newBodies].map(b => `# NEW BODY: ${b}`));
   writeCsv(outDir, "engines.csv", ["reuse_or_new", ...ENGINE_FIELDS], doc.engines);
   writeCsv(outDir, "transmissions.csv", ["unit_code"], doc.transUnits);
   if (doc.drivetrains.length) writeCsv(outDir, "drivetrains.csv", ["drivetrain_code"], doc.drivetrains);
