@@ -41,6 +41,16 @@
 //   - this car's own car.csv brand/model name normalizes (lowercase, diacritics stripped,
 //     whitespace stripped) the same as a live catalog_brands/catalog_models row under a
 //     different spelling (the Skoda/Škoda case) — ERROR
+//   - every frozen-vocabulary column in scripts/catalog-vocabularies.json (fuel_type,
+//     cylinders, emission_standard, timing_type, hybrid_type, severity, segment,
+//     resale_value_rating) checked against that one shared list, so it can't drift from
+//     intake-to-template.mjs's own copy of the same checks
+//   - that shared list itself checked against the LIVE CHECK constraint definition (via
+//     the catalog_check_constraint_def RPC, 20261008160000) for each of those 8 columns —
+//     a mismatch is an ERROR, catching exactly the emission_standard 'Euro 6d'/'Euro6d'
+//     drift that happened once already, before it happens again on a different column.
+//     Degrades to a WARN (not an ERROR) if the RPC itself isn't live yet — this check
+//     can't block every car import just because that migration hasn't been run yet
 //
 // Run from repo root: node scripts/validate-template.mjs [template-dir]
 // Exit code 1 if any ERROR was found; WARNINGs alone exit 0.
@@ -202,27 +212,52 @@ for (const e of engines) {
   }
 }
 
+// Single source of truth for every frozen-vocabulary column, shared with
+// intake-to-template.mjs so the two scripts' lists can't drift from each other. Checked
+// against the LIVE constraint definition further down (global check, inside main()).
+const VOCAB = JSON.parse(fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "catalog-vocabularies.json"), "utf8"));
+
 // 4: fault severity + empty fault text
-const ALLOWED_SEVERITY = ["critical", "moderate", "minor"];
 for (const f of faults) {
-  if (f.severity && !ALLOWED_SEVERITY.includes(f.severity)) {
-    err("faults.csv", f.__line, `severity '${f.severity}' not in (${ALLOWED_SEVERITY.join(",")}) — not a live DB CHECK, but keep it consistent`);
+  if (f.severity && !VOCAB["catalog_component_faults.severity"].includes(f.severity)) {
+    err("faults.csv", f.__line, `severity '${f.severity}' not in (${VOCAB["catalog_component_faults.severity"].join(",")}) — the live catalog_component_faults CHECK constraint will reject this (20261008150000_freeze_vocab_and_brand_dedup.sql)`);
   }
   if (f.component_type && !f.fault) {
     err("faults.csv", f.__line, `fault text is empty for ${f.component_type} ${f.target_code}`);
   }
 }
 
-// 4b: emission_standard vocabulary — mirrors the live CHECK constraint
-// (catalog_engines_emission_standard_check, added in 20261006140000_normalize_emission_standard.sql)
-// exactly, spaceless spellings only ('Euro 6d' is the old, now-normalized-away spelling —
-// catching it here instead of at seed-run time against a constraint that didn't exist
-// before this check was added).
-const ALLOWED_EMISSION_STANDARD = ["Euro1", "Euro2", "Euro3", "Euro4", "Euro5", "Euro6", "Euro6c", "Euro6d", "Euro6e"];
+// 4b: engines.csv vocabulary columns — mirrors the live CHECK constraints exactly
+// (catalog_engines_emission_standard_check/_fuel_type_check/_cylinders_check/
+// _timing_type_check/_hybrid_type_check), catching a bad value here instead of at
+// seed-run time. emission_standard is spaceless-only ('Euro 6d' is the old,
+// now-normalized-away spelling — the usual mistake, not a new standard).
+const ENGINE_VOCAB_COLS = {
+  fuel_type: "catalog_engines.fuel_type",
+  cylinders: "catalog_engines.cylinders",
+  emission_standard: "catalog_engines.emission_standard",
+  timing_type: "catalog_engines.timing_type",
+  hybrid_type: "catalog_engines.hybrid_type",
+};
 for (const e of engines) {
-  if (e.emission_standard && !ALLOWED_EMISSION_STANDARD.includes(e.emission_standard)) {
-    err("engines.csv", e.__line, `emission_standard '${e.emission_standard}' is not in the frozen vocabulary (${ALLOWED_EMISSION_STANDARD.join(", ")}) — the live catalog_engines CHECK constraint will reject this; a space ('Euro 6d') is the usual mistake, not a new standard`);
+  for (const [col, vocabKey] of Object.entries(ENGINE_VOCAB_COLS)) {
+    const v = e[col];
+    if (v && !VOCAB[vocabKey].includes(v)) {
+      err("engines.csv", e.__line, `${col} '${v}' is not in the frozen vocabulary (${VOCAB[vocabKey].join(", ")}) — the live catalog_engines CHECK constraint will reject this`);
+    }
   }
+}
+
+// 4c: phases.csv resale_value_rating — mirrors catalog_phases_resale_value_rating_check.
+for (const p of phases) {
+  if (p.resale_value_rating && !VOCAB["catalog_phases.resale_value_rating"].includes(p.resale_value_rating)) {
+    err("phases.csv", p.__line, `resale_value_rating '${p.resale_value_rating}' is not in the frozen vocabulary (${VOCAB["catalog_phases.resale_value_rating"].join(", ")}) — the live catalog_phases CHECK constraint will reject this`);
+  }
+}
+
+// 4d: car.csv segment — mirrors catalog_models_segment_check.
+if (car && car.segment && !VOCAB["catalog_models.segment"].includes(car.segment)) {
+  err("car.csv", car.__line, `segment '${car.segment}' is not in the frozen vocabulary (${VOCAB["catalog_models.segment"].join(", ")}) — the live catalog_models CHECK constraint will reject this`);
 }
 
 // 5: NCAP/int columns that would hit the VALUES-CTE text-cast issue
@@ -412,6 +447,51 @@ async function main() {
         if (modelMatch) {
           err("car.csv", car.__line, `model '${car.model}' normalizes the same as live model '${modelMatch.name}' (brand ${car.brand}) -- use the existing spelling, or this is a genuine new model under a confusingly similar name`);
         }
+      }
+    }
+  }
+
+  // 12: live-drift detection -- compares scripts/catalog-vocabularies.json against the
+  // ACTUAL live CHECK constraint definition for each of the 8 columns it covers, via the
+  // catalog_check_constraint_def RPC (20261008160000_add_check_constraint_introspection_rpc.sql).
+  // This is the guard against the exact failure mode that let emission_standard silently
+  // drift into two spellings before 20261006140000 caught it, and nearly happened again
+  // with fuel_type during 20261008150000 -- a mismatch here means this JSON file and the
+  // live DB have fallen out of sync, which is a bug in THIS REPO, not in whatever car
+  // template is being validated, so it's reported under the "(live reference data)"
+  // sentinel like checks 7/9/10. Degrades to a WARN if the RPC itself doesn't exist yet
+  // (PostgREST's "function not found" error) -- this check can't hard-block every car
+  // import just because that one migration hasn't been run yet.
+  {
+    for (const [vocabKey, expected] of Object.entries(VOCAB)) {
+      if (vocabKey.startsWith("_")) continue; // the "_comment" key in the JSON
+      const [table, column] = vocabKey.split(".");
+      const { data, error } = await sb.rpc("catalog_check_constraint_def", { p_table: table, p_column: column });
+      if (error) {
+        if (error.code === "PGRST202" || error.code === "42883") {
+          warn("(live reference data)", "*", `could not check ${vocabKey} against its live CHECK constraint -- catalog_check_constraint_def RPC not found live yet (20261008160000 not run?)`);
+          continue;
+        }
+        throw error;
+      }
+      if (!data) {
+        err("(live reference data)", "*", `${vocabKey}: no live CHECK constraint found by introspection -- either the constraint was dropped, or the RPC's name-matching missed it`);
+        continue;
+      }
+      const liveValues = [...data.matchAll(/'([^']*)'/g)].map(m => m[1]);
+      const liveSet = new Set(liveValues);
+      const expectedSet = new Set(expected);
+      const missingFromLive = expected.filter(v => !liveSet.has(v));
+      const extraInLive = liveValues.filter(v => !expectedSet.has(v));
+      if (missingFromLive.length || extraInLive.length) {
+        err(
+          "(live reference data)",
+          "*",
+          `${vocabKey}: scripts/catalog-vocabularies.json has drifted from the live CHECK constraint -- ` +
+            (missingFromLive.length ? `JSON has ${JSON.stringify(missingFromLive)} not in the live constraint; ` : "") +
+            (extraInLive.length ? `live constraint allows ${JSON.stringify(extraInLive)} not in the JSON; ` : "") +
+            `update scripts/catalog-vocabularies.json to match live.`
+        );
       }
     }
   }

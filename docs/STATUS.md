@@ -118,6 +118,19 @@ report, for reviewing several cars' decisions at once before generating anything
   `node scripts/audit-reference-duplicates.mjs --check-new ...` before authoring a new one
   of those, and `scripts/known-distinct-reference-groups.json` as the reviewed-baseline for
   `validate-template.mjs`'s ongoing safety-net scan.
+- **Frozen vocabulary — single source of truth**: every enum-like column
+  (`fuel_type`/`cylinders`/`emission_standard`/`timing_type`/`hybrid_type` on
+  `catalog_engines`, `severity` on `catalog_component_faults`, `segment` on
+  `catalog_models`, `resale_value_rating` on `catalog_phases`) is checked against ONE file,
+  `scripts/catalog-vocabularies.json`, by BOTH `intake-to-template.mjs` (STOPs at
+  conversion time) and `validate-template.mjs` (ERRORs at CSV-validation time) — update
+  that file in the same commit as any migration that changes one of these CHECK
+  constraints. `validate-template.mjs` additionally checks that JSON file itself against
+  the LIVE constraint definition (via the `catalog_check_constraint_def` RPC,
+  `20261008160000_add_check_constraint_introspection_rpc.sql`) — an ERROR on drift, a WARN
+  if that RPC migration hasn't been run yet. This is the generalized fix for the exact
+  failure mode that let `emission_standard` silently drift into two spellings before
+  `20261006140000` caught it.
 
 ## Open items
 
@@ -141,9 +154,16 @@ report, for reviewing several cars' decisions at once before generating anything
   transmission_units `alt_code` collision) are live in `intake-to-template.mjs`/
   `validate-template.mjs` — see Standing rules above. `20261008150000_freeze_vocab_and_brand_dedup.sql`
   (CHECK constraints on `catalog_component_faults.severity`/`catalog_engines.cylinders`/
-  `catalog_models.segment`, plus a normalized unique index on `catalog_brands.name`) is
-  written and precondition-verified against live data (0 violations, 2026-10-08) but **not
-  yet run** — human-run per standing discipline.
+  `catalog_models.segment`/narrowed `catalog_engines.fuel_type`, a normalized unique index
+  on `catalog_brands.name`, plus `catalog_phases`/`catalog_trims`/`catalog_trim_features`
+  uniqueness and a `catalog_phases` year-range CHECK added along the way) **run and
+  confirmed live 2026-10-08** (three real live-run failures fixed in place before it went
+  green — `unaccent()` called before `CREATE EXTENSION`, then the two-arg
+  `unaccent(regdictionary, text)` form needing the dictionary name schema-qualified as
+  `'extensions.unaccent'` since Supabase installs contrib extensions into their own
+  `extensions` schema, not `public`). **Duplicate-prevention (Parts 1–3): done.** The
+  `catalog_check_constraint_def` RPC (`20261008160000`, drift-detection) is written and
+  precondition-verified but **not yet run**.
   - **Separate, unrelated to-do surfaced along the way**: 64 `transmission_units` rows have
     `maker IS NULL` (mostly `generic:*` placeholder codes and real units like the Porsche
     PDK/Mercedes-AMG/ZF/Aisin/Honda/Toyota/Renault/Ford families never backfilled with a

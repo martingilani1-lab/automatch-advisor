@@ -1,0 +1,11 @@
+{
+  "_comment": "Single source of truth for every catalog_ frozen-vocabulary CHECK constraint, consumed by both validate-template.mjs and intake-to-template.mjs so the two scripts' vocab lists can't drift apart from each other -- and checked against the LIVE constraint definition (scripts/validate-template.mjs's drift-detection check, via the catalog_check_constraint_def RPC) so they can't drift apart from the DB either. Each key is '<table>.<column>'. Update this file in the SAME commit as any migration that changes one of these CHECK constraints -- that's the whole point of this file existing.",
+  "catalog_engines.fuel_type": ["petrol", "diesel", "electric", "lpg"],
+  "catalog_engines.cylinders": ["L2", "L3", "L4", "L5", "L6", "V5", "VR6", "V6", "V8", "V10", "V12", "W12", "B4", "B6"],
+  "catalog_engines.emission_standard": ["Euro1", "Euro2", "Euro3", "Euro4", "Euro5", "Euro6", "Euro6c", "Euro6d", "Euro6e"],
+  "catalog_engines.timing_type": ["belt", "chain", "gear"],
+  "catalog_engines.hybrid_type": ["MHEV", "PHEV"],
+  "catalog_component_faults.severity": ["critical", "moderate", "minor"],
+  "catalog_models.segment": ["A", "B", "C", "D", "E", "F", "J", "M", "S"],
+  "catalog_phases.resale_value_rating": ["holds_well", "average", "depreciates_fast"]
+}

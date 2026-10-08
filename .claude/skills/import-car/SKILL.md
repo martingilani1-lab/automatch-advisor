@@ -127,13 +127,16 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
      the fix belongs in the generator, every time, not as a one-off patch.
    - Before finalizing, run `node scripts/validate-template.mjs` against the filled
      template: it catches config rows referencing an engine/gearbox not in the template,
-     fault severities outside `critical`/`moderate`/`minor`, orphan engines never used in
-     any config, the all-NULL-column warning above, this car's brand/model normalizing the
-     same as a live one under a different spelling, an `alt_code` (engine or transmission
-     unit) that's actually someone else's real primary code, and a global safety-net scan
-     for any live `transmission_units`/`drivetrain_systems` near-duplicate (maker non-null)
-     not yet reviewed into `scripts/known-distinct-reference-groups.json`. Fix reported
-     problems before generating the seed, not after.
+     every frozen-vocabulary field (`fuel_type`/`cylinders`/`emission_standard`/
+     `timing_type`/`hybrid_type`/`severity`/`segment`/`resale_value_rating`) against
+     `scripts/catalog-vocabularies.json` — the one shared list `intake-to-template.mjs`
+     also checks, itself checked against the live DB CHECK constraint — orphan engines
+     never used in any config, the all-NULL-column warning above, this car's brand/model
+     normalizing the same as a live one under a different spelling, an `alt_code` (engine
+     or transmission unit) that's actually someone else's real primary code, and a global
+     safety-net scan for any live `transmission_units`/`drivetrain_systems` near-duplicate
+     (maker non-null) not yet reviewed into `scripts/known-distinct-reference-groups.json`.
+     Fix reported problems before generating the seed, not after.
 
 4. **Verify** (after the human runs it, via live read queries):
    - filter by `generation_code`; config count per phase matches the spec;

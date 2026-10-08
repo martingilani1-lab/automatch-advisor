@@ -65,6 +65,13 @@
 // scripts/audit-reference-duplicates.mjs's Part 1 audit (the Skoda/Škoda case) -- a
 // normalized match under a different spelling is a STOP.
 //
+// Every frozen-vocabulary field (engines' fuel_type/cylinders/emission_standard/
+// timing_type/hybrid_type, phases' resale_value_rating, car's segment, faults' severity)
+// is checked against scripts/catalog-vocabularies.json -- the SAME file
+// validate-template.mjs checks (and separately checks against the live DB) -- a STOP here
+// catches a bad value at conversion time instead of waiting for the later CSV-validation
+// step to catch it.
+//
 // Scope cut, flagged explicitly (not silently done): live cross-car CONFIGS inheritance
 // (a configs INHERIT whose source phase isn't in this same document) is not implemented --
 // doing it properly means reading another car's already-seeded config grid out of
@@ -116,6 +123,12 @@ async function fetchAllPaginated(sb, table, cols) {
   }
   return all;
 }
+
+// Single source of truth for every frozen-vocabulary column, shared with
+// validate-template.mjs so the two scripts' lists can't drift from each other (that script
+// also checks this JSON against the live CHECK constraint itself -- this script just
+// consumes it, no live-drift check duplicated here).
+const VOCAB = JSON.parse(fs.readFileSync(new URL("./catalog-vocabularies.json", import.meta.url), "utf8"));
 
 // Lowercase + diacritic-strip + whitespace-strip, duplicated from
 // scripts/audit-reference-duplicates.mjs per this repo's per-script-helper convention
@@ -508,6 +521,9 @@ function parseSectionI(text) {
 
 function resolveFaults(faults, engines, problems) {
   return faults.map(f => {
+    if (f.severity && !VOCAB["catalog_component_faults.severity"].includes(f.severity)) {
+      problems.push(`I. FAULTS: ${f.component_type} ${f.target_code} severity '${f.severity}' is not in the frozen vocabulary (${VOCAB["catalog_component_faults.severity"].join(", ")})`);
+    }
     if (f.component_type !== "engine") return { ...f, target_power_kw: "" };
     const matches = engines.filter(e => e.code === f.target_code);
     if (matches.length !== 1) {
@@ -696,6 +712,38 @@ function validateConfigDictionaryUsage(doc, problems) {
         }
       }
     }
+  }
+}
+
+// Checks every frozen-vocabulary field against scripts/catalog-vocabularies.json -- the
+// same shared list validate-template.mjs checks, so a bad value STOPs the markdown
+// conversion itself rather than only being caught later at the CSV-validation step. This
+// script never duplicates the live-DB drift check (validate-template.mjs's job); it just
+// consumes the one shared file so the two scripts' vocabularies can't drift from each
+// other even if the live DB drifts from both.
+function validateVocabularies(doc, problems) {
+  const engineCols = {
+    fuel_type: "catalog_engines.fuel_type",
+    cylinders: "catalog_engines.cylinders",
+    emission_standard: "catalog_engines.emission_standard",
+    timing_type: "catalog_engines.timing_type",
+    hybrid_type: "catalog_engines.hybrid_type",
+  };
+  for (const e of doc.engines) {
+    for (const [col, vocabKey] of Object.entries(engineCols)) {
+      const v = e[col];
+      if (v && !VOCAB[vocabKey].includes(v)) {
+        problems.push(`D. ENGINES: engine ${e.code} (${e.power_kw}kW) ${col} '${v}' is not in the frozen vocabulary (${VOCAB[vocabKey].join(", ")})`);
+      }
+    }
+  }
+  for (const p of doc.phases) {
+    if (p.resale_value_rating && !VOCAB["catalog_phases.resale_value_rating"].includes(p.resale_value_rating)) {
+      problems.push(`B. PHASES (${p.phase_label}): resale_value_rating '${p.resale_value_rating}' is not in the frozen vocabulary (${VOCAB["catalog_phases.resale_value_rating"].join(", ")})`);
+    }
+  }
+  if (doc.car.segment && !VOCAB["catalog_models.segment"].includes(doc.car.segment)) {
+    problems.push(`A. CAR: segment '${doc.car.segment}' is not in the frozen vocabulary (${VOCAB["catalog_models.segment"].join(", ")})`);
   }
 }
 
@@ -913,6 +961,7 @@ async function main() {
   resolveInherits(doc, problems, fills);
 
   validateConfigDictionaryUsage(doc, problems);
+  validateVocabularies(doc, problems);
 
   const faults = resolveFaults(faultsRaw, engines, problems);
 

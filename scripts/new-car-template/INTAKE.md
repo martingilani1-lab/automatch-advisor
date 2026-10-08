@@ -39,6 +39,8 @@ note**: the parser normalizes (lowercase, diacritics stripped, whitespace stripp
 matches one under a different spelling — `Skoda` when the live row is `Škoda` is a STOP, not
 a silently-accepted near-duplicate. This same catalog_brands uniqueness is also enforced at
 the schema level (a normalized unique index, see `20261008150000_freeze_vocab_and_brand_dedup.sql`).
+`segment` must be one of the live frozen values (`A`,`B`,`C`,`D`,`E`,`F`,`J`,`M`,`S`) — also
+checked against `scripts/catalog-vocabularies.json`, same mechanism as `brand`/`model`.
 
 ## B. PHASES
 
@@ -82,7 +84,9 @@ roman-numeral marketing generation (`VII`). The `### <phase_label>` heading text
 that block's own `phase_label` field exactly — the parser STOPs on a mismatch (a cheap
 consistency check, since the heading is otherwise redundant with the table). `typical_mileage_range`
 gets normalized to the live convention (`"<N> - <M> km"`) automatically — you may write
-shorthand like `150k-300k` and the parser expands it.
+shorthand like `150k-300k` and the parser expands it. `resale_value_rating` must be one of
+the live frozen values (`holds_well`,`average`,`depreciates_fast`) — checked against
+`scripts/catalog-vocabularies.json`.
 
 ## C. BODIES × PHASE
 
@@ -159,10 +163,11 @@ Notes:
 - The literal 4-character token `NULL` in any cell means genuinely-empty (distinct from a
   cell you just haven't filled in yet) — it becomes a blank CSV cell, same meaning
   everywhere downstream (`generate-seed.mjs`'s `nOrNull`/`sOrNull`).
-- `emission_standard` must already be one of the live frozen values
-  (`Euro1`..`Euro6`,`Euro6c`,`Euro6d`,`Euro6e`, no space) — this document doesn't validate
-  that itself (that stays `validate-template.mjs`'s job, run after this script), but a bad
-  value here will surface as an ERROR there.
+- `fuel_type`, `cylinders`, `emission_standard` (`Euro1`..`Euro6`,`Euro6c`,`Euro6d`,`Euro6e`,
+  no space), `timing_type`, and `hybrid_type` must each be one of the live frozen values —
+  checked by THIS script now (`scripts/catalog-vocabularies.json`, the one shared list
+  `validate-template.mjs` also checks, including against the live DB), a STOP here rather
+  than waiting for that later step to catch it.
 - Engines that genuinely differ by emissions generation (Euro 2 → Euro 3) or hardware
   revision are separate rows with distinct primary codes — `alt_codes` is only for the
   *same physical unit at the same power*.
@@ -288,7 +293,7 @@ One table, columns `component_type`, `target_code`, `fault`, `severity`:
 | component_type | target_code | fault | severity |
 |---|---|---|---|
 | gearbox | DL382 | Clutch vibration and mechatronic solenoid valve clogging. | moderate |
-| engine | CWGD | Rocker arm bearing wear if oil changes were neglected. | severe |
+| engine | CWGD | Rocker arm bearing wear if oil changes were neglected. | critical |
 ```
 
 `component_type` is `engine` or `gearbox` in this document (`gearbox` is translated to the
@@ -296,9 +301,9 @@ real schema's `transmission` on write — the schema itself has never used the w
 "gearbox"). There's no `target_power_kw` column here — for an `engine` fault, the parser
 looks `target_code` up against this same document's own section D by code and fills it in
 automatically; if that code is absent or ambiguous in section D, that's a STOP (never
-guessed). `severity` must be `critical`/`moderate`/`minor` — not enforced by this script
-(same boundary as `emission_standard`, see §D), but will be an ERROR in
-`validate-template.mjs` afterward if it isn't.
+guessed). `severity` must be `critical`/`moderate`/`minor` — checked by this script now
+(`scripts/catalog-vocabularies.json`, same mechanism as `emission_standard`, see §D), a
+STOP here rather than waiting for `validate-template.mjs` to catch it.
 
 ---
 
@@ -344,20 +349,25 @@ gets a provenance note in the review printout.
 ## 10. Worked example — the real Audi A4 (B9) intake document
 
 This is a real document, not a hypothetical — every rule above was checked against it. As
-shown here (after `ML401`/`DL382`/`AL552` were added to `transmission_units`, and `torsen_t3`
+shown here (after `ML401`/`DL382`/`AL552` were added to `transmission_units`, `torsen_t3`
 was resolved to the already-live `quattro_torsen` — the real B9 V6 Tiptronic quattro system,
-confirmed the same physical thing, not a new one), it runs through `intake-to-template.mjs`
+confirmed the same physical thing, not a new one — and `emission_standard`/`severity` were
+corrected to the frozen vocabulary, see below), it runs through `intake-to-template.mjs`
 with **0 STOPs**, all 32 `INHERIT` fills applied correctly, every file written. Still useful
 to re-run after any change to this file or the script, as a known-clean baseline — a
 regression would show up as a STOP where there wasn't one before.
 
-Running it further through `reconcile.mjs`/`validate-template.mjs` (this script's own job
-stops at INHERIT + REUSE/NEW + transmission/drivetrain resolution, deliberately — see §9)
-still correctly surfaces this document's two remaining real content issues, both pre-existing
-in the source data, neither this script's responsibility to catch: `emission_standard`
-`'Euro 6'` (the space — `validate-template.mjs`'s job, not this one's) and fault `severity`
-`'severe'` (not in the `critical`/`moderate`/`minor` vocabulary). Both would need fixing
-before a real seed could be generated from this document.
+**This example used to have two real content issues left in deliberately** — `emission_standard`
+`'Euro 6'` (the space) and fault `severity` `'severe'` — on the reasoning that this script's own
+job stopped at INHERIT + REUSE/NEW + transmission/drivetrain resolution, and vocabulary
+checking was `validate-template.mjs`'s job alone. That scope line moved: both scripts now
+check every frozen-vocabulary field against the one shared
+`scripts/catalog-vocabularies.json`, so a bad value STOPs here too, not just downstream —
+confirmed by literally running this corrected example and the ORIGINAL (uncorrected) one
+side by side: the uncorrected version now produces exactly 9 STOPs (8 engines'
+`emission_standard` + 1 fault `severity`) where it used to produce 0. The version below is
+the corrected one (`Euro6`, not `Euro 6`; `critical`, not `severe`) specifically so it can
+keep serving as a true 0-STOP clean baseline.
 
 ```markdown
 # Intake — Audi A4 (B9)
@@ -429,14 +439,14 @@ INHERIT dimensions FROM Audi A4 B9 Pre-facelift / Estate EXCEPT length_mm = 4762
 
 | code | power_kw | fuel_type | hybrid_type | display_name | alt_codes | displacement_cc | torque_nm | cylinders | emission_standard | timing_type | engine_oil_capacity_liters | timing_replacement_km |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| CVNA | 110 | petrol | NULL | 1.4 TFSI 110kW | NULL | 1395 | 250 | L4 | Euro 6 | belt | 4.0 | 120000 |
-| CVKB | 140 | petrol | NULL | 2.0 TFSI ultra 140kW | DEMA | 1984 | 320 | L4 | Euro 6 | chain | 5.2 | NULL |
-| CYRB | 185 | petrol | NULL | 2.0 TFSI 185kW | DKNA | 1984 | 370 | L4 | Euro 6 | chain | 5.2 | NULL |
-| CWGD | 260 | petrol | NULL | 3.0 TFSI S4 260kW | NULL | 2995 | 500 | V6 | Euro 6 | chain | 7.5 | NULL |
-| DEUA | 110 | diesel | NULL | 2.0 TDI 110kW | DEUB | 1968 | 320 | L4 | Euro 6 | belt | 4.7 | 210000 |
-| DETA | 140 | diesel | NULL | 2.0 TDI 140kW | DESA | 1968 | 400 | L4 | Euro 6 | belt | 4.7 | 210000 |
-| CSWB | 160 | diesel | NULL | 3.0 TDI 160kW | NULL | 2967 | 400 | V6 | Euro 6 | chain | 6.1 | NULL |
-| CRTC | 200 | diesel | NULL | 3.0 TDI 200kW | NULL | 2967 | 600 | V6 | Euro 6 | chain | 6.1 | NULL |
+| CVNA | 110 | petrol | NULL | 1.4 TFSI 110kW | NULL | 1395 | 250 | L4 | Euro6 | belt | 4.0 | 120000 |
+| CVKB | 140 | petrol | NULL | 2.0 TFSI ultra 140kW | DEMA | 1984 | 320 | L4 | Euro6 | chain | 5.2 | NULL |
+| CYRB | 185 | petrol | NULL | 2.0 TFSI 185kW | DKNA | 1984 | 370 | L4 | Euro6 | chain | 5.2 | NULL |
+| CWGD | 260 | petrol | NULL | 3.0 TFSI S4 260kW | NULL | 2995 | 500 | V6 | Euro6 | chain | 7.5 | NULL |
+| DEUA | 110 | diesel | NULL | 2.0 TDI 110kW | DEUB | 1968 | 320 | L4 | Euro6 | belt | 4.7 | 210000 |
+| DETA | 140 | diesel | NULL | 2.0 TDI 140kW | DESA | 1968 | 400 | L4 | Euro6 | belt | 4.7 | 210000 |
+| CSWB | 160 | diesel | NULL | 3.0 TDI 160kW | NULL | 2967 | 400 | V6 | Euro6 | chain | 6.1 | NULL |
+| CRTC | 200 | diesel | NULL | 3.0 TDI 200kW | NULL | 2967 | 600 | V6 | Euro6 | chain | 6.1 | NULL |
 
 ## E. GEARBOXES
 | unit_code |
@@ -481,7 +491,7 @@ INHERIT configs FROM Audi A4 B9 Pre-facelift EXCEPT no CVNA, EXCEPT no CSWB, EXC
 | component_type | target_code | fault | severity |
 |---|---|---|---|
 | gearbox | DL382 | Clutch vibration and mechatronic solenoid valve clogging due to premature fluid degradation in severe stop-and-go driving. | moderate |
-| engine | CWGD | Rocker arm bearing wear on early EA839 V6 engines leading to camshaft scoring and misfires if oil changes were neglected. | severe |
+| engine | CWGD | Rocker arm bearing wear on early EA839 V6 engines leading to camshaft scoring and misfires if oil changes were neglected. | critical |
 | engine | DETA | Coolant leak from the vacuum-controlled coolant pump shroud (water pump housing) requiring complete assembly replacement. | moderate |
 ```
 
