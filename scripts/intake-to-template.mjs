@@ -33,6 +33,12 @@
 // STOP, WRITE NOTHING (the whole run, zero files -- not a partial write). Every inherited
 // cell is annotated with its source for the review printout.
 //
+// After every INHERIT is resolved, every gearbox/drivetrain a G-section bullet (or a
+// copied-in combo) actually uses is cross-checked against E/F's own declared dictionaries
+// (validateConfigDictionaryUsage) -- G's bullets are free text, nothing else enforces this,
+// and a stale G section after an E/F edit (e.g. a renamed drivetrain code) is exactly the
+// silent-mismatch case this exists to catch.
+//
 // Scope cut, flagged explicitly (not silently done): live cross-car CONFIGS inheritance
 // (a configs INHERIT whose source phase isn't in this same document) is not implemented --
 // doing it properly means reading another car's already-seeded config grid out of
@@ -563,6 +569,44 @@ function resolveConfigs(directive, doc, problems, fills) {
   }
 }
 
+// Every gearbox/drivetrain string a G-section bullet (or an inherited copy of one) uses
+// must actually be declared in E (gearboxes) / F (drivetrain), or be the "FWD" sentinel --
+// section G's bullet grammar takes those strings as free text, with nothing upstream
+// forcing them to match E/F's own dictionaries. Caught the hard way: a stale copy of a G
+// section can keep referencing a drivetrain code (e.g. "torsen_t3") that a later edit to F
+// renamed (to "quattro_torsen") without anyone noticing, since nothing cross-checked G
+// against F before this. Runs once, after every INHERIT has been resolved and every
+// config matrix is in its final shape (own-document copies included) -- before this, a
+// copied phase's combos wouldn't exist yet to check.
+function validateConfigDictionaryUsage(doc, problems) {
+  const declaredGearboxes = new Set(doc.transUnits.map(t => t.unit_code));
+  const declaredDrivetrains = new Set(["FWD", ...doc.drivetrains.map(d => d.drivetrain_code)]);
+  // One finding per distinct (phase, engine, bad value), not per combo -- a bullet's
+  // cross-product (bodies x gearboxes x drivetrains) can repeat the same bad gearbox or
+  // drivetrain across several bodies, which is the same single mistake, not several.
+  const seen = new Set();
+  for (const [phaseLabel, rows] of Object.entries(doc.configsByPhase)) {
+    for (const r of rows) {
+      for (const c of r.combos) {
+        if (!declaredGearboxes.has(c.gearbox)) {
+          const key = `gb|${phaseLabel}|${r.engine_code}|${r.power_kw}|${c.gearbox}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            problems.push(`G. CONFIG MATRIX (${phaseLabel}): gearbox '${c.gearbox}' used by ${r.engine_code} (${r.power_kw}kW) is not declared in section E -- typo, or E is missing a row`);
+          }
+        }
+        if (!declaredDrivetrains.has(c.drivetrain)) {
+          const key = `dt|${phaseLabel}|${r.engine_code}|${r.power_kw}|${c.drivetrain}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            problems.push(`G. CONFIG MATRIX (${phaseLabel}): drivetrain '${c.drivetrain}' used by ${r.engine_code} (${r.power_kw}kW) is not declared in section F (or "FWD") -- typo, or F is missing a row`);
+          }
+        }
+      }
+    }
+  }
+}
+
 function resolveInherits(doc, problems, fills) {
   for (const directive of doc.allInherits) {
     if (directive.problem) {
@@ -692,6 +736,8 @@ async function main() {
   const doc = { car, phases, dims, engines, reuseRefs, transUnits, drivetrains, configsByPhase, trims, trimFeatures, allInherits: [...bInherits, ...cInherits, ...gInherits] };
 
   resolveInherits(doc, problems, fills);
+
+  validateConfigDictionaryUsage(doc, problems);
 
   const faults = resolveFaults(faultsRaw, engines, problems);
 

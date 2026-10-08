@@ -203,6 +203,12 @@ subset for THIS engine/gearbox/drivetrain combination specifically, not every bo
 has — a high-output engine usually did not come in every body. See §9 for `INHERIT configs`'s
 exact rules (platform-matching, body restriction, the one supported `EXCEPT no <code>` form).
 
+**Every gearbox and drivetrain a bullet line uses must already be declared in E / F (or be
+`FWD`)** — a bullet is free text, so nothing else enforces this, and a stale copy of this
+section after E or F changes (e.g. a drivetrain code gets renamed) is exactly the mistake
+this check exists to catch. A gearbox or drivetrain used here but missing from its
+dictionary section is a STOP.
+
 ## H. TRIMS
 
 One table, columns `name`, `tier`, `phase`, `features`:
