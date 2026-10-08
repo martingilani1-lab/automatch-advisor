@@ -6,6 +6,7 @@ import KeyFacts from "@/app/catalog/components/KeyFacts";
 import BodyDimensionsTabs from "@/app/catalog/components/BodyDimensionsTabs";
 import Configurator from "@/app/catalog/components/Configurator";
 import TrimsList from "@/app/catalog/components/TrimsList";
+import MediaGallery from "@/app/catalog/components/MediaGallery";
 
 interface CatalogPageProps {
   params: Promise<{ brand: string; model: string; generation: string; phase: string }>;
@@ -35,6 +36,11 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
       <CatalogHeader bundle={bundle} gapsMode={gapsMode} />
       <KeyFacts bundle={bundle} gapsMode={gapsMode} />
       <BodyDimensionsTabs bodies={bundle.bodyDimensions} gapsMode={gapsMode} />
+      <MediaGallery
+        bodies={bundle.bodyDimensions.map((d) => ({ bodyTypeId: d.bodyTypeId, bodyName: d.bodyName }))}
+        media={bundle.media}
+        gapsMode={gapsMode}
+      />
       <Configurator configs={bundle.configs} faults={bundle.faults} gapsMode={gapsMode} />
       <TrimsList trims={bundle.trims} gapsMode={gapsMode} />
     </main>

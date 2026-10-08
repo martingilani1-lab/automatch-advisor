@@ -36,6 +36,11 @@ export interface CatalogDrivetrain {
   reliabilityNote: string | null;
 }
 
+export interface CatalogTireSize {
+  tireSize: string;
+  isStandard: boolean;
+}
+
 export interface CatalogConfig {
   id: string;
   bodyTypeId: string;
@@ -50,6 +55,7 @@ export interface CatalogConfig {
   batteryCapacityNetKwh: number | null;
   evRangeWltpKm: number | null;
   maxChargingKwDc: number | null;
+  tireSizes: CatalogTireSize[];
 }
 
 export interface CatalogBodyDimensions {
@@ -89,6 +95,15 @@ export interface CatalogFault {
   severity: string | null;
 }
 
+export interface CatalogMediaItem {
+  id: string;
+  bodyTypeId: string;
+  bodyName: string;
+  imageUrl: string;
+  viewAngle: string | null;
+  isMain: boolean;
+}
+
 export interface PhaseBundle {
   brandName: string;
   modelName: string;
@@ -116,4 +131,5 @@ export interface PhaseBundle {
   configs: CatalogConfig[];
   trims: CatalogTrim[];
   faults: CatalogFault[];
+  media: CatalogMediaItem[];
 }

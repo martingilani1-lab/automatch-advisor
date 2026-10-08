@@ -11,11 +11,13 @@ interface CatalogHeaderProps {
 }
 
 export default function CatalogHeader({ bundle, gapsMode }: CatalogHeaderProps) {
+  // Display rule: no yearTo means the model is still in production -- a real, non-gap
+  // value, not a missing end date.
   const years =
     bundle.yearFrom && bundle.yearTo
       ? `${bundle.yearFrom}–${bundle.yearTo}`
       : bundle.yearFrom
-        ? `${bundle.yearFrom}–present`
+        ? `${bundle.yearFrom} – in production`
         : null;
 
   // brand/model are never null by construction (the route can't resolve without them) --

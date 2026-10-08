@@ -4,6 +4,7 @@ import type {
   CatalogBodyDimensions,
   CatalogConfig,
   CatalogFault,
+  CatalogMediaItem,
   CatalogTrim,
   PhaseBundle,
 } from "./types";
@@ -68,7 +69,7 @@ export async function getPhaseBundle(
 
   // Step 2: everything scoped to this phase, in parallel -- same Promise.all shape as
   // app/api/cars/route.ts.
-  const [bodyDimsRes, configsRes, trimsRes] = await Promise.all([
+  const [bodyDimsRes, configsRes, trimsRes, mediaRes] = await Promise.all([
     supabase
       .from("phase_body_dimensions")
       .select("*, catalog_body_types(id, name)")
@@ -87,10 +88,15 @@ export async function getPhaseBundle(
       )
       .eq("phase_id", phaseId),
     supabase.from("catalog_trims").select("id, name, tier").eq("phase_id", phaseId),
+    supabase
+      .from("catalog_media")
+      .select("id, body_type_id, image_url, view_angle, is_main, catalog_body_types(id, name)")
+      .eq("phase_id", phaseId),
   ]);
   if (bodyDimsRes.error) throw bodyDimsRes.error;
   if (configsRes.error) throw configsRes.error;
   if (trimsRes.error) throw trimsRes.error;
+  if (mediaRes.error) throw mediaRes.error;
 
   const trimRows = trimsRes.data || [];
   const trimIds = trimRows.map((t: any) => t.id);
@@ -100,6 +106,15 @@ export async function getPhaseBundle(
   if (trimFeaturesRes.error) throw trimFeaturesRes.error;
 
   const configRows = configsRes.data || [];
+
+  // Tire sizes hang off configuration_id (one config can list several -- base vs. optional
+  // wheels), so they can only be fetched once this phase's config ids are known.
+  const configIds = configRows.map((c: any) => c.id);
+  const tireSizesRes = configIds.length
+    ? await supabase.from("catalog_tire_sizes").select("*").in("configuration_id", configIds)
+    : { data: [] as any[], error: null };
+  if (tireSizesRes.error) throw tireSizesRes.error;
+  const tireSizeRows = tireSizesRes.data || [];
 
   // Step 3: faults for every engine/gearbox this phase's configs actually use, fetched once
   // for the whole phase rather than per-config. catalog_component_faults keys a fault to
@@ -120,7 +135,18 @@ export async function getPhaseBundle(
     faultRows = faultsRes.data || [];
   }
 
-  return transformBundle(phaseRow, brand, model, bodyDimsRes.data || [], configRows, trimRows, trimFeaturesRes.data || [], faultRows);
+  return transformBundle(
+    phaseRow,
+    brand,
+    model,
+    bodyDimsRes.data || [],
+    configRows,
+    trimRows,
+    trimFeaturesRes.data || [],
+    faultRows,
+    tireSizeRows,
+    mediaRes.data || []
+  );
 }
 
 function transformBundle(
@@ -131,7 +157,9 @@ function transformBundle(
   configRows: any[],
   trimRows: any[],
   trimFeatureRows: any[],
-  faultRows: any[]
+  faultRows: any[],
+  tireSizeRows: any[],
+  mediaRows: any[]
 ): PhaseBundle {
   const bodyDimensions: CatalogBodyDimensions[] = bodyDimRows.map((d) => ({
     bodyTypeId: d.body_type_id,
@@ -148,6 +176,13 @@ function transformBundle(
     fuelTankCapacityLiters: d.fuel_tank_capacity_liters,
     seatsCount: d.seats_count,
   }));
+
+  const tireSizesByConfig = new Map<string, { tireSize: string; isStandard: boolean }[]>();
+  for (const t of tireSizeRows) {
+    const list = tireSizesByConfig.get(t.configuration_id) ?? [];
+    list.push({ tireSize: t.tire_size, isStandard: t.is_standard });
+    tireSizesByConfig.set(t.configuration_id, list);
+  }
 
   const configs: CatalogConfig[] = configRows.map((c) => ({
     id: c.id,
@@ -193,6 +228,7 @@ function transformBundle(
     batteryCapacityNetKwh: c.battery_capacity_net_kwh,
     evRangeWltpKm: c.ev_range_wltp_km,
     maxChargingKwDc: c.max_charging_kw_dc,
+    tireSizes: tireSizesByConfig.get(c.id) ?? [],
   }));
 
   const featuresByTrim = new Map<string, { feature: string; isOptional: boolean }[]>();
@@ -215,6 +251,15 @@ function transformBundle(
     unitId: f.unit_id,
     fault: f.fault,
     severity: f.severity,
+  }));
+
+  const media: CatalogMediaItem[] = mediaRows.map((m) => ({
+    id: m.id,
+    bodyTypeId: m.body_type_id,
+    bodyName: m.catalog_body_types?.name ?? "",
+    imageUrl: m.image_url,
+    viewAngle: m.view_angle,
+    isMain: m.is_main,
   }));
 
   return {
@@ -244,5 +289,6 @@ function transformBundle(
     configs,
     trims,
     faults,
+    media,
   };
 }

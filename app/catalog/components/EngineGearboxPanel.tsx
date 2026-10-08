@@ -13,6 +13,18 @@ interface EngineGearboxPanelProps {
 export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineGearboxPanelProps) {
   const { engine, gearbox, drivetrain } = config;
 
+  // Display rules: a chain's replacement interval and a conventional (non-hybrid) engine's
+  // hybrid system are both NULL by design, not missing data -- labeled plainly instead of
+  // flagged as a gap. A belt/gear engine with no replacement interval recorded is still a
+  // real gap (belts/gears DO have a fixed interval).
+  const timingReplacementValue =
+    engine.timingReplacementKm != null
+      ? `${engine.timingReplacementKm} km`
+      : engine.timingType === "chain"
+        ? "No fixed interval"
+        : null;
+  const hybridSystemValue = engine.hybridType ?? "Conventional";
+
   const engineFields: GapField[] = [
     { label: "Code", value: engine.code },
     { label: "Displacement", value: engine.displacementCc != null ? `${engine.displacementCc} cc` : null },
@@ -21,9 +33,9 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
     { label: "Cylinders", value: engine.cylinders },
     { label: "Emission standard", value: engine.emissionStandard },
     { label: "Timing type", value: engine.timingType },
-    { label: "Timing replacement", value: engine.timingReplacementKm != null ? `${engine.timingReplacementKm} km` : null },
+    { label: "Timing replacement", value: timingReplacementValue },
     { label: "Oil capacity", value: engine.engineOilCapacityLiters != null ? `${engine.engineOilCapacityLiters} L` : null },
-    { label: "Hybrid system", value: engine.hybridType },
+    { label: "Hybrid system", value: hybridSystemValue },
     { label: "0–100 km/h", value: config.acceleration0To100 != null ? `${config.acceleration0To100} s` : null },
     { label: "Top speed", value: config.topSpeedKmh != null ? `${config.topSpeedKmh} km/h` : null },
     { label: "Consumption (combined)", value: config.fuelConsumptionCombined != null ? `${config.fuelConsumptionCombined} L/100km` : null },
@@ -89,6 +101,29 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
             </div>
           )}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <p className="text-sm font-medium text-catalog-text">Tire sizes</p>
+          <SectionGapsBadge count={config.tireSizes.length === 0 ? 1 : 0} />
+        </div>
+        {config.tireSizes.length === 0 ? (
+          gapsMode ? (
+            <Badge variant="missing">no tire sizes recorded</Badge>
+          ) : null
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {config.tireSizes.map((t, i) => (
+              <li key={i}>
+                <Badge variant={t.isStandard ? "default" : "accent"}>
+                  {t.tireSize}
+                  {!t.isStandard && " (optional)"}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div>
