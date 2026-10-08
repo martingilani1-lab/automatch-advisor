@@ -4,36 +4,41 @@ Read this first when picking up catalog_ schema / car-import work. Keep it curre
 end of each session — this is a living snapshot, not a historical record (git history is
 the record; see CLAUDE.md "Adding a new car / model — RULES").
 
-Last updated: 2026-10-06. RLS is enabled with public-read policies on all 17 catalog
-tables the Supabase advisor flagged (confirmed live: `rls_on = true`, 1 select policy
-each), and `catalog_engines.DXDB` (1.5 eTSI 110kW) now has `hybrid_type = 'MHEV'`
-confirmed live — both closed, details folded out of Open items below.
+Last updated: 2026-10-08. Audi A4 (B9) seeded and live (`20261008122941_seed_audi_a4_b9.sql`,
+confirmed via `batch-verify` PASS) — the first MLB Evo platform car in the catalog, and the
+first car imported end-to-end via the new markdown `intake-to-template.mjs` path rather than
+hand-filled CSVs. RLS is enabled with public-read policies on all 17 catalog tables the
+Supabase advisor flagged (confirmed live: `rls_on = true`, 1 select policy each), and
+`catalog_engines.DXDB` (1.5 eTSI 110kW) now has `hybrid_type = 'MHEV'` confirmed live —
+both closed, details folded out of Open items below.
 
 ## Catalog state (live counts)
 
 | | count |
 |---|---|
 | brands | 5 |
-| models | 34 |
-| generations (distinct model + generation_code) | 49 |
-| phases (pre-facelift/facelift rows) | 86 |
-| configs (`catalog_vehicle_configurations`) | 1510 |
-| engines (`catalog_engines`) | 117 |
-| transmission units (`transmission_units`) | 73 (15 actually referenced by a live config) |
+| models | 35 |
+| generations (distinct model + generation_code) | 50 |
+| phases (pre-facelift/facelift rows) | 88 |
+| configs (`catalog_vehicle_configurations`) | 1550 |
+| engines (`catalog_engines`) | 131 |
+| transmission units (`transmission_units`) | 76 (18 actually referenced by a live config) |
 | body types | 11 |
 | drivetrain systems | 25 |
-| trims | 290 |
-| trim features | 929 |
-| component faults | 38 |
-| phase×body dimension rows | 139 |
+| trims | 297 |
+| trim features | 957 |
+| component faults | 41 |
+| phase×body dimension rows | 143 |
 
-Platform distribution (86 phases): MQB 32, MQB-A0 16, MQB Evo 18, PQ34 16, PQ35 2, PQ26 2.
-Includes Golf VIII (CD1), Octavia IV (NX), and the `DQ400e` transmission unit (now live,
-notes filled), none of which were reflected in the previous snapshot.
+Platform distribution (88 phases): MQB 32, MQB-A0 16, MQB Evo 18, PQ34 16, PQ35 2, PQ26 2,
+MLB Evo 2. MLB Evo is new this snapshot — Audi A4 (B9)'s 2 phases (Pre-facelift/Facelift),
+14 engines, and 3 transmission units (`Audi DL382`, `Audi ML401`, `ZF AL552` — also new
+this snapshot, added via the linking-audit workflow earlier this session, notes approved
+and live).
 
 Models seeded: Škoda Octavia/Fabia/Scala/Kamiq/Karoq/Kodiaq/Superb; Volkswagen
 Golf/Bora/New Beetle/Polo/T-Cross/Taigo/Passat/Tiguan/Touran/Multivan/Caddy/Arteon/T-Roc;
-SEAT León/Toledo/Ibiza/Arona/Ateca/Tarraco; Audi A3/TT/Q2/Q3/A1; Cupra León/Formentor/
+SEAT León/Toledo/Ibiza/Arona/Ateca/Tarraco; Audi A3/TT/Q2/Q3/A1/A4; Cupra León/Formentor/
 Terramar.
 
 ## The pipeline
@@ -106,6 +111,18 @@ report, for reviewing several cars' decisions at once before generating anything
 
 ## Open items
 
+- **Audi A4 (B9)** — seeded and live (`20261008122941_seed_audi_a4_b9.sql` run, confirmed
+  2026-10-08: `batch-verify` PASS on every check — 24/24 Pre-facelift configs, 16/16
+  Facelift configs, all 14 engines and all 3 transmission units used, all 4 phase×body
+  dimension rows present, no DRAFT-prefixed reference notes anywhere). First MLB Evo
+  platform car in the catalog, and the first car authored via the markdown
+  `intake-to-template.mjs` path (step 1a) end-to-end rather than hand-filled CSVs —
+  proved out the INHERIT grammar for `phase attributes` (Facelift inheriting NCAP/safety
+  rating from Pre-facelift) and `dimensions` (both Facelift body rows inheriting from
+  Pre-facelift with a `length_mm` `EXCEPT` override for the facelift's longer front/rear
+  bumpers). No attribute gaps — every phase/dimension/engine field from Martin's intake
+  was filled or explicitly NULL (NULL over invention, rule 7); not yet covered by a full
+  attribute-completeness re-run (see that item below).
 - **Audi A3 (8Y)**: seeded and live (`20261005220000_seed_audi_a3_8y.sql` run; 46/46
   configs, all 12 engines and 6 transmission units confirmed used, `batch-verify` PASS) —
   but real attribute/spec gaps remain, confirmed live 2026-10-06:
