@@ -108,9 +108,48 @@ report, for reviewing several cars' decisions at once before generating anything
   literals in that column alone, so an all-NULL column silently becomes `unknown`/text and
   the INSERT fails. This bit Golf IV, León, Toledo, and Audi A3 before it was baked into
   `generate-seed.mjs` for good.
+- **Duplicate-prevention** (added 2026-10-08, after the reference-data audit below): a NEW
+  engine matching a live one under a different code (same displacement/power/torque/fuel/
+  emission_standard/timing_type) STOPs unless marked `distinct_reason`; brand/model names
+  are checked against live data under normalization (lowercase, diacritics/whitespace
+  stripped); an `alt_code` can never equal another row's real primary code (now checked for
+  `transmission_units` too, not just `catalog_engines`); the car-import path never creates
+  `transmission_units`/`drivetrain_systems`/`catalog_body_types`/`catalog_brands` rows — use
+  `node scripts/audit-reference-duplicates.mjs --check-new ...` before authoring a new one
+  of those, and `scripts/known-distinct-reference-groups.json` as the reviewed-baseline for
+  `validate-template.mjs`'s ongoing safety-net scan.
 
 ## Open items
 
+- **Reference-data duplicate-prevention audit (2026-10-08) — closed, pipeline guards now
+  live.** `scripts/audit-reference-duplicates.mjs` (read-only, run anytime for a fresh
+  report) checked `catalog_engines`/`transmission_units`/`drivetrain_systems`/
+  `catalog_brands`/`catalog_models` for near-duplicates and the free-text vocabulary columns
+  for spelling/format variants. Findings: a handful of engine pairs sharing displacement/
+  power/fuel under different codes (several explained by Audi's longitudinal MLB Evo codes
+  vs. shared transverse MQB codes at the same nominal spec — real, distinct part numbers,
+  not a mistake), one `transmission_units` group (`VW 02J`/`VW 02K`, same maker/family/
+  speeds) and four `drivetrain_systems` groups (`haldex_gen4`/`haldex_gen5`,
+  `4matic_trans`/`4matic_long`, `htrac`/`hk_dynamax`, `jlr_active_driveline`/
+  `jlr_idd_long` — generation/variant splits), zero `alt_code` collisions, zero brand/model
+  spelling collisions, and zero vocabulary spelling variants in `resale_value_rating`/
+  `timing_type`/`cylinders`/`fuel_type`/`hybrid_type`/`severity`/`segment`. **Martin's
+  decision: every flagged pair/group is genuinely distinct — keep, change nothing.** All
+  current groups are recorded in `scripts/known-distinct-reference-groups.json` so the new
+  `validate-template.mjs` safety net doesn't re-flag them. Pipeline guards (engine
+  near-duplicate CREATE check, gearbox/drivetrain safety net, brand/model normalization,
+  transmission_units `alt_code` collision) are live in `intake-to-template.mjs`/
+  `validate-template.mjs` — see Standing rules above. `20261008150000_freeze_vocab_and_brand_dedup.sql`
+  (CHECK constraints on `catalog_component_faults.severity`/`catalog_engines.cylinders`/
+  `catalog_models.segment`, plus a normalized unique index on `catalog_brands.name`) is
+  written and precondition-verified against live data (0 violations, 2026-10-08) but **not
+  yet run** — human-run per standing discipline.
+  - **Separate, unrelated to-do surfaced along the way**: 64 `transmission_units` rows have
+    `maker IS NULL` (mostly `generic:*` placeholder codes and real units like the Porsche
+    PDK/Mercedes-AMG/ZF/Aisin/Honda/Toyota/Renault/Ford families never backfilled with a
+    maker) — for Martin to fill at his own pace; a NULL maker exempts a row from the
+    gearbox near-duplicate safety net entirely (not a cleanup blocker, just reduced
+    detection coverage until filled).
 - **Audi A4 (B9)** — seeded and live (`20261008122941_seed_audi_a4_b9.sql` run, confirmed
   2026-10-08: `batch-verify` PASS on every check — 24/24 Pre-facelift configs, 16/16
   Facelift configs, all 14 engines and all 3 transmission units used, all 4 phase×body

@@ -1,0 +1,12 @@
+{
+  "_comment": "Baseline of transmission_units/drivetrain_systems groups that share (maker, family, speeds) / (type, maker) but were reviewed and confirmed DISTINCT -- not duplicates -- by Martin after the Part 1 reference-data audit (2026-10-08). validate-template.mjs's gearbox/drivetrain near-duplicate safety net (maker non-null groups only) treats any group matching one of these code-sets as already-reviewed and skips it; a NEW group not listed here is an ERROR requiring the same review before being added here. Codes are stored sorted so membership comparison doesn't depend on live query order.",
+  "transmission_units": [
+    ["VW 02J", "VW 02K"]
+  ],
+  "drivetrain_systems": [
+    ["haldex_gen4", "haldex_gen5"],
+    ["4matic_long", "4matic_trans"],
+    ["hk_dynamax", "htrac"],
+    ["jlr_active_driveline", "jlr_idd_long"]
+  ]
+}

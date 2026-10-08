@@ -27,7 +27,20 @@
 //     unnoticed
 //   - engines.csv alt_codes never collide with another engine's real primary code, either
 //     within this template or anywhere live — an alt_code that's actually someone else's
-//     own code is always a mistake, never a legitimate alias
+//     own code is always a mistake, never a legitimate alias (extended to transmission_units'
+//     own alt_codes too, same rule, same reasoning — global, not scoped to this car)
+//   - gearbox/drivetrain near-duplicate safety net (global, maker non-null only — a NULL
+//     maker makes (maker,family,speeds)/(type,maker) grouping meaningless noise, confirmed
+//     by the Part 1 audit lumping e.g. Porsche PDK-8 and Mercedes-AMG 8-speed DCT together
+//     for no reason but both having a NULL maker): any live group of 2+ codes sharing
+//     maker+family+speeds (transmission_units) or type+maker (drivetrain_systems) that
+//     ISN'T already in scripts/known-distinct-reference-groups.json is an ERROR — the import
+//     path never creates these rows itself (shared reference data, its own reviewed
+//     migrations only), so this is a safety net catching one that slipped through, not a
+//     per-car CREATE check
+//   - this car's own car.csv brand/model name normalizes (lowercase, diacritics stripped,
+//     whitespace stripped) the same as a live catalog_brands/catalog_models row under a
+//     different spelling (the Skoda/Škoda case) — ERROR
 //
 // Run from repo root: node scripts/validate-template.mjs [template-dir]
 // Exit code 1 if any ERROR was found; WARNINGs alone exit 0.
@@ -136,6 +149,19 @@ const declaredNewBodies = new Set();
 const engines = readCsv(path.join(dir, "engines.csv"));
 const trans = readCsv(path.join(dir, "transmissions.csv"));
 const faults = readCsv(path.join(dir, "faults.csv"));
+const carRows = readCsv(path.join(dir, "car.csv"));
+const car = carRows[0] || null;
+
+// Lowercase + diacritic-strip + whitespace-strip, duplicated from
+// scripts/audit-reference-duplicates.mjs/intake-to-template.mjs per this repo's
+// per-script-helper convention (no shared normalization lib exists).
+function normalizeName(s) {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
 
 const gridFiles = fs.existsSync(dir)
   ? fs.readdirSync(dir).filter(f => /^configs-.*\.csv$/.test(f) && !f.includes("DEFERRED"))
@@ -296,6 +322,95 @@ async function main() {
       for (const alt of e.alt_codes.split("|").map(s => s.trim()).filter(Boolean)) {
         if (liveCodes.has(alt)) {
           err("engines.csv", e.__line, `alt_code '${alt}' on engine ${e.code} is already a live engine's own primary code -- alt_codes is only for alternate codes of the SAME physical unit, never another engine's real code`);
+        }
+      }
+    }
+  }
+
+  // 9: alt_code collision, extended to transmission_units -- same rule as check 8, same
+  // reasoning (an alt_code that's actually another row's own primary code is always wrong).
+  // Global, not scoped to this car, since transmission_units is shared reference data this
+  // car's import never creates or edits.
+  {
+    const { data: liveUnits, error: e4 } = await sb.from("transmission_units").select("code, alt_codes");
+    if (e4) throw e4;
+    const unitCodes = new Set((liveUnits || []).map(u => u.code));
+    const altOwners = new Map();
+    for (const u of liveUnits || []) {
+      for (const alt of u.alt_codes || []) {
+        if (!altOwners.has(alt)) altOwners.set(alt, []);
+        altOwners.get(alt).push(u.code);
+      }
+    }
+    for (const [alt, owners] of altOwners) {
+      if (unitCodes.has(alt)) {
+        err("(live reference data)", "*", `transmission_units alt_code '${alt}' (declared by ${owners.join(", ")}) is itself another unit's primary code -- not a legitimate alias`);
+      }
+      const uniqueOwners = [...new Set(owners)];
+      if (uniqueOwners.length > 1) {
+        err("(live reference data)", "*", `transmission_units alt_code '${alt}' is declared by 2+ units: ${uniqueOwners.join(", ")}`);
+      }
+    }
+  }
+
+  // 10: gearbox/drivetrain near-duplicate safety net, maker non-null only (see header
+  // comment). Baseline of already-reviewed groups lives in
+  // scripts/known-distinct-reference-groups.json -- a group not listed there is unreviewed.
+  {
+    const baseline = JSON.parse(fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "known-distinct-reference-groups.json"), "utf8"));
+    const baselineUnitSets = new Set((baseline.transmission_units || []).map(g => [...g].sort().join("|")));
+    const baselineDrivetrainSets = new Set((baseline.drivetrain_systems || []).map(g => [...g].sort().join("|")));
+
+    const { data: liveUnits, error: e5 } = await sb.from("transmission_units").select("code, maker, family, speeds");
+    if (e5) throw e5;
+    const unitGroups = new Map();
+    for (const u of liveUnits || []) {
+      if (!u.maker) continue;
+      const key = `${u.maker}|${u.family}|${u.speeds ?? "?"}`;
+      if (!unitGroups.has(key)) unitGroups.set(key, []);
+      unitGroups.get(key).push(u.code);
+    }
+    for (const [key, codes] of unitGroups) {
+      if (codes.length < 2) continue;
+      if (!baselineUnitSets.has([...codes].sort().join("|"))) {
+        err("(live reference data)", "*", `transmission_units share (maker,family,speeds)=[${key}] but aren't in known-distinct-reference-groups.json: ${codes.join(", ")} -- review and either merge, or add to that baseline with a DISTINCT reason`);
+      }
+    }
+
+    const { data: liveDrivetrains, error: e6 } = await sb.from("drivetrain_systems").select("code, type, maker");
+    if (e6) throw e6;
+    const dtGroups = new Map();
+    for (const d of liveDrivetrains || []) {
+      if (!d.maker) continue;
+      const key = `${d.type}|${d.maker}`;
+      if (!dtGroups.has(key)) dtGroups.set(key, []);
+      dtGroups.get(key).push(d.code);
+    }
+    for (const [key, codes] of dtGroups) {
+      if (codes.length < 2) continue;
+      if (!baselineDrivetrainSets.has([...codes].sort().join("|"))) {
+        err("(live reference data)", "*", `drivetrain_systems share (type,maker)=[${key}] but aren't in known-distinct-reference-groups.json: ${codes.join(", ")} -- review and either merge, or add to that baseline with a DISTINCT reason`);
+      }
+    }
+  }
+
+  // 11: this car's own brand/model vs. live, under normalization (the Skoda/Škoda case).
+  if (car) {
+    const { data: liveBrands, error: e7 } = await sb.from("catalog_brands").select("id, name");
+    if (e7) throw e7;
+    const brandNorm = normalizeName(car.brand);
+    const brandMatch = liveBrands.find(b => normalizeName(b.name) === brandNorm && b.name !== car.brand);
+    if (brandMatch) {
+      err("car.csv", car.__line, `brand '${car.brand}' normalizes the same as live brand '${brandMatch.name}' -- use the existing spelling, or this is a genuine new brand under a confusingly similar name`);
+    } else {
+      const exactBrand = liveBrands.find(b => b.name === car.brand);
+      if (exactBrand) {
+        const { data: liveModels, error: e8 } = await sb.from("catalog_models").select("brand_id, name").eq("brand_id", exactBrand.id);
+        if (e8) throw e8;
+        const modelNorm = normalizeName(car.model);
+        const modelMatch = (liveModels || []).find(m => normalizeName(m.name) === modelNorm && m.name !== car.model);
+        if (modelMatch) {
+          err("car.csv", car.__line, `model '${car.model}' normalizes the same as live model '${modelMatch.name}' (brand ${car.brand}) -- use the existing spelling, or this is a genuine new model under a confusingly similar name`);
         }
       }
     }

@@ -33,7 +33,12 @@ A single key/value table:
 ```
 
 `brand`/`model` REUSE the exact existing live spelling if the row already exists (`Škoda`,
-never `Skoda`) — check first. `origin_country` is lowercase.
+never `Skoda`) — check first. `origin_country` is lowercase. **This isn't just a style
+note**: the parser normalizes (lowercase, diacritics stripped, whitespace stripped) this
+`brand`/`model` against every live `catalog_brands`/`catalog_models` name and STOPs if it
+matches one under a different spelling — `Skoda` when the live row is `Škoda` is a STOP, not
+a silently-accepted near-duplicate. This same catalog_brands uniqueness is also enforced at
+the schema level (a normalized unique index, see `20261008150000_freeze_vocab_and_brand_dedup.sql`).
 
 ## B. PHASES
 
@@ -122,9 +127,9 @@ needed:
 
 ```markdown
 ## D. ENGINES
-| code | power_kw | fuel_type | hybrid_type | display_name | alt_codes | displacement_cc | torque_nm | cylinders | emission_standard | timing_type | engine_oil_capacity_liters | timing_replacement_km |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| CVNA | 110 | petrol | NULL | 1.4 TFSI 110kW | NULL | 1395 | 250 | L4 | Euro6 | belt | 4.0 | 120000 |
+| code | power_kw | fuel_type | hybrid_type | display_name | alt_codes | displacement_cc | torque_nm | cylinders | emission_standard | timing_type | engine_oil_capacity_liters | timing_replacement_km | distinct_reason |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CVNA | 110 | petrol | NULL | 1.4 TFSI 110kW | NULL | 1395 | 250 | L4 | Euro6 | belt | 4.0 | 120000 | NULL |
 
 REUSE CJZB@63kW
 ```
@@ -134,6 +139,19 @@ Notes:
   itself by querying the live DB for `(code, power_kw)` (also checking `alt_codes`), the
   same matching key as `reconcile.mjs`. A code that matches another engine's `alt_codes`
   instead of a primary code is a COLLISION → STOP, same as `reconcile.mjs`'s own check.
+- **`distinct_reason` (optional column, intake-document-only — never written to
+  `engines.csv`/the DB)**: before accepting a brand-new engine code as `NEW`, the parser
+  checks whether a LIVE engine under a DIFFERENT code already shares the same
+  `displacement_cc` + `power_kw` + `torque_nm` + `fuel_type` + `emission_standard` +
+  `timing_type` (rows with no `displacement_cc` are skipped — a NULL key would otherwise
+  collapse unrelated engines together). A match is a STOP — `possible duplicate of
+  CODE@kW (models…)` — unless this cell has a non-empty reason (anything, e.g.
+  `DISTINCT: <why this is a genuinely different engine>`). This caught a real case: several
+  of the Audi A4 (B9)'s own engines (`CVNA`, `CVKB`, `DETA`, `DEUA`, `DKNA`, `DMSA`) share an
+  exact spec with an already-live MQB-platform code under a different number — reviewed and
+  confirmed genuinely distinct engines by Martin after the Part 1 reference-data audit, not
+  a mistake, so this is the real, expected shape of a legitimate escape-hatch case, not a
+  hypothetical one.
 - **`REUSE <code>@<power_kw>kW`** only ever references an engine that must already exist
   live — it's a shorthand to avoid retyping a fully-known engine's columns, not a way to
   create one. If it doesn't resolve live, that's a STOP (use a full table row for a
@@ -167,6 +185,30 @@ Every `unit_code` must already exist in `transmission_units` (matched by `code` 
 `alt_codes`) — **never match by speed count** (a "5-speed manual" is not evidence of the
 same unit). A `unit_code` with no live match STOPs the whole run: there is no "create
 inline" path, a new gearbox is its own reviewed migration, done before this car's intake.
+
+**This document and `intake-to-template.mjs` never create `transmission_units`,
+`drivetrain_systems`, `catalog_body_types`, or `catalog_brands` rows, and never will** —
+those four are shared reference data that only ever comes from their own reviewed
+migrations (see CLAUDE.md's "Adding a new car / model" rules). `catalog_engines` is the one
+exception that stays CREATE-able from this document, now gated by the `distinct_reason`
+near-duplicate check above.
+
+**Before authoring a new `transmission_units` or `drivetrain_systems` migration**, check it
+against live near-duplicates first:
+```
+node scripts/audit-reference-duplicates.mjs --check-new transmissions "<maker>" "<family>" <speeds>
+node scripts/audit-reference-duplicates.mjs --check-new drivetrains "<maker>" "<type>"
+```
+Exits 1 and prints the matching live row(s) if one shares (maker, family, speeds) /
+(type, maker) — only when `<maker>` is non-null; a NULL maker is always skipped, since it
+makes that grouping meaningless noise (confirmed by the Part 1 audit). Pass
+`--distinct "<reason>"` once you've confirmed it's genuinely a different unit; put that
+reason in the new migration's own header comment (not a DB column). `validate-template.mjs`
+also runs the same check as a global safety net on every car's validation (maker non-null
+groups only) against `scripts/known-distinct-reference-groups.json` — a baseline of
+already-reviewed groups (seeded from Part 1's findings) — so a near-duplicate that slipped
+through without the preventive script still gets caught on the next car import. Add a newly
+reviewed group to that JSON file once you've confirmed it's distinct.
 
 ## F. DRIVETRAIN
 
@@ -464,7 +506,17 @@ INHERIT configs FROM Audi A4 B9 Pre-facelift EXCEPT no CVNA, EXCEPT no CSWB, EXC
   plausible one.
 - **Check live spellings before inventing a new name** — brand, model, and body-type names
   all REUSE the exact existing spelling if the row already exists (`Škoda` not `Skoda`,
-  `Hatchback 5-door` not `5-door Hatchback`). Query first, never assume.
+  `Hatchback 5-door` not `5-door Hatchback`). Query first, never assume. This is also
+  machine-checked now (normalized brand/model match → STOP; `catalog_brands` additionally
+  has a schema-level normalized-uniqueness index).
+- **A brand-new engine that looks like it duplicates an already-live one under a different
+  code is a STOP**, not a silent CREATE — see section D's `distinct_reason` note above. Fill
+  in `distinct_reason` once you've confirmed (e.g. a different physical casting/platform
+  installation) it's genuinely a different engine; don't fill it in just to make the STOP
+  go away without actually checking.
+- **An `alt_code` that's actually someone else's real primary code is always wrong** — this
+  is checked for `catalog_engines` (`validate-template.mjs` checks 8/9) and, as of this
+  rule, for `transmission_units` too, globally, not just within this car's own template.
 - **Reconcile before writing anything.** Whether you use the markdown path or fill the CSVs
   by hand, every engine and gearbox gets checked against the live DB (automatically, if
   using `intake-to-template.mjs`; via `node scripts/reconcile.mjs` otherwise) before the

@@ -45,6 +45,26 @@
 // dimensions.csv as a "# NEW BODY: <name>" leading comment, so validate-template.mjs (CSV
 // only, never sees this document) honors the same declaration.
 //
+// A brand-new (CREATE) engine whose displacement_cc/power_kw/torque_nm/fuel_type/
+// emission_standard/timing_type all match a live engine under a DIFFERENT code is a STOP
+// ("possible duplicate of CODE@kW") unless that engine's D. ENGINES row has a non-empty
+// optional distinct_reason cell -- an intake-document-only field (never written to
+// engines.csv/the DB) that exists purely to let the human say why it's not a duplicate.
+// See findNearDuplicateEngine for the exact key and why it's tighter than the Part 1
+// reference-data audit's own looser displacement+power+fuel grouping (that looser key
+// produced real false positives: NULL-displacement engines colliding, and Audi's
+// longitudinal MLB Evo codes vs. shared transverse MQB codes at the same spec, which are
+// genuinely different part numbers). This script never creates transmission_units/
+// drivetrain_systems/catalog_body_types/catalog_brands rows and never will -- those are
+// shared reference data that only ever comes from their own reviewed migrations (see
+// CLAUDE.md); the one exception is catalog_engines, which stays CREATE-able, now gated by
+// this near-duplicate check.
+//
+// car.csv's brand/model is checked against live catalog_brands/catalog_models under the
+// same normalization (lowercase, diacritics stripped, whitespace stripped) used by
+// scripts/audit-reference-duplicates.mjs's Part 1 audit (the Skoda/Škoda case) -- a
+// normalized match under a different spelling is a STOP.
+//
 // Scope cut, flagged explicitly (not silently done): live cross-car CONFIGS inheritance
 // (a configs INHERIT whose source phase isn't in this same document) is not implemented --
 // doing it properly means reading another car's already-seeded config grid out of
@@ -78,6 +98,35 @@ function loadEnv() {
       return [l.slice(0, i), l.slice(i + 1).replace(/^"|"$/g, "")];
     })
   );
+}
+
+// Supabase caps an unpaginated .select() at 1000 rows (hit for real on the 1550-row
+// catalog_vehicle_configurations table during the A4 B9 session) -- anything that might
+// exceed that pages through with .range() until a short page confirms the end.
+async function fetchAllPaginated(sb, table, cols) {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await sb.from(table).select(cols).range(from, from + pageSize - 1);
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
+// Lowercase + diacritic-strip + whitespace-strip, duplicated from
+// scripts/audit-reference-duplicates.mjs per this repo's per-script-helper convention
+// (no shared normalization lib exists). Used to catch a brand/model entered under a
+// different spelling of one already live (the Skoda/Škoda case).
+function normalizeName(s) {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
 }
 
 // A markdown table row: strip one leading/trailing '|', split on '|', trim each cell.
@@ -273,6 +322,31 @@ const ENGINE_FIELDS = [
 ];
 
 const REUSE_SHORTHAND_RE = /^REUSE\s+(\S+)@(\d+)\s*kW\s*$/i;
+
+// Near-duplicate CREATE guard for a brand-new engine code. Key tightened (per Martin's
+// sign-off after the Part 1 reference-data audit) to displacement_cc + power_kw +
+// torque_nm + fuel_type + emission_standard + timing_type -- narrower than the audit
+// script's own displacement+power+fuel grouping, specifically to drop the cross-platform/
+// NULL-displacement false positives that audit surfaced (e.g. Audi's longitudinal MLB Evo
+// engine codes vs. shared transverse MQB codes at the same displacement/power/fuel are
+// real, deliberately-distinct part numbers, not duplicates). Rows with no displacement_cc
+// are skipped entirely -- a NULL key would otherwise collapse unrelated engines together,
+// exactly the false-positive pattern the audit's own report flagged.
+function findNearDuplicateEngine(e, liveEngines) {
+  if (e.displacement_cc === "" || e.displacement_cc == null) return null;
+  const altList = (e.alt_codes || "").split("|").map(s => s.trim()).filter(Boolean);
+  return liveEngines.find(le =>
+    le.code !== e.code &&
+    String(le.displacement_cc ?? "") === String(e.displacement_cc) &&
+    le.power_kw === Number(e.power_kw) &&
+    String(le.torque_nm ?? "") === String(e.torque_nm ?? "") &&
+    le.fuel_type === e.fuel_type &&
+    (le.emission_standard ?? "") === (e.emission_standard ?? "") &&
+    (le.timing_type ?? "") === (e.timing_type ?? "") &&
+    !(le.alt_codes || []).includes(e.code) &&
+    !altList.includes(le.code)
+  );
+}
 
 // D. ENGINES -- one table, header-name-keyed (no reuse_or_new column in the document --
 // computed later, see resolveEngines), PLUS optional bare "REUSE <CODE>@<kW>kW" lines
@@ -702,6 +776,36 @@ async function liveResolve(doc, problems) {
     }
   }
 
+  // Needed only for the near-duplicate STOP message's "models using it" context -- paginated
+  // since catalog_vehicle_configurations is already past the 1000-row unpaginated cap.
+  let modelsUsingEngineCache = null;
+  async function modelsUsingEngine(engineId) {
+    if (!modelsUsingEngineCache) {
+      const [configs, phases, models, brands] = await Promise.all([
+        fetchAllPaginated(sb, "catalog_vehicle_configurations", "engine_id, phase_id"),
+        fetchAllPaginated(sb, "catalog_phases", "id, model_id, generation_code"),
+        fetchAllPaginated(sb, "catalog_models", "id, brand_id, name"),
+        fetchAllPaginated(sb, "catalog_brands", "id, name"),
+      ]);
+      modelsUsingEngineCache = { configs, phases, models, brands };
+    }
+    const { configs, phases, models, brands } = modelsUsingEngineCache;
+    const phaseById = new Map(phases.map(p => [p.id, p]));
+    const modelById = new Map(models.map(m => [m.id, m]));
+    const brandById = new Map(brands.map(b => [b.id, b]));
+    const names = new Set();
+    for (const c of configs) {
+      if (c.engine_id !== engineId) continue;
+      const phase = phaseById.get(c.phase_id);
+      if (!phase) continue;
+      const model = modelById.get(phase.model_id);
+      if (!model) continue;
+      const brand = brandById.get(model.brand_id);
+      names.add(`${brand ? brand.name : "?"} ${model.name} (${phase.generation_code || "?"})`);
+    }
+    return [...names];
+  }
+
   for (const e of doc.engines) {
     const kw = Number(e.power_kw);
     const primary = liveEngines.find(le => le.code === e.code && le.power_kw === kw);
@@ -714,7 +818,44 @@ async function liveResolve(doc, problems) {
       problems.push(`engine ${e.code} (${e.power_kw}kW): COLLISION -- not a primary code live, but IS an alt_code of ${alias.code} (${alias.power_kw}kW) -- resolve before seeding, do not create a duplicate`);
       continue;
     }
+    // CREATE near-duplicate guard -- see findNearDuplicateEngine's own comment for the key.
+    // Escape hatch: a non-empty distinct_reason cell on this engine's D. ENGINES row (an
+    // intake-document-only field, never written to engines.csv/the DB -- it only ever
+    // needs to justify this one STOP at authoring time).
+    if (!e.distinct_reason) {
+      const dup = findNearDuplicateEngine(e, liveEngines);
+      if (dup) {
+        const models = await modelsUsingEngine(dup.id);
+        problems.push(`engine ${e.code} (${e.power_kw}kW): possible duplicate of ${dup.code}@${dup.power_kw}kW (${models.join(", ") || "no live config"}) -- same displacement/power/torque/fuel/emission_standard/timing_type under a different code. Use REUSE, add as alt_code, or mark DISTINCT: <reason> in this engine's distinct_reason cell.`);
+        continue;
+      }
+    }
     e.reuse_or_new = "NEW";
+  }
+
+  // Brand/model near-duplicate: this car's own car.csv name vs. a live brand/model under a
+  // different spelling (the Skoda/Škoda case) -- car.csv is parsed identically by both the
+  // markdown and manual paths, so this belongs here (wherever doc.car is resolved against
+  // live data), not duplicated per path.
+  {
+    const liveBrands = await fetchAllPaginated(sb, "catalog_brands", "id, name");
+    const brandNorm = normalizeName(doc.car.brand);
+    const brandMatch = liveBrands.find(b => normalizeName(b.name) === brandNorm && b.name !== doc.car.brand);
+    if (brandMatch) {
+      problems.push(`car.csv: brand '${doc.car.brand}' normalizes the same as live brand '${brandMatch.name}' -- use the existing spelling, or this is a genuine new brand under a confusingly similar name`);
+    } else {
+      const exactBrand = liveBrands.find(b => b.name === doc.car.brand);
+      if (exactBrand) {
+        const liveModels = await fetchAllPaginated(sb, "catalog_models", "brand_id, name");
+        const modelNorm = normalizeName(doc.car.model);
+        const modelMatch = liveModels.find(
+          m => m.brand_id === exactBrand.id && normalizeName(m.name) === modelNorm && m.name !== doc.car.model
+        );
+        if (modelMatch) {
+          problems.push(`car.csv: model '${doc.car.model}' normalizes the same as live model '${modelMatch.name}' (brand ${doc.car.brand}) -- use the existing spelling, or this is a genuine new model under a confusingly similar name`);
+        }
+      }
+    }
   }
 
   for (const t of doc.transUnits) {

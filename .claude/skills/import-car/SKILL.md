@@ -32,6 +32,20 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
   scripts/validate-template.mjs`. The template folder is disposable working state per car,
   refilled each time — the committed seed migration is the permanent record, not the
   template.
+- **A NEW engine that looks like a near-duplicate of an already-live one (same
+  displacement/power/torque/fuel/emission_standard/timing_type under a different code)
+  STOPs**, both via the markdown path (`intake-to-template.mjs`) and
+  `validate-template.mjs`/`reconcile.mjs`'s own judgment call when reviewing a CREATE row by
+  hand — use REUSE, add as `alt_codes`, or justify it as genuinely distinct (`distinct_reason`
+  in the intake document, or a comment in the hand-written CSV/migration) before proceeding.
+  This car's own `brand`/`model` name is checked the same way against live
+  `catalog_brands`/`catalog_models` (normalized: lowercase, diacritics/whitespace stripped).
+- **Before authoring a NEW `transmission_units`/`drivetrain_systems` migration** (step 2's
+  MISSING case), check it against live near-duplicates first: `node
+  scripts/audit-reference-duplicates.mjs --check-new transmissions "<maker>" "<family>"
+  <speeds>` (or `--check-new drivetrains "<maker>" "<type>"`) — only meaningful with a
+  non-null maker. Pass `--distinct "<reason>"` once confirmed genuinely different, and note
+  that reason in the new migration's own header comment.
 
 ## Steps
 
@@ -88,9 +102,11 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
 
 3. **Seed, in dependency order**, into review-only file(s) in `supabase/migrations/`
    (timestamp-prefixed, comments explain *why*):
-   brand/model (reuse if present) → phases → NEW dictionary entries only (engines,
-   drivetrain — never transmissions, see step 2) → configurations → trims/features → component faults →
-   attributes (model, phase, phase × body dimensions) → media → tires.
+   brand/model (reuse if present) → phases → NEW dictionary entries only (engines only —
+   never transmissions or drivetrain systems, see step 2 and CLAUDE.md rule 2c: both are
+   shared reference data, their own reviewed migrations only) → configurations →
+   trims/features → component faults → attributes (model, phase, phase × body dimensions)
+   → media → tires.
    - Resolve every FK by code/name via subquery or CTE — never a hand-typed UUID.
    - Idempotency: `ON CONFLICT` only where a real unique constraint exists; otherwise
      `INSERT … WHERE NOT EXISTS`.
@@ -112,8 +128,12 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
    - Before finalizing, run `node scripts/validate-template.mjs` against the filled
      template: it catches config rows referencing an engine/gearbox not in the template,
      fault severities outside `critical`/`moderate`/`minor`, orphan engines never used in
-     any config, and the all-NULL-column warning above. Fix reported problems before
-     generating the seed, not after.
+     any config, the all-NULL-column warning above, this car's brand/model normalizing the
+     same as a live one under a different spelling, an `alt_code` (engine or transmission
+     unit) that's actually someone else's real primary code, and a global safety-net scan
+     for any live `transmission_units`/`drivetrain_systems` near-duplicate (maker non-null)
+     not yet reviewed into `scripts/known-distinct-reference-groups.json`. Fix reported
+     problems before generating the seed, not after.
 
 4. **Verify** (after the human runs it, via live read queries):
    - filter by `generation_code`; config count per phase matches the spec;
