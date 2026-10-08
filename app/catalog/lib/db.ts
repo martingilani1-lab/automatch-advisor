@@ -63,11 +63,41 @@ export async function getPhaseBundle(
 
   if (!phaseRow) return null;
 
+  return fetchBundleForPhase(supabase, phaseRow);
+}
+
+// Id-based lookup (app/api/db-test/route.ts POST, which identifies a phase by
+// catalog_phases.id the same way /api/detail identifies a legacy vehicle by
+// vehicles.id) -- same phase-row shape as getPhaseBundle above, just resolved
+// by primary key instead of slugifying the display columns.
+export async function getPhaseBundleById(phaseId: string): Promise<PhaseBundle | null> {
+  const supabase = client();
+
+  const phaseRes = await supabase
+    .from("catalog_phases")
+    .select(
+      `
+      id, generation_code, phase_label, year_from, year_to, display_name, platform_code,
+      safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct,
+      ncap_safety_assist_pct, towing_capacity_kg, avg_market_price_eur, price_range_min_eur,
+      price_range_max_eur, typical_mileage_range, resale_value_rating,
+      catalog_models!inner(id, name, segment, origin_country, catalog_brands!inner(id, name))
+      `
+    )
+    .eq("id", phaseId)
+    .maybeSingle();
+  if (phaseRes.error) throw phaseRes.error;
+  if (!phaseRes.data) return null;
+
+  return fetchBundleForPhase(supabase, phaseRes.data as any);
+}
+
+async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow: any): Promise<PhaseBundle> {
   const phaseId = phaseRow.id;
   const model = phaseRow.catalog_models;
   const brand = model.catalog_brands;
 
-  // Step 2: everything scoped to this phase, in parallel -- same Promise.all shape as
+  // Everything scoped to this phase, in parallel -- same Promise.all shape as
   // app/api/cars/route.ts.
   const [bodyDimsRes, configsRes, trimsRes, mediaRes] = await Promise.all([
     supabase
