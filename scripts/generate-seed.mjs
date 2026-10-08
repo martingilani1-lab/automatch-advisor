@@ -37,7 +37,7 @@ const BODY_TYPES_COLS = ["name"];
 const ENGINES_COLS = [
   "code", "alt_codes", "display_name", "displacement_cc", "power_kw", "fuel_type", "torque_nm",
   "cylinders", "emission_standard", "timing_type", "engine_oil_capacity_liters",
-  "timing_replacement_km",
+  "timing_replacement_km", "hybrid_type",
 ];
 // transmission_units is reference data (not seeded per-car — see CLAUDE.md "a gearbox with
 // no unit STOPS the import"), but its columns are still checked live here since every
@@ -418,7 +418,7 @@ async function main() {
   if (newEngines.length) {
     header("ENGINES", `${newEngines.length} NEW row(s). Plain INSERT ... VALUES (not a VALUES-CTE), so no casting issue.`);
     p(`insert into catalog_engines (${ENGINES_COLS.join(", ")})`, "values");
-    p(newEngines.map(e => `  ('${esc(e.code)}', ${arrLit(e.alt_codes)}, ${sOrNull(e.display_name)}, ${nOrNull(e.displacement_cc)}, ${e.power_kw}, '${esc(e.fuel_type)}', ${nOrNull(e.torque_nm)}, ${sOrNull(e.cylinders)}, ${sOrNull(e.emission_standard)}, ${sOrNull(e.timing_type)}, ${nOrNull(e.engine_oil_capacity_liters)}, ${nOrNull(e.timing_replacement_km)})`).join(",\n"));
+    p(newEngines.map(e => `  ('${esc(e.code)}', ${arrLit(e.alt_codes)}, ${sOrNull(e.display_name)}, ${nOrNull(e.displacement_cc)}, ${e.power_kw}, '${esc(e.fuel_type)}', ${nOrNull(e.torque_nm)}, ${sOrNull(e.cylinders)}, ${sOrNull(e.emission_standard)}, ${sOrNull(e.timing_type)}, ${nOrNull(e.engine_oil_capacity_liters)}, ${nOrNull(e.timing_replacement_km)}, ${sOrNull(e.hybrid_type)})`).join(",\n"));
     p("on conflict (code, power_kw) do nothing;", "");
   } else {
     header("ENGINES", "none — all engines this car uses are REUSE, resolved by code+power_kw at config-insert time.");

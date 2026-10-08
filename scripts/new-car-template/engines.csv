@@ -7,4 +7,7 @@
 #   An engine that differs by emissions generation (Euro2/Euro3) or hardware generation is a SEPARATE row with its own code - never folded into alt_codes.
 # fuel_type: petrol | diesel | electric | hybrid | phev | lpg.   timing_type: belt | chain | gear.   cylinders e.g. L4, V6.
 # emission_standard e.g. 'Euro 3'.
-reuse_or_new,code,alt_codes,display_name,displacement_cc,power_kw,fuel_type,torque_nm,cylinders,emission_standard,timing_type,engine_oil_capacity_liters,timing_replacement_km
+# hybrid_type: NULL (default, non-hybrid) | MHEV (mild hybrid, e.g. eTSI/e-TEC) | PHEV
+#   (plug-in hybrid, e.g. eHybrid/iV). SEPARATE from fuel_type -- a PHEV still burns
+#   petrol/diesel, electrification level is a different fact. Leave blank for non-hybrids.
+reuse_or_new,code,alt_codes,display_name,displacement_cc,power_kw,fuel_type,torque_nm,cylinders,emission_standard,timing_type,engine_oil_capacity_liters,timing_replacement_km,hybrid_type
