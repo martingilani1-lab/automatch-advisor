@@ -1,0 +1,21 @@
+/* Scoped to /catalog only -- imported solely from app/catalog/layout.tsx, never from the
+   root layout. Deliberately omits "tailwindcss/preflight" (Tailwind's base reset, which
+   rewrites global *, h1, p, button, ul box-sizing/margins): app/globals.css's hand-rolled
+   BEM-ish classnames (.card, .hero, .filter-panel, ...) never collide with Tailwind's
+   utility vocabulary, but preflight's bare-element reset would still visually affect the
+   Quiz/Prehľad pages if this stylesheet is left loaded after navigating away from /catalog
+   (Next.js doesn't remove a route's global stylesheet on navigation -- see
+   node_modules/next/dist/docs/01-app/01-getting-started/11-css.md). Without preflight, a
+   lingering stylesheet is harmless: it only paints elements carrying its exact utility
+   classnames. */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
+@theme {
+  --color-catalog-bg: #0e0e0f;
+  --color-catalog-surface: #181818;
+  --color-catalog-border: #2a2a2e;
+  --color-catalog-accent: #e8ff47;
+  --color-catalog-text: #f0f0f0;
+  --color-catalog-muted: #8a8a90;
+}
