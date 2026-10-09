@@ -50,10 +50,12 @@ export default function Configurator({ configs, faults, gapsMode }: Configurator
   const effectiveFuel = fuel ?? (fuelOptions.length === 1 ? fuelOptions[0].value : null);
   const afterFuel = afterBody.filter((c) => !effectiveFuel || c.engine.fuelType === effectiveFuel);
 
+  // Display-only convention: "<display_name> (<code>) <power_kw> kW", same as Browse &
+  // Compare's own engine labels -- never changes display_name itself.
   const engineOptions = distinctBy(
     afterFuel,
     (c) => c.engine.id,
-    (c) => c.engine.displayName ?? c.engine.code
+    (c) => c.engine.displayName ? `${c.engine.displayName} (${c.engine.code}) ${c.engine.powerKw} kW` : `${c.engine.code} ${c.engine.powerKw} kW`
   );
   const effectiveEngineId = engineId ?? (engineOptions.length === 1 ? engineOptions[0].value : null);
   const afterEngine = afterFuel.filter((c) => !effectiveEngineId || c.engine.id === effectiveEngineId);

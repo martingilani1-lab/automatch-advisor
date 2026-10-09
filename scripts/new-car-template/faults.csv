@@ -1,8 +1,13 @@
-# Faults attach to a COMPONENT (engine or transmission), never to the car directly.
-# component_type: engine | transmission.
-# target_code = the engine or gearbox code. target_power_kw: REQUIRED for engines (code+power_kw
-#   is the real key - two engines can share a code prefix at different power); leave blank for transmissions.
-# A fault on a REUSED engine/transmission is visible on every car that uses it - check the live
-#   DB first so you don't duplicate a fault that's already recorded there.
+# Faults attach to a COMPONENT (engine, transmission, drivetrain) or to the car's PHASE directly.
+# component_type: engine | transmission | drivetrain | vehicle.
+# target_code = the engine/gearbox/drivetrain code for a component fault, or the phase_label
+#   (e.g. "Pre-facelift") for a vehicle-level fault. target_power_kw: REQUIRED for engines
+#   (code+power_kw is the real key - two engines can share a code prefix at different power);
+#   leave blank for everything else.
+# category: REQUIRED for component_type=vehicle, one of electrical | body_rust | suspension |
+#   steering | brakes | climate | interior (scripts/catalog-vocabularies.json). Leave blank for
+#   engine/transmission/drivetrain faults - they have no category, only a component.
+# A fault on a REUSED engine/transmission/drivetrain is visible on every car that uses it - check
+#   the live DB first so you don't duplicate a fault that's already recorded there.
 # severity: critical | moderate | minor. Give the exact, real fault text - never invent one.
-component_type,target_code,target_power_kw,fault,severity
+component_type,target_code,target_power_kw,fault,severity,category

@@ -76,8 +76,10 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-lg border border-catalog-border bg-catalog-surface p-4">
+          {/* Display-only convention: "<display_name> (<code>) <power_kw> kW", same as
+              Browse & Compare's own engine labels -- never changes display_name itself. */}
           <p className="mb-2 text-sm font-medium text-catalog-text">
-            Engine — {engine.displayName ?? engine.code}
+            Engine — {engine.displayName ? `${engine.displayName} (${engine.code}) ${engine.powerKw} kW` : `${engine.code} ${engine.powerKw} kW`}
           </p>
           {engineFields.map((f) => (
             <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />

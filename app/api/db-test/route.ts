@@ -258,7 +258,11 @@ export async function POST(req: NextRequest) {
       const battery = group.map((c) => c.batteryCapacityNetKwh).filter((n): n is number => n != null);
       const range = group.map((c) => c.evRangeWltpKm).filter((n): n is number => n != null);
       return {
-        engine: engine.displayName || `${engine.code} — ${engine.powerKw} kW`,
+        // Display-only convention: "<display_name> (<code>) <power_kw> kW", same as
+        // Browse & Compare's own engine labels -- never falls back to the em-dash form,
+        // and never changes display_name itself (display-only, per the request this
+        // formatting was added under).
+        engine: engine.displayName ? `${engine.displayName} (${engine.code}) ${engine.powerKw} kW` : `${engine.code} ${engine.powerKw} kW`,
         fuel_type: engine.fuelType,
         power_kw: engine.powerKw,
         displacement_cc: engine.displacementCc,

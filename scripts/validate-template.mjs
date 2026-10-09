@@ -41,6 +41,11 @@
 //   - this car's own car.csv brand/model name normalizes (lowercase, diacritics stripped,
 //     whitespace stripped) the same as a live catalog_brands/catalog_models row under a
 //     different spelling (the Skoda/Škoda case) — ERROR
+//   - faults.csv component_type is one of engine/transmission/drivetrain/vehicle (the
+//     4-level catalog_component_faults shape); a vehicle fault's category is required and
+//     checked against the frozen vocabulary, and its target_code must match a phase_label
+//     actually declared in this car's own phases.csv; a non-vehicle fault must NOT have a
+//     category at all
 //   - every frozen-vocabulary column in scripts/catalog-vocabularies.json (fuel_type,
 //     cylinders, emission_standard, timing_type, hybrid_type, severity, segment,
 //     resale_value_rating) checked against that one shared list, so it can't drift from
@@ -217,13 +222,30 @@ for (const e of engines) {
 // against the LIVE constraint definition further down (global check, inside main()).
 const VOCAB = JSON.parse(fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "catalog-vocabularies.json"), "utf8"));
 
-// 4: fault severity + empty fault text
+// 4: fault severity + empty fault text + category (component_type=vehicle only, 4-level
+// catalog_component_faults — engine/transmission/drivetrain/vehicle, added alongside
+// 20261009101500_extend_catalog_component_faults_to_4_levels.sql).
+const FAULT_COMPONENT_TYPES = ["engine", "transmission", "drivetrain", "vehicle"];
+const phaseLabels = new Set(phases.map(p => p.phase_label).filter(Boolean));
 for (const f of faults) {
   if (f.severity && !VOCAB["catalog_component_faults.severity"].includes(f.severity)) {
     err("faults.csv", f.__line, `severity '${f.severity}' not in (${VOCAB["catalog_component_faults.severity"].join(",")}) — the live catalog_component_faults CHECK constraint will reject this (20261008150000_freeze_vocab_and_brand_dedup.sql)`);
   }
   if (f.component_type && !f.fault) {
     err("faults.csv", f.__line, `fault text is empty for ${f.component_type} ${f.target_code}`);
+  }
+  if (f.component_type && !FAULT_COMPONENT_TYPES.includes(f.component_type)) {
+    err("faults.csv", f.__line, `component_type '${f.component_type}' not in (${FAULT_COMPONENT_TYPES.join(", ")})`);
+  }
+  if (f.component_type === "vehicle") {
+    if (!f.category || !VOCAB["catalog_component_faults.category"].includes(f.category)) {
+      err("faults.csv", f.__line, `vehicle fault has category '${f.category || ""}' — required, must be one of (${VOCAB["catalog_component_faults.category"].join(", ")})`);
+    }
+    if (f.target_code && !phaseLabels.has(f.target_code)) {
+      err("faults.csv", f.__line, `vehicle fault target_code '${f.target_code}' does not match any phase_label in phases.csv`);
+    }
+  } else if (f.category) {
+    err("faults.csv", f.__line, `${f.component_type} fault has a category ('${f.category}') but only component_type=vehicle faults take one — leave it blank`);
   }
 }
 
@@ -478,7 +500,19 @@ async function main() {
         err("(live reference data)", "*", `${vocabKey}: no live CHECK constraint found by introspection -- either the constraint was dropped, or the RPC's name-matching missed it`);
         continue;
       }
-      const liveValues = [...data.matchAll(/'([^']*)'/g)].map(m => m[1]);
+      // Extract literals ONLY from inside the ANY (ARRAY[...]) portion of the constraint
+      // text, not every quoted literal in the whole definition -- a column whose CHECK is
+      // combined with an unrelated condition on another column (e.g. catalog_component_faults
+      // .category's "component_type = 'vehicle' AND category = ANY (ARRAY[...])") would
+      // otherwise also pick up that other column's own literal ('vehicle') as if it were
+      // part of THIS column's vocabulary -- caught for real: category's first live check
+      // under this logic falsely reported "vehicle" as a live-only value. A plain
+      // `col IN (...)`/`col = ANY (ARRAY[...])` constraint (every one of today's 8 vocab
+      // columns) always has exactly one ARRAY[...] span to extract from.
+      const arrayMatch = data.match(/ARRAY\[([^\]]*)\]/);
+      const liveValues = arrayMatch
+        ? [...arrayMatch[1].matchAll(/'([^']*)'/g)].map(m => m[1])
+        : [...data.matchAll(/'([^']*)'/g)].map(m => m[1]);
       const liveSet = new Set(liveValues);
       const expectedSet = new Set(expected);
       const missingFromLive = expected.filter(v => !liveSet.has(v));

@@ -46,6 +46,12 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
             const isMatch = selectedFuel.length > 0 && selectedFuel.some((sel) => matchesFuelOption(f, sel));
             return <span key={f} className={`cfuel-tag${isMatch ? " match" : ""}`}>{f}</span>;
           })}
+          {car.fuelTankLiters != null && (
+            <>
+              <span className="row-tags-sep">{"·"}</span>
+              <span className="cfuel-tag" title="Fuel tank capacity (phase_body_dimensions)">{car.fuelTankLiters}L tank</span>
+            </>
+          )}
         </div>
       </div>
       <span className="rel-pill row-rel-pill" style={{ background: relColor + "22", color: relColor, border: `1px solid ${relColor}44` }}>{rel}</span>

@@ -52,11 +52,19 @@ const DIMENSIONS_COLS = [
 const CONFIGS_COLS = ["phase_id", "body_type_id", "engine_id", "unit_id", "drivetrain_id"];
 const TRIMS_COLS = ["phase_id", "name", "tier"];
 const TRIM_FEATURES_COLS = ["trim_id", "feature", "is_optional"];
-// catalog_component_faults has TWO separate INSERTs (engine faults / transmission
-// faults), each writing a different subset of columns — REQUIRED_COLUMNS below is their
-// union, computed, not retyped.
+// catalog_component_faults has FOUR separate INSERTs (engine / transmission / drivetrain /
+// vehicle faults), each writing a different subset of columns — REQUIRED_COLUMNS below is
+// their union, computed, not retyped. drivetrain/vehicle added alongside
+// 20261009101500_extend_catalog_component_faults_to_4_levels.sql (schema) and
+// scripts/catalog-vocabularies.json's new catalog_component_faults.category entry.
 const COMPONENT_FAULTS_ENGINE_COLS = ["component_type", "engine_id", "fault", "severity"];
 const COMPONENT_FAULTS_TRANS_COLS = ["component_type", "unit_id", "fault", "severity"];
+const COMPONENT_FAULTS_DRIVETRAIN_COLS = ["component_type", "drivetrain_id", "fault", "severity"];
+// Vehicle-level faults attach to a specific PHASE, not a component — faults.csv's
+// target_code column is repurposed to hold the phase_label for these rows (resolved the
+// same way dimensions.csv/configs/trims already resolve phase_label -> phase_id, see the
+// phase_lookup CTEs below), and category is REQUIRED (catalog_component_faults_category_check).
+const COMPONENT_FAULTS_VEHICLE_COLS = ["component_type", "phase_id", "fault", "severity", "category"];
 
 // Checked live before generating anything (see preflightSchemaCheck below). This is what
 // closes the seats_count-ordering bug class: running this script before a schema migration
@@ -74,7 +82,7 @@ const REQUIRED_COLUMNS = {
   catalog_vehicle_configurations: CONFIGS_COLS,
   catalog_trims: TRIMS_COLS,
   catalog_trim_features: TRIM_FEATURES_COLS,
-  catalog_component_faults: [...new Set([...COMPONENT_FAULTS_ENGINE_COLS, ...COMPONENT_FAULTS_TRANS_COLS])],
+  catalog_component_faults: [...new Set([...COMPONENT_FAULTS_ENGINE_COLS, ...COMPONENT_FAULTS_TRANS_COLS, ...COMPONENT_FAULTS_DRIVETRAIN_COLS, ...COMPONENT_FAULTS_VEHICLE_COLS])],
 };
 
 // These scripts only have the PostgREST/supabase-js client (no direct Postgres
@@ -541,8 +549,10 @@ async function main() {
   // ---- 11. faults ----
   const engFaults = faults.filter(f => f.component_type === "engine" && f.target_code && f.fault);
   const transFaults = faults.filter(f => f.component_type === "transmission" && f.target_code && f.fault);
-  if (engFaults.length || transFaults.length) {
-    header("COMPONENT FAULTS", `${engFaults.length + transFaults.length} row(s).`);
+  const drivetrainFaults = faults.filter(f => f.component_type === "drivetrain" && f.target_code && f.fault);
+  const vehicleFaults = faults.filter(f => f.component_type === "vehicle" && f.target_code && f.fault);
+  if (engFaults.length || transFaults.length || drivetrainFaults.length || vehicleFaults.length) {
+    header("COMPONENT FAULTS", `${engFaults.length + transFaults.length + drivetrainFaults.length + vehicleFaults.length} row(s).`);
     if (engFaults.length) {
       const keys = [...new Set(engFaults.map(f => `('${esc(f.target_code)}', ${f.target_power_kw})`))];
       p("with", "  engine_lookup as (", "    select id, code, power_kw from catalog_engines", `    where (code, power_kw) in (${keys.join(", ")})`, "  ),", "  engine_faults (target_code, target_power_kw, fault, severity) as (", "    values");
@@ -572,6 +582,52 @@ async function main() {
         "join unit_lookup u on u.code = f.target_code or f.target_code = any(u.alt_codes)",
         "where not exists (",
         "  select 1 from catalog_component_faults ccf where ccf.unit_id = u.id and ccf.fault = f.fault",
+        ");",
+        ""
+      );
+    }
+    if (drivetrainFaults.length) {
+      // drivetrain_systems has no alt_codes column (confirmed live) -- code only, same
+      // shared-reference-data discipline as transmission_units otherwise.
+      p("with", "  drivetrain_lookup as (", "    select id, code from drivetrain_systems", "  ),", "  drivetrain_faults (target_code, fault, severity) as (", "    values");
+      p(drivetrainFaults.map(f => `      ('${esc(f.target_code)}'::text, '${esc(f.fault)}'::text, '${esc(f.severity)}'::text)`).join(",\n"));
+      p(
+        "  )",
+        `insert into catalog_component_faults (${COMPONENT_FAULTS_DRIVETRAIN_COLS.join(", ")})`,
+        "select 'drivetrain', d.id, f.fault, f.severity",
+        "from drivetrain_faults f",
+        "join drivetrain_lookup d on d.code = f.target_code",
+        "where not exists (",
+        "  select 1 from catalog_component_faults ccf where ccf.drivetrain_id = d.id and ccf.fault = f.fault",
+        ");",
+        ""
+      );
+    }
+    if (vehicleFaults.length) {
+      // target_code holds the phase_label for a vehicle-level fault (not a component code --
+      // there is no component) -- resolved against THIS car's own phases, same phase_lookup
+      // pattern as dimensions/configs/trims above, not a live-DB-wide lookup.
+      p(
+        "with",
+        "  phase_lookup as (",
+        "    select cp.id, cp.phase_label",
+        "    from catalog_phases cp",
+        "    join catalog_models cm on cm.id = cp.model_id",
+        "    join catalog_brands cb on cb.id = cm.brand_id",
+        `    where cb.name = '${esc(car.brand)}' and cm.name = '${esc(car.model)}' and ${genCodeSql(genCode)}`,
+        "  ),",
+        "  vehicle_faults (phase_label, fault, severity, category) as (",
+        "    values"
+      );
+      p(vehicleFaults.map(f => `      ('${esc(f.target_code)}'::text, '${esc(f.fault)}'::text, '${esc(f.severity)}'::text, '${esc(f.category)}'::text)`).join(",\n"));
+      p(
+        "  )",
+        `insert into catalog_component_faults (${COMPONENT_FAULTS_VEHICLE_COLS.join(", ")})`,
+        "select 'vehicle', p.id, f.fault, f.severity, f.category",
+        "from vehicle_faults f",
+        "join phase_lookup p on p.phase_label = f.phase_label",
+        "where not exists (",
+        "  select 1 from catalog_component_faults ccf where ccf.phase_id = p.id and ccf.fault = f.fault",
         ");",
         ""
       );
@@ -657,7 +713,7 @@ async function main() {
   fs.writeFileSync(outPath, sql);
   console.log(`Wrote ${outPath}`);
   console.log(`  engines: ${reuseEngines.length} REUSE, ${newEngines.length} NEW | transmissions: ${usedUnitCodes.length} unit_code(s) resolved`);
-  console.log(`  body types: ${newBodies.length} NEW | configs: ${configs.length} | trims: ${trims.length} | faults: ${engFaults.length + transFaults.length}`);
+  console.log(`  body types: ${newBodies.length} NEW | configs: ${configs.length} | trims: ${trims.length} | faults: ${engFaults.length + transFaults.length + drivetrainFaults.length + vehicleFaults.length}`);
   if (aliasUpdates.length) console.log(`  ALIAS DRIFT: ${aliasUpdates.map(u => u.code).join(", ")} — guarded UPDATE section included`);
   console.log("  NOT executed. Review before running.");
 }

@@ -286,22 +286,46 @@ without `FORCE` — trims are always written out explicitly, per phase, every ti
 
 ## I. FAULTS
 
-One table, columns `component_type`, `target_code`, `fault`, `severity`:
+One table, columns `component_type`, `target_code`, `fault`, `severity`, `category`
+(`catalog_component_faults` has 4 levels — engine/transmission/drivetrain/vehicle; see
+`20261009101500_extend_catalog_component_faults_to_4_levels.sql`):
 
 ```markdown
 ## I. FAULTS
-| component_type | target_code | fault | severity |
-|---|---|---|---|
-| gearbox | DL382 | Clutch vibration and mechatronic solenoid valve clogging. | moderate |
-| engine | CWGD | Rocker arm bearing wear if oil changes were neglected. | critical |
+| component_type | target_code | fault | severity | category |
+|---|---|---|---|---|
+| gearbox | DL382 | Clutch vibration and mechatronic solenoid valve clogging. | moderate | NULL |
+| engine | CWGD | Rocker arm bearing wear if oil changes were neglected. | critical | NULL |
+| drivetrain | quattro_torsen | Center differential wear under sustained track use. | moderate | NULL |
+| vehicle | Pre-facelift | Door sills prone to stone-chip corrosion. | minor | body_rust |
 ```
 
-`component_type` is `engine` or `gearbox` in this document (`gearbox` is translated to the
-real schema's `transmission` on write — the schema itself has never used the word
-"gearbox"). There's no `target_power_kw` column here — for an `engine` fault, the parser
-looks `target_code` up against this same document's own section D by code and fills it in
-automatically; if that code is absent or ambiguous in section D, that's a STOP (never
-guessed). `severity` must be `critical`/`moderate`/`minor` — checked by this script now
+`component_type` is `engine`, `gearbox`, `drivetrain`, or `vehicle` in this document
+(`gearbox` is translated to the real schema's `transmission` on write — the schema itself
+has never used the word "gearbox"). `target_code` means something different per level:
+
+- **`engine`**: the engine code. There's no `target_power_kw` column here — the parser
+  looks `target_code` up against this same document's own section D by code and fills it
+  in automatically; if that code is absent or ambiguous in section D, that's a STOP (never
+  guessed).
+- **`transmission`** (`gearbox` in the document): the gearbox code, resolved against live
+  `transmission_units` at seed-generation time (not validated by this script itself, same
+  as `configs.csv`'s own gearbox codes).
+- **`drivetrain`**: a drivetrain code, resolved against live `drivetrain_systems` at
+  seed-generation time — same treatment as `transmission`, not validated here.
+- **`vehicle`**: **not** a component code — it's one of THIS document's own `phase_label`
+  values from section B (`Pre-facelift`/`Facelift`/etc.), since a vehicle-level fault
+  attaches to a phase, not a component. Validated in-document (a `target_code` that doesn't
+  match any of this document's own `phase_label`s is a STOP) — never a live lookup, since
+  phase labels aren't globally unique the way engine/gearbox codes are.
+
+`category` is **required for `vehicle` faults only** — one of `electrical` / `body_rust` /
+`suspension` / `steering` / `brakes` / `climate` / `interior`
+(`scripts/catalog-vocabularies.json`'s `catalog_component_faults.category` list) — and
+**must be blank (`NULL`) for every other level**; a category on an engine/gearbox/
+drivetrain fault is a STOP (there's no component-level category, only vehicle-level).
+
+`severity` must be `critical`/`moderate`/`minor` — checked by this script now
 (`scripts/catalog-vocabularies.json`, same mechanism as `emission_standard`, see §D), a
 STOP here rather than waiting for `validate-template.mjs` to catch it.
 

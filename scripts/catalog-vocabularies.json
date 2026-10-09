@@ -7,5 +7,6 @@
   "catalog_engines.hybrid_type": ["MHEV", "PHEV"],
   "catalog_component_faults.severity": ["critical", "moderate", "minor"],
   "catalog_models.segment": ["A", "B", "C", "D", "E", "F", "J", "M", "S"],
-  "catalog_phases.resale_value_rating": ["holds_well", "average", "depreciates_fast"]
+  "catalog_phases.resale_value_rating": ["holds_well", "average", "depreciates_fast"],
+  "catalog_component_faults.category": ["electrical", "body_rust", "suspension", "steering", "brakes", "climate", "interior"]
 }

@@ -72,6 +72,12 @@
 // catches a bad value at conversion time instead of waiting for the later CSV-validation
 // step to catch it.
 //
+// I. FAULTS has two levels beyond engine/gearbox: "drivetrain" (target_code = a
+// drivetrain_systems code, live-resolved at seed-generation time like gearbox codes
+// already are) and "vehicle" (target_code = one of THIS document's own B. PHASES
+// phase_labels, validated in-document; category REQUIRED, checked against
+// scripts/catalog-vocabularies.json's catalog_component_faults.category list).
+//
 // Scope cut, flagged explicitly (not silently done): live cross-car CONFIGS inheritance
 // (a configs INHERIT whose source phase isn't in this same document) is not implemented --
 // doing it properly means reading another car's already-seeded config grid out of
@@ -508,22 +514,45 @@ function parseSectionH(text) {
 // I. FAULTS -- component_type is "gearbox" in the document but "transmission" in the real
 // schema (generate-seed.mjs filters on the literal string "transmission") -- translated on
 // write. target_power_kw isn't a document column -- filled from section D's own engines by
-// code; ambiguous/absent -> STOP rather than guess (see resolveFaults).
+// code; ambiguous/absent -> STOP rather than guess (see resolveFaults). Two levels added
+// alongside catalog_component_faults' 4-level extension (20261009101500): "drivetrain"
+// (target_code = a drivetrain_systems code, resolved live at seed-generation time, same as
+// gearbox target_codes already were -- not validated against this document) and "vehicle"
+// (target_code = THIS document's own phase_label, validated against section B below since
+// that's cheap and in-document, same as the engine-code check; category REQUIRED, checked
+// against scripts/catalog-vocabularies.json).
 function parseSectionI(text) {
   const { rows } = parseMdTable(text.split("\n"));
-  return rows.map(r => ({
+  return rows.map(mapNullTokens).map(r => ({
     component_type: r.component_type === "gearbox" ? "transmission" : r.component_type,
     target_code: r.target_code,
     fault: r.fault,
     severity: r.severity,
+    category: r.category,
   }));
 }
 
-function resolveFaults(faults, engines, problems) {
+function resolveFaults(faults, engines, phases, problems) {
   return faults.map(f => {
     if (f.severity && !VOCAB["catalog_component_faults.severity"].includes(f.severity)) {
       problems.push(`I. FAULTS: ${f.component_type} ${f.target_code} severity '${f.severity}' is not in the frozen vocabulary (${VOCAB["catalog_component_faults.severity"].join(", ")})`);
     }
+
+    if (f.component_type === "vehicle") {
+      if (!f.category || !VOCAB["catalog_component_faults.category"].includes(f.category)) {
+        problems.push(`I. FAULTS: vehicle fault on phase '${f.target_code}' has category '${f.category || ""}' -- required, must be one of (${VOCAB["catalog_component_faults.category"].join(", ")})`);
+      }
+      const phaseMatch = phases.find(p => p.phase_label === f.target_code);
+      if (!phaseMatch) {
+        problems.push(`I. FAULTS: vehicle fault target_code '${f.target_code}' does not match any phase_label in this document's B. PHASES section`);
+      }
+      return { ...f, target_power_kw: "" };
+    }
+
+    if (f.category) {
+      problems.push(`I. FAULTS: ${f.component_type} ${f.target_code} has a category ('${f.category}') but only component_type=vehicle faults take one -- leave it blank`);
+    }
+
     if (f.component_type !== "engine") return { ...f, target_power_kw: "" };
     const matches = engines.filter(e => e.code === f.target_code);
     if (matches.length !== 1) {
@@ -963,7 +992,7 @@ async function main() {
   validateConfigDictionaryUsage(doc, problems);
   validateVocabularies(doc, problems);
 
-  const faults = resolveFaults(faultsRaw, engines, problems);
+  const faults = resolveFaults(faultsRaw, engines, phases, problems);
 
   // Live resolution runs even if in-document problems were already found, so a single run
   // surfaces the complete problem list (collect-all, not stop-at-first).
@@ -1029,7 +1058,7 @@ function writeOutput(outDir, doc, faults) {
   if (doc.drivetrains.length) writeCsv(outDir, "drivetrains.csv", ["drivetrain_code"], doc.drivetrains);
   writeCsv(outDir, "trims.csv", ["phase_label", "name", "tier"], doc.trims);
   writeCsv(outDir, "trim_features.csv", ["phase_label", "trim_name", "feature", "is_optional"], doc.trimFeatures);
-  writeCsv(outDir, "faults.csv", ["component_type", "target_code", "target_power_kw", "fault", "severity"], faults);
+  writeCsv(outDir, "faults.csv", ["component_type", "target_code", "target_power_kw", "fault", "severity", "category"], faults);
 
   for (const [phaseLabel, rows] of Object.entries(doc.configsByPhase)) {
     const bodyGbDt = [...new Set(rows.flatMap(r => r.combos.map(c => `${c.body}|${c.gearbox}|${c.drivetrain}`)))];
