@@ -42,6 +42,27 @@ function sqlArray(list) {
   return `ARRAY[${list.map((s) => `'${esc(s)}'`).join(", ")}]::text[]`;
 }
 
+// CLAUDE.md rule 9: engine pros/cons/faults never contain gearbox or drivetrain facts -- that
+// content belongs on transmission_units/drivetrain_systems, not catalog_engines. This is the
+// automated safety net for this script's own raw old-row-passthrough path (single/clean-majority
+// matches, and the unconditional fault union) -- it does NOT replace a human synonym-merge pass
+// like the one that produced the 8 conflicting-variant engines' content (that was hand-curated
+// in review, not generated here). Live cleanup for the 10 rows this let through before the rule
+// existed is a separate, explicit migration -- this filter only stops it from recurring.
+const GEARBOX_DRIVETRAIN_RE = /\b(DQ\d{2,3}|MQ\d{2,3}|DSG|S-tronic|S tronic|Tiptronic|manual|automatic transmission|\bCVT\b|quattro|4MOTION|4x4|\bAWD\b|\bFWD\b|\bRWD\b|Haldex|mechatronic|differential|gearbox|clutch)\b/i;
+
+function stripGearboxDrivetrainItems(items, label, kind) {
+  const kept = [];
+  for (const item of items || []) {
+    if (GEARBOX_DRIVETRAIN_RE.test(item)) {
+      console.warn(`[gearbox/drivetrain filter] dropped ${kind} on ${label}: "${item}"`);
+      continue;
+    }
+    kept.push(item);
+  }
+  return kept;
+}
+
 const matched = rows.filter((r) => r.matchedEngineId);
 const byEngine = new Map();
 for (const r of matched) {
@@ -63,16 +84,18 @@ for (const [engineId, group] of byEngine) {
 
   // Faults: union across EVERY row in the group, case-insensitive dedupe, first-seen casing
   // kept -- unconditional, per Martin's rule, regardless of whether a pros/cons winner exists.
+  // Gearbox/drivetrain items are stripped here too (CLAUDE.md rule 9) -- faults are not exempt.
   const seen = new Set();
-  const faults = [];
+  const faultsRaw = [];
   for (const r of group) {
     for (const f of r.commonFaults || []) {
       const key = f.toLowerCase().trim();
       if (!key || seen.has(key)) continue;
       seen.add(key);
-      faults.push(f);
+      faultsRaw.push(f);
     }
   }
+  const faults = stripGearboxDrivetrainItems(faultsRaw, label, "fault");
   for (const f of faults) faultInserts.push({ engineId, label, fault: f });
 
   if (winner) {
@@ -80,7 +103,9 @@ for (const [engineId, group] of byEngine) {
     contentUpdates.push({
       engineId, label,
       reliabilityMapped: winner.reliabilityMapped === "" ? null : winner.reliabilityMapped,
-      pros: winner.pros, cons: winner.cons, batteryKwh,
+      pros: stripGearboxDrivetrainItems(winner.pros, label, "pro"),
+      cons: stripGearboxDrivetrainItems(winner.cons, label, "con"),
+      batteryKwh,
     });
     enginesWithDecidedContent++;
   } else {
