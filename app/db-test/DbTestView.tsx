@@ -55,6 +55,10 @@ export default function DbTestView() {
   }), [searchParams]);
 
   const sort = searchParams.get("sort") || "price_asc";
+  // ?gaps=1 -- same convention as /catalog: in normal mode a missing field is hidden, in
+  // gaps mode it renders as a visible "missing" marker instead. Currently only wired into the
+  // gearbox widget's new reliability/pros/cons/notes fields (see CarDetail.tsx).
+  const gapsMode = searchParams.get("gaps") === "1";
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -209,6 +213,7 @@ export default function DbTestView() {
           fuelFilter={filters.fuel}
           gearboxFilter={filters.gearbox}
           drivetrainFilter={filters.drivetrain}
+          gapsMode={gapsMode}
           onBack={closeCar}
         />
       ) : (<>

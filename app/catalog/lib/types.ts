@@ -16,6 +16,9 @@ export interface CatalogEngine {
   engineOilCapacityLiters: number | null;
   timingReplacementKm: number | null;
   hybridType: string | null;
+  reliabilityRating: number | null;
+  pros: string[];
+  cons: string[];
 }
 
 export interface CatalogGearbox {
@@ -26,6 +29,13 @@ export interface CatalogGearbox {
   speeds: number | null;
   reliabilityNote: string | null;
   maintenanceNote: string | null;
+  reliabilityRating: number | null;
+  pros: string[];
+  cons: string[];
+  // Per-(phase, unit) authored note from catalog_phase_unit_notes -- e.g. "For FWD petrol.
+  // Same DQ200 risk." on this specific car, distinct from reliabilityNote's unit-wide text.
+  // null until that table exists live and/or has a row for this phase+unit.
+  phaseNote: string | null;
 }
 
 export interface CatalogDrivetrain {

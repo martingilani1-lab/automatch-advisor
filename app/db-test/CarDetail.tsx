@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
+import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import type { DetailData, DetailEngine, DetailTransmission, DetailDrivetrainSystem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -40,10 +41,26 @@ interface CarDetailProps {
   fuelFilter: string[];
   gearboxFilter: string[];
   drivetrainFilter: string[];
+  // ?gaps=1 -- currently only read by the gearbox widget's new reliability/pros/cons/notes
+  // fields (TransmissionAccordion below). In normal mode a missing one of those is hidden
+  // entirely, matching every other field in this view; gaps mode shows it instead.
+  gapsMode: boolean;
   onBack: () => void;
 }
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+// "—" is this view's existing missing-value convention (see every `?? "—"`/`|| "—"` in this
+// file) -- gaps mode swaps that single dash for a visible, explicit marker instead of hiding
+// it, reusing the same .fault-sev pill look the faults list already uses for a severity badge.
+function MissingMarker({ gapsMode, label }: { gapsMode: boolean; label: string }) {
+  if (!gapsMode) return null;
+  return (
+    <span className="fault-sev" style={{ background: "#ff980022", color: "#ff9800", border: "1px solid #ff980044" }}>
+      missing: {label}
+    </span>
+  );
+}
 
 // Engines tab card. Reliability badge/dot removed vs. the Prehľad original -- catalog_engines
 // has no reliability-tier column, and engine.reliability is literally "—" here (see
@@ -94,37 +111,44 @@ function EngineAccordion({ car, engine, isOpen, onToggle }: { car: CarData; engi
   );
 }
 
-function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTransmission; isOpen: boolean; onToggle: () => void }) {
+function TransmissionAccordion({ trans, gapsMode, isOpen, onToggle }: { trans: DetailTransmission; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
   const typeLabel = GEARBOX_TYPES.find((tt) => tt.slug === trans.subtype)?.label;
   const [maintOpen, setMaintOpen] = useState(false);
+  const rc = trans.reliability !== "—" ? REL_COLORS[trans.reliability] || "#888" : null;
   return (
     <div className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
       <div className="eng-hdr">
         <div className="eng-left">
-          <span className="eng-name">{trans.type}</span>
+          <span className="eng-name">{gearboxHeaderLabel(trans.type, trans.speeds, trans.subtype)}</span>
           <div className="eng-tags">
+            {rc ? (
+              <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{trans.reliability}</span>
+            ) : (
+              <MissingMarker gapsMode={gapsMode} label="reliability rating" />
+            )}
             {typeLabel && <span className="cfuel-tag">{typeLabel}</span>}
+            {/* speeds is folded into the header label above when present ("7-speed wet
+                DCT") -- nothing shown here in that case, only a gaps-mode marker when it's
+                genuinely missing (never a visible "Speeds: —" duplicating the header). */}
+            {trans.speeds == null && <MissingMarker gapsMode={gapsMode} label="speeds" />}
           </div>
         </div>
         <span className="chevron">{isOpen ? "▲" : "▼"}</span>
       </div>
       {isOpen && (
         <div className="eng-body">
-          <div className="cgrid">
-            {trans.unit?.maintenance_note ? (
+          {trans.unit?.maintenance_note ? (
+            <div className="cgrid">
               <div
                 className="cgrid-item cgrid-item-btn"
                 onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
               >
                 <div className="cgrid-val">{"🔧"} Maintenance {maintOpen ? "▴" : "▾"}</div>
               </div>
-            ) : (
-              <div className="cgrid-item">
-                <div className="cgrid-label">Maintenance</div>
-                <div className="cgrid-val">{trans.maintenance_km != null ? `${fmtK(trans.maintenance_km)}km` : "—"}</div>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <MissingMarker gapsMode={gapsMode} label="maintenance note" />
+          )}
           {maintOpen && trans.unit?.maintenance_note && (
             <div className="maint-card">
               {splitSentences(trans.unit.maintenance_note).map((s, si) => (
@@ -136,16 +160,35 @@ function TransmissionAccordion({ trans, isOpen, onToggle }: { trans: DetailTrans
             <>
               <div className="sub-label">{"⚠️"} Reliability</div>
               <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{trans.unit.reliability_note}</div>
-              {trans.faults?.length > 0 && (<>
-                <div className="sub-label">This car</div>
-                {trans.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
-              </>)}
             </>
           ) : (
-            trans.faults?.length > 0 && (<>
-              <div className="sub-label">{"⚠️"} Known faults</div>
-              {trans.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
-            </>)
+            <MissingMarker gapsMode={gapsMode} label="reliability note" />
+          )}
+          {trans.pros?.length > 0 && (<>
+            <div className="sub-label">{"✅"} Pros</div>
+            {trans.pros.map((p, pi) => <div key={pi} className="pro-item">{"·"} {p}</div>)}
+          </>)}
+          {trans.pros?.length === 0 && <MissingMarker gapsMode={gapsMode} label="pros" />}
+          {trans.cons?.length > 0 && (<>
+            <div className="sub-label">{"❌"} Cons</div>
+            {trans.cons.map((c, ci) => <div key={ci} className="con-item">{"·"} {c}</div>)}
+          </>)}
+          {trans.cons?.length === 0 && <MissingMarker gapsMode={gapsMode} label="cons" />}
+          {/* catalog_component_faults keys a fault to the unit itself (shared across every car
+              using this gearbox), not this one car -- always "Known faults", never "This car". */}
+          {trans.faults?.length > 0 ? (<>
+            <div className="sub-label">{"⚠️"} Known faults</div>
+            {trans.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
+          </>) : (
+            <MissingMarker gapsMode={gapsMode} label="known faults" />
+          )}
+          {trans.phase_note ? (
+            <>
+              <div className="sub-label">In this car</div>
+              <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5 }}>{trans.phase_note}</div>
+            </>
+          ) : (
+            <MissingMarker gapsMode={gapsMode} label="in-this-car note" />
           )}
         </div>
       )}
@@ -185,7 +228,7 @@ function DrivetrainAccordion({ group, showVariants, isOpen, onToggle }: { group:
   );
 }
 
-export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, onBack }: CarDetailProps) {
+export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack }: CarDetailProps) {
   const [activeTabState, setActiveTabState] = useState<string | null>(null);
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
   const [openTrans, setOpenTrans] = useState<Record<number, boolean>>({});
@@ -338,7 +381,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
               <div className="mp-hint">No data available.</div>
             ) : (
               detail!.t.map((t, i) => (
-                <TransmissionAccordion key={i} trans={t} isOpen={!!openTrans[i]} onToggle={() => setOpenTrans((p) => ({ ...p, [i]: !p[i] }))} />
+                <TransmissionAccordion key={i} trans={t} gapsMode={gapsMode} isOpen={!!openTrans[i]} onToggle={() => setOpenTrans((p) => ({ ...p, [i]: !p[i] }))} />
               ))
             )}
           </div>

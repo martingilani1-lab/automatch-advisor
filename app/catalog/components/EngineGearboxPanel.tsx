@@ -1,5 +1,6 @@
 import type { CatalogConfig, CatalogFault } from "../lib/types";
 import { countGaps, type GapField } from "../lib/gaps";
+import { gearboxHeaderLabel } from "../lib/gearboxLabel";
 import Badge from "./ui/badge";
 import Field from "./ui/field";
 import SectionGapsBadge from "./SectionGapsBadge";
@@ -8,6 +9,64 @@ interface EngineGearboxPanelProps {
   config: CatalogConfig;
   faults: CatalogFault[];
   gapsMode: boolean;
+}
+
+// catalog_engines/transmission_units.reliability_rating is a smallint 1-5 -- same scale and
+// word labels as the mapping used when importing it (scripts/fill/engine-import-resolve.mjs's
+// RELIABILITY_MAP, reversed), so display and import agree on what "4" means.
+const RELIABILITY_LABELS: Record<number, string> = { 5: "Excellent", 4: "Good", 3: "Average", 2: "Below Average", 1: "Poor" };
+
+function ProsConsList({ pros, cons, gapsMode }: { pros: string[]; cons: string[]; gapsMode: boolean }) {
+  if (pros.length === 0 && cons.length === 0) {
+    return gapsMode ? <Badge variant="missing">no pros/cons recorded</Badge> : null;
+  }
+  return (
+    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+      {pros.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {pros.map((p, i) => (
+            <li key={i} className="text-xs text-catalog-text">
+              <span className="text-catalog-accent">+</span> {p}
+            </li>
+          ))}
+        </ul>
+      )}
+      {cons.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {cons.map((c, i) => (
+            <li key={i} className="text-xs text-catalog-muted">
+              <span className="text-orange-400">–</span> {c}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function FaultsList({ faults }: { faults: CatalogFault[] }) {
+  return (
+    <div className="mt-2">
+      <p className="mb-1 text-xs uppercase tracking-wide text-catalog-muted">
+        Known faults {faults.length > 0 && `(${faults.length})`}
+      </p>
+      {faults.length === 0 ? (
+        <p className="text-sm text-catalog-muted">None recorded.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {faults.map((f) => (
+            <li
+              key={f.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-catalog-border bg-catalog-surface p-3"
+            >
+              <span className="text-sm text-catalog-text">{f.fault}</span>
+              {f.severity && <Badge variant="warning">{f.severity}</Badge>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineGearboxPanelProps) {
@@ -50,9 +109,16 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
     { label: "Family", value: gearbox.family },
     { label: "Maker", value: gearbox.maker },
     { label: "Speeds", value: gearbox.speeds },
+    { label: "Reliability rating", value: gearbox.reliabilityRating != null ? RELIABILITY_LABELS[gearbox.reliabilityRating] : null },
     { label: "Reliability note", value: gearbox.reliabilityNote },
     { label: "Maintenance note", value: gearbox.maintenanceNote },
+    { label: "In this car", value: gearbox.phaseNote },
   ];
+
+  // catalog_component_faults keys a fault to EITHER an engine OR a unit, never a vehicle --
+  // split the combined list this component receives so each panel shows only its own.
+  const engineFaults = faults.filter((f) => f.engineId === engine.id);
+  const gearboxFaults = faults.filter((f) => f.unitId === gearbox.id);
 
   const drivetrainFields: GapField[] = drivetrain
     ? [
@@ -84,13 +150,17 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
           {engineFields.map((f) => (
             <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
           ))}
+          <ProsConsList pros={engine.pros} cons={engine.cons} gapsMode={gapsMode} />
+          <FaultsList faults={engineFaults} />
         </div>
         <div className="flex flex-col gap-4">
           <div className="rounded-lg border border-catalog-border bg-catalog-surface p-4">
-            <p className="mb-2 text-sm font-medium text-catalog-text">Gearbox — {gearbox.code}</p>
+            <p className="mb-2 text-sm font-medium text-catalog-text">Gearbox — {gearboxHeaderLabel(gearbox.code, gearbox.speeds, gearbox.family)}</p>
             {gearboxFields.map((f) => (
               <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
             ))}
+            <ProsConsList pros={gearbox.pros} cons={gearbox.cons} gapsMode={gapsMode} />
+            <FaultsList faults={gearboxFaults} />
           </div>
           {drivetrain && (
             <div className="rounded-lg border border-catalog-border bg-catalog-surface p-4">
@@ -122,27 +192,6 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
                   {t.tireSize}
                   {!t.isStandard && " (optional)"}
                 </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div>
-        <p className="mb-2 text-sm font-medium text-catalog-text">
-          Known faults {faults.length > 0 && <span className="text-catalog-muted">({faults.length})</span>}
-        </p>
-        {faults.length === 0 ? (
-          <p className="text-sm text-catalog-muted">None recorded for this engine/gearbox.</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {faults.map((f) => (
-              <li
-                key={f.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-catalog-border bg-catalog-surface p-3"
-              >
-                <span className="text-sm text-catalog-text">{f.fault}</span>
-                {f.severity && <Badge variant="warning">{f.severity}</Badge>}
               </li>
             ))}
           </ul>

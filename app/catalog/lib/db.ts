@@ -99,7 +99,7 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
 
   // Everything scoped to this phase, in parallel -- same Promise.all shape as
   // app/api/cars/route.ts.
-  const [bodyDimsRes, configsRes, trimsRes, mediaRes] = await Promise.all([
+  const [bodyDimsRes, configsRes, trimsRes, mediaRes, phaseUnitNotesRes] = await Promise.all([
     supabase
       .from("phase_body_dimensions")
       .select("*, catalog_body_types(id, name)")
@@ -111,8 +111,8 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
         id, body_type_id, acceleration_0_100, top_speed_kmh, fuel_consumption_combined,
         co2_emissions_g_km, battery_capacity_net_kwh, ev_range_wltp_km, max_charging_kw_dc,
         catalog_body_types(id, name),
-        catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type),
-        transmission_units(id, code, family, maker, speeds, reliability_note, maintenance_note),
+        catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type, reliability_rating, pros, cons),
+        transmission_units(id, code, family, maker, speeds, reliability_note, maintenance_note, reliability_rating, pros, cons),
         drivetrain_systems(id, code, type, maker, reliability_note)
         `
       )
@@ -122,6 +122,10 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
       .from("catalog_media")
       .select("id, body_type_id, image_url, view_angle, is_main, catalog_body_types(id, name)")
       .eq("phase_id", phaseId),
+    // catalog_phase_unit_notes may not exist live yet (its migration is review-only, not run)
+    // -- same "missing table degrades to no rows" convention as vehicle_safety_features in
+    // app/api/detail/route.ts: no .error check, just `.data || []` below.
+    supabase.from("catalog_phase_unit_notes").select("unit_id, note").eq("phase_id", phaseId),
   ]);
   if (bodyDimsRes.error) throw bodyDimsRes.error;
   if (configsRes.error) throw configsRes.error;
@@ -175,7 +179,8 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
     trimFeaturesRes.data || [],
     faultRows,
     tireSizeRows,
-    mediaRes.data || []
+    mediaRes.data || [],
+    phaseUnitNotesRes.data || []
   );
 }
 
@@ -189,8 +194,10 @@ function transformBundle(
   trimFeatureRows: any[],
   faultRows: any[],
   tireSizeRows: any[],
-  mediaRows: any[]
+  mediaRows: any[],
+  phaseUnitNoteRows: any[]
 ): PhaseBundle {
+  const noteByUnit = new Map<string, string>(phaseUnitNoteRows.map((n) => [n.unit_id, n.note]));
   const bodyDimensions: CatalogBodyDimensions[] = bodyDimRows.map((d) => ({
     bodyTypeId: d.body_type_id,
     bodyName: d.catalog_body_types?.name ?? "",
@@ -232,6 +239,9 @@ function transformBundle(
       engineOilCapacityLiters: c.catalog_engines.engine_oil_capacity_liters,
       timingReplacementKm: c.catalog_engines.timing_replacement_km,
       hybridType: c.catalog_engines.hybrid_type,
+      reliabilityRating: c.catalog_engines.reliability_rating,
+      pros: c.catalog_engines.pros ?? [],
+      cons: c.catalog_engines.cons ?? [],
     },
     gearbox: {
       id: c.transmission_units.id,
@@ -240,6 +250,10 @@ function transformBundle(
       maker: c.transmission_units.maker,
       speeds: c.transmission_units.speeds,
       reliabilityNote: c.transmission_units.reliability_note,
+      reliabilityRating: c.transmission_units.reliability_rating,
+      pros: c.transmission_units.pros ?? [],
+      cons: c.transmission_units.cons ?? [],
+      phaseNote: noteByUnit.get(c.transmission_units.id) ?? null,
       maintenanceNote: c.transmission_units.maintenance_note,
     },
     drivetrain: c.drivetrain_systems

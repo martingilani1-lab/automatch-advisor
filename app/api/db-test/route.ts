@@ -234,6 +234,11 @@ export async function GET() {
 
 const SEVERITY_LABELS: Record<string, string> = { critical: "Critical", moderate: "Moderate", minor: "Minor" };
 
+// Same scale/words as scripts/fill/engine-import-resolve.mjs's RELIABILITY_MAP, reversed --
+// transmission_units.reliability_rating is a smallint 1-5, display and import agree on
+// what "4" means.
+const RELIABILITY_LABELS: Record<number, string> = { 5: "Excellent", 4: "Good", 3: "Average", 2: "Below Average", 1: "Poor" };
+
 export async function POST(req: NextRequest) {
   try {
     const { vehicleId } = await req.json();
@@ -298,11 +303,12 @@ export async function POST(req: NextRequest) {
         subtype: gearbox.family,
         speeds: gearbox.speeds,
         maintenance_km: null,
-        reliability: "—",
+        reliability: gearbox.reliabilityRating != null ? RELIABILITY_LABELS[gearbox.reliabilityRating] ?? "—" : "—",
         faults: bundle.faults.filter((f) => f.unitId === gearbox.id).map((f) => f.fault),
         notes: "",
-        pros: [],
-        cons: [],
+        pros: gearbox.pros,
+        cons: gearbox.cons,
+        phase_note: gearbox.phaseNote,
         unit: {
           code: gearbox.code,
           family: gearbox.family,

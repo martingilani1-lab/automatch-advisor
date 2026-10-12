@@ -14,8 +14,10 @@ export interface DetailEngine {
   co2: number | null;
   battery_kwh: number | null;
   range_km: number | null;
-  // No reliability-tier column exists anywhere in catalog_engines -- literally "—", never a
-  // guessed tier (see CLAUDE.md "NULL over invention").
+  // catalog_engines.reliability_rating/pros/cons exist live now (added after this file was
+  // first written) but aren't wired into engine display yet -- out of scope for the
+  // transmission-widget fix that added reliability_rating/pros/cons to DetailTransmissionUnit
+  // below. Still literally "—" here, not a guessed tier (CLAUDE.md "NULL over invention").
   reliability: string;
   faults: string[];
   pros: string[];
@@ -45,11 +47,16 @@ export interface DetailTransmission {
   subtype: string;
   speeds: number | null;
   maintenance_km: number | null;
+  // Word-mapped from transmission_units.reliability_rating (1-5) -- "—" if that's NULL, never
+  // a guessed tier (CLAUDE.md "NULL over invention"). pros/cons come from the same row.
   reliability: string;
   faults: string[];
   notes: string;
   pros: string[];
   cons: string[];
+  // Per-(phase, unit) authored note from catalog_phase_unit_notes, shown as "In this car" --
+  // null until that table exists live and/or has a row for this phase+unit.
+  phase_note: string | null;
   unit: DetailTransmissionUnit | null;
   drivetrainSystem: DetailDrivetrainSystem | null;
 }

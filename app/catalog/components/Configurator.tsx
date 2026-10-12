@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import type { CatalogConfig, CatalogFault } from "../lib/types";
+import { gearboxHeaderLabel } from "../lib/gearboxLabel";
 import SegmentedControl from "./ui/segmented-control";
 import EngineGearboxPanel from "./EngineGearboxPanel";
 
@@ -60,10 +61,12 @@ export default function Configurator({ configs, faults, gapsMode }: Configurator
   const effectiveEngineId = engineId ?? (engineOptions.length === 1 ? engineOptions[0].value : null);
   const afterEngine = afterFuel.filter((c) => !effectiveEngineId || c.engine.id === effectiveEngineId);
 
+  // Same "<code> · <speeds>-speed <type>" label as the gearbox widget's own header
+  // (EngineGearboxPanel), e.g. "VW DQ381 · 7-speed wet DCT" -- not the raw family string.
   const gearboxOptions = distinctBy(
     afterEngine,
     (c) => c.gearbox.id,
-    (c) => `${c.gearbox.code} (${c.gearbox.speeds ? `${c.gearbox.speeds}-speed ` : ""}${c.gearbox.family})`
+    (c) => gearboxHeaderLabel(c.gearbox.code, c.gearbox.speeds, c.gearbox.family)
   );
   const effectiveUnitId = unitId ?? (gearboxOptions.length === 1 ? gearboxOptions[0].value : null);
   const afterGearbox = afterEngine.filter((c) => !effectiveUnitId || c.gearbox.id === effectiveUnitId);
