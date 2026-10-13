@@ -1,6 +1,7 @@
 import type { CatalogConfig, CatalogFault } from "../lib/types";
 import { countGaps, type GapField } from "../lib/gaps";
 import { gearboxHeaderLabel } from "../lib/gearboxLabel";
+import { cylindersLabel } from "../lib/cylindersLabel";
 import Badge from "./ui/badge";
 import Field from "./ui/field";
 import SectionGapsBadge from "./SectionGapsBadge";
@@ -100,7 +101,7 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
     { label: "Displacement", value: engine.displacementCc != null ? `${engine.displacementCc} cc` : null },
     { label: "Power", value: `${engine.powerKw} kW` },
     { label: "Torque", value: engine.torqueNm != null ? `${engine.torqueNm} Nm` : null },
-    { label: "Cylinders", value: engine.cylinders },
+    { label: "Cylinders", value: cylindersLabel(engine.cylinders) },
     { label: "Emission standard", value: engine.emissionStandard },
     { label: "Timing type", value: engine.timingType },
     { label: "Timing replacement", value: timingReplacementValue },
@@ -109,7 +110,6 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
     { label: "Reliability rating", value: engine.reliabilityRating != null ? RELIABILITY_LABELS[engine.reliabilityRating] : null },
     { label: "0–100 km/h", value: config.acceleration0To100 != null ? `${config.acceleration0To100} s` : null },
     { label: "Top speed", value: config.topSpeedKmh != null ? `${config.topSpeedKmh} km/h` : null },
-    { label: "Consumption (combined)", value: config.fuelConsumptionCombined != null ? `${config.fuelConsumptionCombined} L/100km` : null },
     { label: "CO₂ emissions", value: config.co2EmissionsGKm != null ? `${config.co2EmissionsGKm} g/km` : null },
     { label: "Battery capacity", value: config.batteryCapacityNetKwh != null ? `${config.batteryCapacityNetKwh} kWh` : null },
     { label: "EV range (WLTP)", value: config.evRangeWltpKm != null ? `${config.evRangeWltpKm} km` : null },

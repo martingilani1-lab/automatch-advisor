@@ -272,6 +272,7 @@ export async function POST(req: NextRequest) {
         power_kw: engine.powerKw,
         displacement_cc: engine.displacementCc,
         torque_nm: engine.torqueNm,
+        cylinders: engine.cylinders,
         drivetrain: group.some((c) => c.drivetrain != null) ? "AWD" : "FWD",
         consumption: cons.length ? Math.round((cons.reduce((a, b) => a + b, 0) / cons.length) * 10) / 10 : null,
         co2: group[0].co2EmissionsGKm,

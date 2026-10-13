@@ -17,7 +17,12 @@ export interface DetailEngine {
   power_kw: number;
   displacement_cc: number | null;
   torque_nm: number | null;
+  cylinders: string | null;
   drivetrain: string;
+  // consumption is per-configuration data averaged up to the engine for this field (see
+  // app/api/db-test/route.ts) -- the query/data stay, but the engine widget no longer
+  // displays it (replaced by cylinders), since consumption is genuinely a per-configuration
+  // fact, not a per-engine one.
   consumption: number | null;
   co2: number | null;
   battery_kwh: number | null;

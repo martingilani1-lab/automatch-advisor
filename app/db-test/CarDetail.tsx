@@ -5,6 +5,7 @@ import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
+import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
 import type { DetailData, DetailEngine, DetailTransmission, DetailDrivetrainSystem, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -102,10 +103,10 @@ function MissingMarker({ gapsMode, label }: { gapsMode: boolean; label: string }
 // Engines tab card. Reliability/pros/cons/faults now mirror TransmissionAccordion below
 // exactly -- catalog_engines.reliability_rating/pros/cons are wired in the same way as
 // transmission_units' were for the gearbox widget.
-function EngineAccordion({ car, engine, gapsMode, isOpen, onToggle }: { car: CarData; engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
+function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
   const isEV = engine.fuel_type === "electric" || engine.battery_kwh != null;
-  const cons = engine.consumption ?? getConsumptionForFuel(car, engine.fuel_type);
   const rc = engine.reliability !== "—" ? REL_COLORS[engine.reliability] || "#888" : null;
+  const cylinders = cylindersLabel(engine.cylinders);
 
   return (
     <div className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
@@ -138,10 +139,17 @@ function EngineAccordion({ car, engine, gapsMode, isOpen, onToggle }: { car: Car
               <div className="cgrid-label">Drivetrain</div>
               <div className="cgrid-val">{engine.drivetrain || "—"}</div>
             </div>
-            <div className="cgrid-item">
-              <div className="cgrid-label">{isEV ? "Range" : "Consumption"}</div>
-              <div className="cgrid-val">{isEV ? (engine.range_km != null ? `${engine.range_km}km` : "—") : (cons != null ? `${cons}L/100` : "—")}</div>
-            </div>
+            {isEV ? (
+              <div className="cgrid-item">
+                <div className="cgrid-label">Range</div>
+                <div className="cgrid-val">{engine.range_km != null ? `${engine.range_km}km` : "—"}</div>
+              </div>
+            ) : cylinders != null ? (
+              <div className="cgrid-item">
+                <div className="cgrid-label">Cylinders</div>
+                <div className="cgrid-val">{cylinders}</div>
+              </div>
+            ) : null}
           </div>
           {engine.pros?.length > 0 && (<>
             <div className="sub-label">{"✅"} Pros</div>
@@ -414,7 +422,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         {activeTab === "engines" && (
           <div className="mp-section">
             {filteredEngines.map((e, i) => (
-              <EngineAccordion key={i} car={car} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i]} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
+              <EngineAccordion key={i} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i]} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
             ))}
           </div>
         )}
