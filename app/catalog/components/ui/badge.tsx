@@ -14,10 +14,14 @@ const badgeVariants = cva(
         // catalog_component_faults.severity badge colors -- critical/moderate use the same
         // red/amber scale as every other alert-style variant above; minor is deliberately
         // grey/neutral (not green) so a low-severity fault doesn't read as a reassuring
-        // "all good" signal.
+        // "all good" signal. Uses Tailwind's own zinc scale rather than the catalog-border/
+        // catalog-surface tokens: those are near-black (#2a2a2e/#181818) and nearly identical
+        // to catalog-bg (#0e0e0f), so a badge built from them was reported as rendering with
+        // no visible frame or background at all on the dark theme -- zinc-600/800 at the same
+        // density as the red/amber variants actually shows up.
         critical: "border-red-700/50 bg-red-950/40 text-red-400",
         moderate: "border-amber-700/50 bg-amber-950/40 text-amber-400",
-        minor: "border-catalog-border bg-catalog-surface text-catalog-muted",
+        minor: "border-zinc-600/50 bg-zinc-800/60 text-zinc-300",
       },
     },
     defaultVariants: { variant: "default" },
