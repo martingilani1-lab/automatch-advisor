@@ -15,12 +15,11 @@ const SEVERITY_COLORS: Record<string, string> = { Critical: "#f44336", Moderate:
 
 // Per-item severity badge on the engine/gearbox "Known faults" lists below (distinct from the
 // SEVERITY_COLORS map above, which colors the flat "Common faults" tab and keeps minor=green
-// there, an existing convention left untouched). Here minor is deliberately grey/neutral, not
-// green, so a low-severity fault doesn't read as a reassuring "all good" signal.
-// minor uses a lighter grey than the page's own near-black card background (#1c1c1e) --
-// #888 at the same low alpha as the other severities blended into the card and was
-// reported as rendering with no visible frame or background at all.
-const FAULT_ITEM_SEVERITY_COLORS: Record<string, string> = { critical: "#f44336", moderate: "#ff9800", minor: "#9999aa" };
+// there, an existing convention left untouched). Here minor uses blue -- an informational
+// tone, distinct from the red/amber alert colors -- rather than green, so a low-severity
+// fault doesn't read as a reassuring "all good" signal. (Grey was tried first but kept
+// reading as "no badge at all" against this dark theme.)
+const FAULT_ITEM_SEVERITY_COLORS: Record<string, string> = { critical: "#f44336", moderate: "#ff9800", minor: "#4a9eff" };
 const FAULT_ITEM_SEVERITY_ORDER: Record<string, number> = { critical: 0, moderate: 1, minor: 2 };
 
 // Shared by EngineAccordion and TransmissionAccordion so both "Known faults" lists look
@@ -35,15 +34,11 @@ function FaultsBlock({ faults, gapsMode }: { faults: DetailFaultItem[]; gapsMode
     <>
       <div className="sub-label">{"⚠️"} Known faults</div>
       {sorted.map((f, fi) => {
-        const color = f.severity ? FAULT_ITEM_SEVERITY_COLORS[f.severity] ?? "#9999aa" : "#9999aa";
+        const color = f.severity ? FAULT_ITEM_SEVERITY_COLORS[f.severity] ?? "#4a9eff" : "#4a9eff";
         return (
           <div key={fi} className="fault-item">
             {f.severity && (
-              // Higher alpha than the flat "Common faults" tab's badge (22/44) -- grey reads
-              // at much lower contrast than red/orange at the same opacity against this
-              // theme's near-black card background (#1c1c1e), so minor's badge needs a
-              // stronger background/border to actually show a frame.
-              <span className="fault-sev" style={{ background: color + "33", color, border: `1px solid ${color}77`, marginRight: 6 }}>
+              <span className="fault-sev" style={{ background: color + "22", color, border: `1px solid ${color}44`, marginRight: 6 }}>
                 {f.severity}
               </span>
             )}

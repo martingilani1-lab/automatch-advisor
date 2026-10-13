@@ -43,7 +43,12 @@ export interface CarData {
 }
 
 export const REL_RANK: Record<string, number> = { Excellent: 3, Good: 2, Average: 1, Poor: 0 };
-export const REL_COLORS: Record<string, string> = { Excellent: "#6bdb8a", Good: "#e8ff47", Average: "#ff9944", Poor: "#ff6b35" };
+// "Below Average" is a catalog_ schema-only tier (RELIABILITY_LABELS' 5-point scale maps
+// rating=2 to this word) -- the legacy schema's reliability tier is only ever one of the
+// other four words, so REL_RANK above is deliberately left as that 4-tier scale. Missing
+// here meant /db-test's reliability badge fell through to its own "#888" fallback, which was
+// nearly invisible against the dark theme -- same contrast bug as the minor-severity badge.
+export const REL_COLORS: Record<string, string> = { Excellent: "#6bdb8a", Good: "#e8ff47", Average: "#ff9944", "Below Average": "#ff8040", Poor: "#ff6b35" };
 export const REL_SCALE_TITLE = "Reliability: Excellent > Good > Average > Poor";
 
 // origin_country + years, e.g. "🇩🇪 German · 2015–2021" — falls back to just
