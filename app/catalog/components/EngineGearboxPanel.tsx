@@ -98,7 +98,7 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
 
   const engineFields: GapField[] = [
     { label: "Code", value: engine.code },
-    { label: "Displacement", value: engine.displacementCc != null ? `${engine.displacementCc} cc` : null },
+    { label: "Displacement", value: engine.displacementCc != null ? `${engine.displacementCc} cm³` : null },
     { label: "Power", value: `${engine.powerKw} kW` },
     { label: "Torque", value: engine.torqueNm != null ? `${engine.torqueNm} Nm` : null },
     { label: "Cylinders", value: cylindersLabel(engine.cylinders) },

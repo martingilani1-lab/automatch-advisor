@@ -127,14 +127,23 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: Detai
       {isOpen && (
         <div className="eng-body">
           <div className="cgrid">
-            <div className="cgrid-item">
-              <div className="cgrid-label">{isEV ? "Battery" : "Displacement"}</div>
-              <div className="cgrid-val">{isEV ? (engine.battery_kwh != null ? `${engine.battery_kwh}kWh` : "—") : (engine.displacement_cc != null ? `${(engine.displacement_cc / 1000).toFixed(1)}L` : "—")}</div>
-            </div>
-            <div className="cgrid-item">
-              <div className="cgrid-label">Torque</div>
-              <div className="cgrid-val">{engine.torque_nm != null ? `${engine.torque_nm}Nm` : "—"}</div>
-            </div>
+            {isEV ? (
+              <div className="cgrid-item">
+                <div className="cgrid-label">Battery</div>
+                <div className="cgrid-val">{engine.battery_kwh != null ? `${engine.battery_kwh}kWh` : "—"}</div>
+              </div>
+            ) : engine.displacement_cc != null ? (
+              <div className="cgrid-item">
+                <div className="cgrid-label">Displacement</div>
+                <div className="cgrid-val">{engine.displacement_cc} cm³</div>
+              </div>
+            ) : null}
+            {engine.torque_nm != null && (
+              <div className="cgrid-item">
+                <div className="cgrid-label">Torque</div>
+                <div className="cgrid-val">{engine.torque_nm} Nm</div>
+              </div>
+            )}
             <div className="cgrid-item">
               <div className="cgrid-label">Drivetrain</div>
               <div className="cgrid-val">{engine.drivetrain || "—"}</div>
