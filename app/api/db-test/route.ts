@@ -277,10 +277,12 @@ export async function POST(req: NextRequest) {
         co2: group[0].co2EmissionsGKm,
         battery_kwh: battery.length ? battery[0] : null,
         range_km: range.length ? range[0] : null,
-        reliability: "—",
-        faults: bundle.faults.filter((f) => f.engineId === engine.id).map((f) => f.fault),
-        pros: [],
-        cons: [],
+        reliability: engine.reliabilityRating != null ? RELIABILITY_LABELS[engine.reliabilityRating] ?? "—" : "—",
+        faults: bundle.faults
+          .filter((f) => f.engineId === engine.id)
+          .map((f) => ({ fault: f.fault, severity: f.severity })),
+        pros: engine.pros,
+        cons: engine.cons,
       };
     });
 
@@ -304,7 +306,9 @@ export async function POST(req: NextRequest) {
         speeds: gearbox.speeds,
         maintenance_km: null,
         reliability: gearbox.reliabilityRating != null ? RELIABILITY_LABELS[gearbox.reliabilityRating] ?? "—" : "—",
-        faults: bundle.faults.filter((f) => f.unitId === gearbox.id).map((f) => f.fault),
+        faults: bundle.faults
+          .filter((f) => f.unitId === gearbox.id)
+          .map((f) => ({ fault: f.fault, severity: f.severity })),
         notes: "",
         pros: gearbox.pros,
         cons: gearbox.cons,

@@ -3,6 +3,14 @@
 // in the Prehľad version) has no catalog_ equivalent at all (no vehicle_safety_features-style
 // table), so it's dropped here rather than carried over empty — see CarDetail.tsx's Safety tab.
 
+// A fault carries its own severity (catalog_component_faults.severity: 'critical' | 'moderate'
+// | 'minor' | null) through to display, so the engine/gearbox fault lists can sort by it and
+// show a severity badge rather than a flat list of strings.
+export interface DetailFaultItem {
+  fault: string;
+  severity: string | null;
+}
+
 export interface DetailEngine {
   engine: string;
   fuel_type: string;
@@ -14,12 +22,10 @@ export interface DetailEngine {
   co2: number | null;
   battery_kwh: number | null;
   range_km: number | null;
-  // catalog_engines.reliability_rating/pros/cons exist live now (added after this file was
-  // first written) but aren't wired into engine display yet -- out of scope for the
-  // transmission-widget fix that added reliability_rating/pros/cons to DetailTransmissionUnit
-  // below. Still literally "—" here, not a guessed tier (CLAUDE.md "NULL over invention").
+  // Word-mapped from catalog_engines.reliability_rating (1-5) -- "—" if that's NULL, never a
+  // guessed tier (CLAUDE.md "NULL over invention"). pros/cons come from the same row.
   reliability: string;
-  faults: string[];
+  faults: DetailFaultItem[];
   pros: string[];
   cons: string[];
 }
@@ -50,7 +56,7 @@ export interface DetailTransmission {
   // Word-mapped from transmission_units.reliability_rating (1-5) -- "—" if that's NULL, never
   // a guessed tier (CLAUDE.md "NULL over invention"). pros/cons come from the same row.
   reliability: string;
-  faults: string[];
+  faults: DetailFaultItem[];
   notes: string;
   pros: string[];
   cons: string[];

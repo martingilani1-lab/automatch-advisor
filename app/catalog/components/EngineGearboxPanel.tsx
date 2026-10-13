@@ -44,27 +44,38 @@ function ProsConsList({ pros, cons, gapsMode }: { pros: string[]; cons: string[]
   );
 }
 
-function FaultsList({ faults }: { faults: CatalogFault[] }) {
+// Sorted critical -> moderate -> minor -> (no severity recorded), so the most serious faults
+// always lead regardless of insertion order.
+const SEVERITY_ORDER: Record<string, number> = { critical: 0, moderate: 1, minor: 2 };
+const SEVERITY_BADGE_VARIANT: Record<string, "critical" | "moderate" | "minor"> = {
+  critical: "critical",
+  moderate: "moderate",
+  minor: "minor",
+};
+
+function FaultsList({ faults, gapsMode }: { faults: CatalogFault[]; gapsMode: boolean }) {
+  if (faults.length === 0) {
+    return gapsMode ? <Badge variant="missing">no known faults recorded</Badge> : null;
+  }
+  const sorted = [...faults].sort(
+    (a, b) => (SEVERITY_ORDER[a.severity ?? ""] ?? 3) - (SEVERITY_ORDER[b.severity ?? ""] ?? 3)
+  );
   return (
     <div className="mt-2">
       <p className="mb-1 text-xs uppercase tracking-wide text-catalog-muted">
-        Known faults {faults.length > 0 && `(${faults.length})`}
+        Known faults ({faults.length})
       </p>
-      {faults.length === 0 ? (
-        <p className="text-sm text-catalog-muted">None recorded.</p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {faults.map((f) => (
-            <li
-              key={f.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-catalog-border bg-catalog-surface p-3"
-            >
-              <span className="text-sm text-catalog-text">{f.fault}</span>
-              {f.severity && <Badge variant="warning">{f.severity}</Badge>}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="flex flex-col gap-2">
+        {sorted.map((f) => (
+          <li
+            key={f.id}
+            className="flex items-center justify-between gap-3 rounded-lg border border-catalog-border bg-catalog-surface p-3"
+          >
+            <span className="text-sm text-catalog-text">{f.fault}</span>
+            {f.severity && <Badge variant={SEVERITY_BADGE_VARIANT[f.severity] ?? "warning"}>{f.severity}</Badge>}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -95,6 +106,7 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
     { label: "Timing replacement", value: timingReplacementValue },
     { label: "Oil capacity", value: engine.engineOilCapacityLiters != null ? `${engine.engineOilCapacityLiters} L` : null },
     { label: "Hybrid system", value: hybridSystemValue },
+    { label: "Reliability rating", value: engine.reliabilityRating != null ? RELIABILITY_LABELS[engine.reliabilityRating] : null },
     { label: "0–100 km/h", value: config.acceleration0To100 != null ? `${config.acceleration0To100} s` : null },
     { label: "Top speed", value: config.topSpeedKmh != null ? `${config.topSpeedKmh} km/h` : null },
     { label: "Consumption (combined)", value: config.fuelConsumptionCombined != null ? `${config.fuelConsumptionCombined} L/100km` : null },
@@ -151,7 +163,7 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
             <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
           ))}
           <ProsConsList pros={engine.pros} cons={engine.cons} gapsMode={gapsMode} />
-          <FaultsList faults={engineFaults} />
+          <FaultsList faults={engineFaults} gapsMode={gapsMode} />
         </div>
         <div className="flex flex-col gap-4">
           <div className="rounded-lg border border-catalog-border bg-catalog-surface p-4">
@@ -160,7 +172,7 @@ export default function EngineGearboxPanel({ config, faults, gapsMode }: EngineG
               <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
             ))}
             <ProsConsList pros={gearbox.pros} cons={gearbox.cons} gapsMode={gapsMode} />
-            <FaultsList faults={gearboxFaults} />
+            <FaultsList faults={gearboxFaults} gapsMode={gapsMode} />
           </div>
           {drivetrain && (
             <div className="rounded-lg border border-catalog-border bg-catalog-surface p-4">

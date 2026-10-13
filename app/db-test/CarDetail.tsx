@@ -5,13 +5,48 @@ import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
-import type { DetailData, DetailEngine, DetailTransmission, DetailDrivetrainSystem } from "./types";
+import type { DetailData, DetailEngine, DetailTransmission, DetailDrivetrainSystem, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 // catalog_component_faults.severity's own frozen vocabulary (critical/moderate/minor, see
 // scripts/catalog-vocabularies.json) -- different words and casing from the legacy schema's
 // SEVERITY_COLORS (Critical/High/Medium/Low), so this is its own map, not a copy.
 const SEVERITY_COLORS: Record<string, string> = { Critical: "#f44336", Moderate: "#ff9800", Minor: "#4caf50" };
+
+// Per-item severity badge on the engine/gearbox "Known faults" lists below (distinct from the
+// SEVERITY_COLORS map above, which colors the flat "Common faults" tab and keeps minor=green
+// there, an existing convention left untouched). Here minor is deliberately grey/neutral, not
+// green, so a low-severity fault doesn't read as a reassuring "all good" signal.
+const FAULT_ITEM_SEVERITY_COLORS: Record<string, string> = { critical: "#f44336", moderate: "#ff9800", minor: "#888" };
+const FAULT_ITEM_SEVERITY_ORDER: Record<string, number> = { critical: 0, moderate: 1, minor: 2 };
+
+// Shared by EngineAccordion and TransmissionAccordion so both "Known faults" lists look
+// identical: sorted critical -> moderate -> minor -> (no severity recorded), each item
+// carrying its own colored severity badge.
+function FaultsBlock({ faults, gapsMode }: { faults: DetailFaultItem[]; gapsMode: boolean }) {
+  if (faults.length === 0) return <MissingMarker gapsMode={gapsMode} label="known faults" />;
+  const sorted = [...faults].sort(
+    (a, b) => (FAULT_ITEM_SEVERITY_ORDER[a.severity ?? ""] ?? 3) - (FAULT_ITEM_SEVERITY_ORDER[b.severity ?? ""] ?? 3)
+  );
+  return (
+    <>
+      <div className="sub-label">{"⚠️"} Known faults</div>
+      {sorted.map((f, fi) => {
+        const color = f.severity ? FAULT_ITEM_SEVERITY_COLORS[f.severity] ?? "#888" : "#888";
+        return (
+          <div key={fi} className="fault-item">
+            {f.severity && (
+              <span className="fault-sev" style={{ background: color + "22", color, border: `1px solid ${color}44`, marginRight: 6 }}>
+                {f.severity}
+              </span>
+            )}
+            {f.fault}
+          </div>
+        );
+      })}
+    </>
+  );
+}
 
 const DRIVETRAIN_TYPE_LABELS: Record<string, string> = {
   haldex: "Haldex-type coupling",
@@ -41,9 +76,9 @@ interface CarDetailProps {
   fuelFilter: string[];
   gearboxFilter: string[];
   drivetrainFilter: string[];
-  // ?gaps=1 -- currently only read by the gearbox widget's new reliability/pros/cons/notes
-  // fields (TransmissionAccordion below). In normal mode a missing one of those is hidden
-  // entirely, matching every other field in this view; gaps mode shows it instead.
+  // ?gaps=1 -- read by the engine/gearbox widgets' reliability/pros/cons/faults/notes fields
+  // (EngineAccordion and TransmissionAccordion below). In normal mode a missing one of those
+  // is hidden entirely, matching every other field in this view; gaps mode shows it instead.
   gapsMode: boolean;
   onBack: () => void;
 }
@@ -62,13 +97,13 @@ function MissingMarker({ gapsMode, label }: { gapsMode: boolean; label: string }
   );
 }
 
-// Engines tab card. Reliability badge/dot removed vs. the Prehľad original -- catalog_engines
-// has no reliability-tier column, and engine.reliability is literally "—" here (see
-// app/api/db-test/route.ts), so a colored badge/dots row would just be gray noise on every
-// single card rather than real signal.
-function EngineAccordion({ car, engine, isOpen, onToggle }: { car: CarData; engine: DetailEngine; isOpen: boolean; onToggle: () => void }) {
+// Engines tab card. Reliability/pros/cons/faults now mirror TransmissionAccordion below
+// exactly -- catalog_engines.reliability_rating/pros/cons are wired in the same way as
+// transmission_units' were for the gearbox widget.
+function EngineAccordion({ car, engine, gapsMode, isOpen, onToggle }: { car: CarData; engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
   const isEV = engine.fuel_type === "electric" || engine.battery_kwh != null;
   const cons = engine.consumption ?? getConsumptionForFuel(car, engine.fuel_type);
+  const rc = engine.reliability !== "—" ? REL_COLORS[engine.reliability] || "#888" : null;
 
   return (
     <div className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
@@ -76,6 +111,11 @@ function EngineAccordion({ car, engine, isOpen, onToggle }: { car: CarData; engi
         <div className="eng-left">
           <span className="eng-name">{engine.engine}</span>
           <div className="eng-tags">
+            {rc ? (
+              <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{engine.reliability}</span>
+            ) : (
+              <MissingMarker gapsMode={gapsMode} label="reliability rating" />
+            )}
             {engine.fuel_type && <span className="cfuel-tag">{fuelLabel(engine.fuel_type)}</span>}
           </div>
         </div>
@@ -101,10 +141,17 @@ function EngineAccordion({ car, engine, isOpen, onToggle }: { car: CarData; engi
               <div className="cgrid-val">{isEV ? (engine.range_km != null ? `${engine.range_km}km` : "—") : (cons != null ? `${cons}L/100` : "—")}</div>
             </div>
           </div>
-          {engine.faults?.length > 0 && (<>
-            <div className="sub-label">{"⚠️"} Known faults</div>
-            {engine.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
+          {engine.pros?.length > 0 && (<>
+            <div className="sub-label">{"✅"} Pros</div>
+            {engine.pros.map((p, pi) => <div key={pi} className="pro-item">{"·"} {p}</div>)}
           </>)}
+          {engine.pros?.length === 0 && <MissingMarker gapsMode={gapsMode} label="pros" />}
+          {engine.cons?.length > 0 && (<>
+            <div className="sub-label">{"❌"} Cons</div>
+            {engine.cons.map((c, ci) => <div key={ci} className="con-item">{"·"} {c}</div>)}
+          </>)}
+          {engine.cons?.length === 0 && <MissingMarker gapsMode={gapsMode} label="cons" />}
+          <FaultsBlock faults={engine.faults} gapsMode={gapsMode} />
         </div>
       )}
     </div>
@@ -176,12 +223,7 @@ function TransmissionAccordion({ trans, gapsMode, isOpen, onToggle }: { trans: D
           {trans.cons?.length === 0 && <MissingMarker gapsMode={gapsMode} label="cons" />}
           {/* catalog_component_faults keys a fault to the unit itself (shared across every car
               using this gearbox), not this one car -- always "Known faults", never "This car". */}
-          {trans.faults?.length > 0 ? (<>
-            <div className="sub-label">{"⚠️"} Known faults</div>
-            {trans.faults.map((f, fi) => <div key={fi} className="fault-item">{"·"} {f}</div>)}
-          </>) : (
-            <MissingMarker gapsMode={gapsMode} label="known faults" />
-          )}
+          <FaultsBlock faults={trans.faults} gapsMode={gapsMode} />
           {trans.phase_note ? (
             <>
               <div className="sub-label">In this car</div>
@@ -370,7 +412,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         {activeTab === "engines" && (
           <div className="mp-section">
             {filteredEngines.map((e, i) => (
-              <EngineAccordion key={i} car={car} engine={e} isOpen={!!openEngines[i]} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
+              <EngineAccordion key={i} car={car} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i]} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
             ))}
           </div>
         )}
