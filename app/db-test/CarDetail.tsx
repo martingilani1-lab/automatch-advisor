@@ -7,8 +7,9 @@ import { carPriceMin, carPriceMax, carRel, carStars, carAdult, REL_COLORS, origi
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
-import PhaseSwitcher, { type PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
-import ConfigurationsTable, { type ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
+import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
+import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
+import ConfigRows from "./ConfigRows";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -105,6 +106,35 @@ interface CarDetailProps {
 }
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+function phaseLabelText(p: PhaseSwitcherOption): string {
+  const label = p.phaseLabel ?? "";
+  if (p.yearFrom == null) return label;
+  // Open-ended year_to (still in production) shows a trailing "–" with nothing after it.
+  const years = `${p.yearFrom}–${p.yearTo ?? ""}`;
+  return label ? `${label} ${years}` : years;
+}
+
+// Phase switcher, reusing the exact .tab-bar/.tab classes the main tab bar below already
+// uses -- the /catalog equivalent (PhaseSwitcher.tsx) is Tailwind-styled and looked visually
+// foreign dropped into this page's hand-rolled design, so this is a native-styled sibling
+// rather than that shared component. Renders static text (no switcher at all) when the
+// generation has only one phase.
+function PhaseSwitcherTabs({ phases, selectedId, onSelect }: { phases: PhaseSwitcherOption[]; selectedId: string; onSelect: (id: string) => void }) {
+  if (phases.length === 0) return null;
+  if (phases.length === 1) {
+    return <div className="tg" style={{ marginBottom: 10 }}>{phaseLabelText(phases[0])}</div>;
+  }
+  return (
+    <div className="tab-bar">
+      {phases.map((p) => (
+        <button key={p.id} className={`tab${p.id === selectedId ? " active" : ""}`} onClick={() => onSelect(p.id)}>
+          {phaseLabelText(p)}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // "—" is this view's existing missing-value convention (see every `?? "—"`/`|| "—"` in this
 // file) -- gaps mode swaps that single dash for a visible, explicit marker instead of hiding
@@ -489,7 +519,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
       )}
 
       {!loading && tabs.length > 0 && (<>
-        <PhaseSwitcher phases={siblingPhases} selectedId={car.id} onSelect={onSwitchPhase} />
+        <PhaseSwitcherTabs phases={siblingPhases} selectedId={car.id} onSelect={onSwitchPhase} />
 
         <div className="tab-bar">
           {tabs.map((t) => (
@@ -509,7 +539,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
         {activeTab === "configurations" && (
           <div className="mp-section">
-            <ConfigurationsTable configs={configs} onNavigate={handleConfigNavigate} />
+            <ConfigRows configs={configs} onNavigate={handleConfigNavigate} />
           </div>
         )}
 
