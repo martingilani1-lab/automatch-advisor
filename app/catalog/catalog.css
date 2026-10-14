@@ -71,3 +71,14 @@
   animation: catalog-highlight-fade 1.5s ease-out forwards;
   border-radius: 0.75rem;
 }
+
+/* CarHero's cross-fade when the phase switcher changes which photo is showing -- applied via
+   a `key={imageUrl}` remount (see CarHero.tsx), so this simply fires on every mount, not a
+   two-image opacity crossfade between old/new src. */
+@keyframes hero-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.hero-fade-in {
+  animation: hero-fade-in 200ms ease-out;
+}

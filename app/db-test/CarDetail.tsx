@@ -9,6 +9,8 @@ import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
+import CarHero from "@/app/catalog/components/CarHero";
+import { pickMainMedia } from "@/app/catalog/lib/media";
 import ConfigRows from "./ConfigRows";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
@@ -458,6 +460,8 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   return (
     <div className="detail-view">
       <button className="btn-back" style={{ width: "100%", marginBottom: 14 }} onClick={onBack}>{"←"} Back to results</button>
+
+      <CarHero media={pickMainMedia(detail?.media ?? [])} alt={`${car.make} ${carModelBase(car)}`} />
 
       <div className="detail-header">
         <div className="model-row">

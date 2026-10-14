@@ -401,8 +401,10 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       e, g, dt, c, pros: [], cons: [], q,
       b: "Check full service history and verify mileage.",
       specs, dims,
-      // Passed through unchanged -- see DetailData.configs' own comment in db-test/types.ts.
+      // Passed through unchanged -- see DetailData.configs/.media's own comments in
+      // db-test/types.ts.
       configs: bundle.configs,
+      media: bundle.media,
     };
 }
 

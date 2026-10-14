@@ -15,6 +15,9 @@ interface MediaGalleryProps {
 // empty-but-valid list.
 export default function MediaGallery({ bodies, media, gapsMode }: MediaGalleryProps) {
   if (bodies.length === 0) return null;
+  // A gallery with only the one main photo would just repeat what CarHero already shows at
+  // the top of the page -- hide it rather than show a "gallery" of one duplicate image.
+  if (media.length <= 1) return null;
 
   const byBody = new Map<string, CatalogMediaItem[]>();
   for (const m of media) {

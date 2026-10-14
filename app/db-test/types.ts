@@ -3,7 +3,7 @@
 // in the Prehľad version) has no catalog_ equivalent at all (no vehicle_safety_features-style
 // table), so it's dropped here rather than carried over empty — see CarDetail.tsx's Safety tab.
 
-import type { CatalogConfig } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogMediaItem } from "@/app/catalog/lib/types";
 
 // A fault carries its own severity (catalog_component_faults.severity: 'critical' | 'moderate'
 // | 'minor' | null) through to display, so the engine/gearbox fault lists can sort by it and
@@ -146,6 +146,9 @@ export interface DetailData {
   // through unchanged (not re-derived) so CarDetail's Configurations tab can reuse
   // app/catalog/components/ConfigurationsTable.tsx exactly as /catalog does.
   configs: CatalogConfig[];
+  // Same -- PhaseBundle.media passed through unchanged so CarDetail's hero photo can reuse
+  // app/catalog/lib/media.ts's pickMainMedia() exactly as /catalog's CatalogHeader does.
+  media: CatalogMediaItem[];
 }
 
 // One phase's full DetailData, tagged with the phase metadata the switcher needs -- POST

@@ -1,9 +1,8 @@
-import Image from "next/image";
-
 import type { PhaseBundle } from "../lib/types";
 import { countGaps, type GapField } from "../lib/gaps";
 import { pickMainMedia } from "../lib/media";
 import Badge from "./ui/badge";
+import CarHero from "./CarHero";
 import Field from "./ui/field";
 import GapsToggleLink from "./GapsToggleLink";
 import SectionGapsBadge from "./SectionGapsBadge";
@@ -39,18 +38,7 @@ export default function CatalogHeader({ bundle, gapsMode, selectedBodyTypeId }: 
 
   return (
     <header className="flex flex-col gap-3 border-b border-white/5 pb-6">
-      {mainMedia && (
-        <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-xl bg-panel-2">
-          <Image
-            src={mainMedia.imageUrl}
-            alt={`${bundle.brandName} ${bundle.modelName}`}
-            fill
-            sizes="(max-width: 768px) 100vw, 448px"
-            style={{ objectFit: "contain" }}
-            priority
-          />
-        </div>
-      )}
+      <CarHero media={mainMedia} alt={`${bundle.brandName} ${bundle.modelName}`} />
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-wide text-secondary">{bundle.brandName}</p>
