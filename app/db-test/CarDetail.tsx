@@ -409,8 +409,8 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const configs = detail?.configs ?? [];
 
   const tabs: TabDef[] = [];
-  if (filteredEngines.length > 0) tabs.push({ id: "engines", label: "Engines", count: filteredEngines.length });
   if (configs.length > 0) tabs.push({ id: "configurations", label: "Configurations", count: configs.length });
+  if (filteredEngines.length > 0) tabs.push({ id: "engines", label: "Engines", count: filteredEngines.length });
   if (gearboxGroups.length > 0) tabs.push({ id: "gearboxes", label: "Gearboxes", count: gearboxGroups.length });
   if (drivetrainGroups.length > 0) tabs.push({ id: "drivetrain", label: "Drivetrain System", count: drivetrainGroups.length });
   if ((detail?.dims.length ?? 0) > 0) tabs.push({ id: "dimensions", label: "Dimensions", count: detail!.dims.length });

@@ -26,7 +26,7 @@ interface VehiclePageClientProps {
   gapsMode: boolean;
 }
 
-const TAB_IDS = ["overview", "configurations", "engines", "gearboxes", "trims"] as const;
+const TAB_IDS = ["configurations", "overview", "engines", "gearboxes", "trims"] as const;
 type TabId = (typeof TAB_IDS)[number];
 function isTabId(v: string | null): v is TabId {
   return !!v && (TAB_IDS as readonly string[]).includes(v);
@@ -118,12 +118,16 @@ export default function VehiclePageClient({ phases, routePhaseId, gapsMode }: Ve
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="configurations">Configurations</TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="engines">Engines</TabsTrigger>
           <TabsTrigger value="gearboxes">Gearboxes</TabsTrigger>
           <TabsTrigger value="trims">Trims</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="configurations">
+          <ConfigurationsTable configs={bundle.configs} onNavigate={handleConfigNavigate} />
+        </TabsContent>
 
         <TabsContent value="overview" className="flex flex-col gap-10">
           <KeyFacts bundle={bundle} gapsMode={gapsMode} />
@@ -133,10 +137,6 @@ export default function VehiclePageClient({ phases, routePhaseId, gapsMode }: Ve
             media={bundle.media}
             gapsMode={gapsMode}
           />
-        </TabsContent>
-
-        <TabsContent value="configurations">
-          <ConfigurationsTable configs={bundle.configs} onNavigate={handleConfigNavigate} />
         </TabsContent>
 
         <TabsContent value="engines">
