@@ -40,7 +40,19 @@ function yearsLabel(yearFrom: number | null, yearTo: number | null): string {
 // as app/api/cars/route.ts (vehicles+engines+transmissions there).
 // ════════════════════════════════════════════════════════════
 
-function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims: any[]) {
+// catalog_media is phase-wide (no single body "owns" the car-list thumbnail) -- prefer the
+// row explicitly flagged is_main, else the first 'front' angle, else whatever exists. Mirrors
+// the same preference order the vehicle-page header uses for its own main image.
+function pickMainImageUrl(media: any[]): string | null {
+  if (media.length === 0) return null;
+  const main = media.find((m) => m.is_main);
+  if (main) return main.image_url;
+  const front = media.find((m) => m.view_angle === "front");
+  if (front) return front.image_url;
+  return media[0].image_url;
+}
+
+function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims: any[], media: any[]) {
   const model = phase.catalog_models;
   const brand = model.catalog_brands;
 
@@ -105,6 +117,7 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
     make: brand.name,
     model: modelLabel,
     phaseLabel: phase.phase_label || null,
+    mainImageUrl: pickMainImageUrl(media),
     gen: years,
     years,
     yearTo: phase.year_to ?? undefined,
@@ -193,7 +206,7 @@ async function fetchAllRows<T>(table: string, select: string): Promise<T[]> {
 
 export async function GET() {
   try {
-    const [phasesData, bodyDims, configs, trimsData] = await Promise.all([
+    const [phasesData, bodyDims, configs, trimsData, mediaData] = await Promise.all([
       fetchAllRows<any>("catalog_phases", `
         id, generation_code, phase_label, year_from, year_to, platform_code,
         safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct,
@@ -209,6 +222,7 @@ export async function GET() {
         drivetrain_systems(id)
       `),
       fetchAllRows<any>("catalog_trims", "id, phase_id, name, catalog_trim_features(feature)"),
+      fetchAllRows<any>("catalog_media", "phase_id, body_type_id, image_url, view_angle, is_main"),
     ]);
 
     const trims = trimsData.map((t: any) => ({
@@ -221,7 +235,8 @@ export async function GET() {
         phase,
         bodyDims.filter((d: any) => d.phase_id === phase.id),
         configs.filter((c: any) => c.phase_id === phase.id),
-        trims.filter((t: any) => t.phase_id === phase.id)
+        trims.filter((t: any) => t.phase_id === phase.id),
+        mediaData.filter((m: any) => m.phase_id === phase.id)
       )
     );
 

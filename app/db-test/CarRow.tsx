@@ -1,6 +1,18 @@
+import Image from "next/image";
+
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carMileage, carModelBase, REL_COLORS, originLine, bodyLabel } from "@/app/lib/carFields";
 import { matchesFuelOption } from "@/app/db-test/lib/filters";
+
+// Neutral car-silhouette placeholder (zinc-700 fill) for a phase with no catalog_media row
+// yet -- never a broken image, same fixed 16:9 box as a real photo so the row never reflows.
+function CarSilhouette() {
+  return (
+    <svg className="row-photo-placeholder" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11h.5a1.5 1.5 0 0 1 1.5 1.5V16a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1v-3.5A1.5 1.5 0 0 1 4.5 11H5zm2.1-4L5.9 11h12.2l-1.2-4H7.1zM7 17a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
+    </svg>
+  );
+}
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 
@@ -34,7 +46,19 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
     >
-      <div className="row-photo" aria-hidden="true">{"\u{1F4F7}"}</div>
+      <div className="row-photo">
+        {car.mainImageUrl ? (
+          <Image
+            src={car.mainImageUrl}
+            alt={`${car.make} ${carModelBase(car)}`}
+            fill
+            sizes="96px"
+            loading="lazy"
+          />
+        ) : (
+          <CarSilhouette />
+        )}
+      </div>
       <div className="row-main">
         <div className="model-row">
           <span className="cmake">{car.make}</span>

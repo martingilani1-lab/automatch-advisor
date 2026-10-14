@@ -197,7 +197,13 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    never align with its neighbours by definition. */
 .car-row{position:relative;display:flex;gap:12px;align-items:center;background:#181818;border:1px solid #2a2a2e;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color .12s}
 .car-row:hover{border-color:#3a3a3e}
-.row-photo{width:38px;height:48px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;opacity:.4;background-image:repeating-linear-gradient(45deg,#1c1c1e,#1c1c1e 6px,#28282c 6px,#28282c 12px);flex-shrink:0}
+/* 96x54 = fixed 16:9 -- catalog_media's real car photo (background removed, object-contain)
+   sits on a radial highlight so a transparent-background car doesn't look flat pasted onto
+   the row's own dark background. No photo yet -> .row-photo-placeholder (car silhouette,
+   zinc-700) renders instead, same box, so the row never shows a broken image or reflows. */
+.row-photo{position:relative;width:96px;height:54px;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:radial-gradient(ellipse at center, rgba(39,39,42,.6) 0%, transparent 70%)}
+.row-photo img{object-fit:contain}
+.row-photo-placeholder{width:56%;height:56%;color:#3f3f46}
 /* padding-right reserves room for the two absolutely-positioned corners
    (reliability top-right, price/mileage bottom-right) so cmake/cmodel/cgen's
    existing ellipsis-truncation kicks in before text would run underneath

@@ -46,6 +46,11 @@ export interface CarData {
   // app/api/db-test/route.ts) -- this field exists purely so carModelBase() below can strip
   // it back out for display, without re-parsing or duplicating the server-built string.
   phaseLabel?: string | null;
+  // catalog_media's chosen representative image for this phase (prefer is_main, else
+  // 'front', else whatever exists) -- catalog_/db-test only, same reasoning as phaseLabel
+  // above. Null/undefined means no catalog_media row exists yet for this phase; the car-list
+  // row renders a placeholder silhouette, never a broken image.
+  mainImageUrl?: string | null;
 }
 
 export const REL_RANK: Record<string, number> = { Excellent: 3, Good: 2, Average: 1, Poor: 0 };

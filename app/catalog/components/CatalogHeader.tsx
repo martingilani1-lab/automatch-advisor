@@ -1,5 +1,8 @@
+import Image from "next/image";
+
 import type { PhaseBundle } from "../lib/types";
 import { countGaps, type GapField } from "../lib/gaps";
+import { pickMainMedia } from "../lib/media";
 import Badge from "./ui/badge";
 import Field from "./ui/field";
 import GapsToggleLink from "./GapsToggleLink";
@@ -8,9 +11,14 @@ import SectionGapsBadge from "./SectionGapsBadge";
 interface CatalogHeaderProps {
   bundle: PhaseBundle;
   gapsMode: boolean;
+  // The body currently selected elsewhere on the page (e.g. the Configurations/body filter),
+  // if any -- when set and that body has its own image, it takes priority over the phase's
+  // general main image. Optional: most callers don't track a body selection at all.
+  selectedBodyTypeId?: string | null;
 }
 
-export default function CatalogHeader({ bundle, gapsMode }: CatalogHeaderProps) {
+export default function CatalogHeader({ bundle, gapsMode, selectedBodyTypeId }: CatalogHeaderProps) {
+  const mainMedia = pickMainMedia(bundle.media, selectedBodyTypeId);
   // Display rule: no yearTo means the model is still in production -- a real, non-gap
   // value, not a missing end date.
   const years =
@@ -31,6 +39,18 @@ export default function CatalogHeader({ bundle, gapsMode }: CatalogHeaderProps) 
 
   return (
     <header className="flex flex-col gap-3 border-b border-white/5 pb-6">
+      {mainMedia && (
+        <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-xl bg-panel-2">
+          <Image
+            src={mainMedia.imageUrl}
+            alt={`${bundle.brandName} ${bundle.modelName}`}
+            fill
+            sizes="(max-width: 768px) 100vw, 448px"
+            style={{ objectFit: "contain" }}
+            priority
+          />
+        </div>
+      )}
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-wide text-secondary">{bundle.brandName}</p>
