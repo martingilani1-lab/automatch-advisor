@@ -310,21 +310,21 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    catalog.css, never loaded here, hence this separate same-purpose class. Only /db-test
    uses this (confirmed -- no other route references .highlight-pulse), so it's defined
    directly in the /db-test accent blue rather than needing a .db-test-page scope. */
-@keyframes highlightPulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px #fae902}}
+@keyframes highlightPulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px #edeca1}}
 .highlight-pulse{animation:highlightPulse .6s ease-in-out 2;border-radius:10px}
 
 /* Inline text styled as clickable (Configurations tab's engine/transmission/drivetrain
    cells deep-linking into their own widget). Only /db-test's ConfigRows.tsx uses this
    class, so -- like .highlight-pulse above -- it's defined directly in the /db-test
    accent blue rather than needing a .db-test-page scope. */
-.cfg-link{color:#fae902;cursor:pointer;background:none;border:none;padding:0;margin:0;font:inherit;text-align:left}
+.cfg-link{color:#edeca1;cursor:pointer;background:none;border:none;padding:0;margin:0;font:inherit;text-align:left}
 .cfg-link:hover{text-decoration:underline}
 
 /* ---- /db-test accent override ----
    This whole stylesheet is shared verbatim by the quiz (page.tsx), /prehlad, and
    /db-test (db-test was built as "Browse & Compare rebuilt on catalog_ data, same UI").
    Every selector below is one of those shared classes, still yellow (#e8ff47) for the
-   quiz and /prehlad -- only /db-test's accent changes to #fae902, scoped under
+   quiz and /prehlad -- only /db-test's accent changes to #edeca1, scoped under
    .db-test-page (the class on db-test's own <main> wrapper, see DbTestView.tsx/page.tsx).
    Euro NCAP safety colour is deliberately NOT touched here (.ns-lg.on and the inline
    verdict/bar colors in CarDetail.tsx stay yellow) -- safety rating colour stays
@@ -337,15 +337,15 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .db-test-page .results-hdr h3,
 .db-test-page .filter-group-title,
 .db-test-page .filter-badge,
-.db-test-page .filter-brand summary{color:#fae902}
-.db-test-page .filter-badge{background:rgba(250,233,2,.1)}
+.db-test-page .filter-brand summary{color:#edeca1}
+.db-test-page .filter-badge{background:rgba(237,236,161,.1)}
 .db-test-page .btn-back:hover,
-.db-test-page .restart:hover{border-color:#fae902;color:#fae902}
-.db-test-page .opt-btn:hover{border-color:#fae902}
-.db-test-page .tab.active{color:#fae902;border-bottom-color:#fae902}
+.db-test-page .restart:hover{border-color:#edeca1;color:#edeca1}
+.db-test-page .opt-btn:hover{border-color:#edeca1}
+.db-test-page .tab.active{color:#edeca1;border-bottom-color:#edeca1}
 .db-test-page .eng-card.open,
-.db-test-page .tx-card.open{border-color:rgba(250,233,2,.3)}
-.db-test-page .cfuel-tag{background:rgba(250,233,2,.1)}
-.db-test-page .cfuel-tag.match{background:rgba(250,233,2,.15);color:#fae902;border-color:rgba(250,233,2,.4)}
-.db-test-page .filter-opt input[type="checkbox"]{accent-color:#fae902}
-.db-test-page .spin{border-top-color:#fae902}
+.db-test-page .tx-card.open{border-color:rgba(237,236,161,.3)}
+.db-test-page .cfuel-tag{background:rgba(237,236,161,.1)}
+.db-test-page .cfuel-tag.match{background:rgba(237,236,161,.15);color:#edeca1;border-color:rgba(237,236,161,.4)}
+.db-test-page .filter-opt input[type="checkbox"]{accent-color:#edeca1}
+.db-test-page .spin{border-top-color:#edeca1}
