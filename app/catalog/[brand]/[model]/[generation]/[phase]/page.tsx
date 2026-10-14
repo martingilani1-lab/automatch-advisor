@@ -1,12 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { getPhaseBundle } from "@/app/catalog/lib/db";
-import CatalogHeader from "@/app/catalog/components/CatalogHeader";
-import KeyFacts from "@/app/catalog/components/KeyFacts";
-import BodyDimensionsTabs from "@/app/catalog/components/BodyDimensionsTabs";
-import Configurator from "@/app/catalog/components/Configurator";
-import TrimsList from "@/app/catalog/components/TrimsList";
-import MediaGallery from "@/app/catalog/components/MediaGallery";
+import { getGenerationBundles, slugify } from "@/app/catalog/lib/db";
+import VehiclePageClient from "@/app/catalog/components/VehiclePageClient";
 
 interface CatalogPageProps {
   params: Promise<{ brand: string; model: string; generation: string; phase: string }>;
@@ -20,29 +15,26 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
   const { gaps } = await searchParams;
   const gapsMode = gaps === "1";
 
-  let bundle;
+  let phases;
   try {
-    bundle = await getPhaseBundle(brand, model, generation, phase);
+    // Loads every phase of this generation (vehicle page redesign step 1's phase switcher)
+    // in one server fetch, so switching phases client-side needs no refetch.
+    phases = await getGenerationBundles(brand, model, generation);
   } catch (err) {
     // No NextResponse fallback contract here (this isn't a route handler) -- log and treat
     // as not-found rather than letting a raw Supabase error reach Next's generic error page.
     console.error("[/catalog]", err);
     notFound();
   }
-  if (!bundle) notFound();
+  if (!phases || phases.length === 0) notFound();
+
+  // The URL's own [phase] segment names which phase this specific route resolves to -- the
+  // default selection (and the one CatalogHeader's title area reflects before any client-side
+  // switch). A phase slug that matches no sibling (shouldn't happen, the route couldn't have
+  // resolved otherwise) falls back to the first/oldest phase rather than 404ing the whole page.
+  const routePhase = phases.find((p) => slugify(p.phaseLabel) === phase) ?? phases[0];
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-10">
-      <CatalogHeader bundle={bundle} gapsMode={gapsMode} />
-      <KeyFacts bundle={bundle} gapsMode={gapsMode} />
-      <BodyDimensionsTabs bodies={bundle.bodyDimensions} gapsMode={gapsMode} />
-      <MediaGallery
-        bodies={bundle.bodyDimensions.map((d) => ({ bodyTypeId: d.bodyTypeId, bodyName: d.bodyName }))}
-        media={bundle.media}
-        gapsMode={gapsMode}
-      />
-      <Configurator configs={bundle.configs} faults={bundle.faults} gapsMode={gapsMode} />
-      <TrimsList trims={bundle.trims} gapsMode={gapsMode} />
-    </main>
+    <VehiclePageClient phases={phases} routePhaseId={routePhase.phaseId} gapsMode={gapsMode} />
   );
 }

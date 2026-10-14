@@ -42,8 +42,14 @@ export interface CatalogDrivetrain {
   id: string;
   code: string;
   type: string;
+  // Plain-language generation label (e.g. "Gen 5", "Torsen permanent") -- the Configurations
+  // table's Drivetrain column shows this, not the internal `code`.
+  generation: string | null;
   maker: string | null;
   reliabilityNote: string | null;
+  reliabilityRating: number | null;
+  pros: string[];
+  cons: string[];
 }
 
 export interface CatalogTireSize {
@@ -61,6 +67,13 @@ export interface CatalogConfig {
   acceleration0To100: number | null;
   topSpeedKmh: number | null;
   fuelConsumptionCombined: number | null;
+  // The columns actually populated live (fuel_consumption_combined/battery_capacity_net_kwh/
+  // ev_range_wltp_km are 0% filled across all 1550 rows, confirmed by direct query -- dead
+  // columns from an earlier, unfinished pass). fuel_consumption_l100km is 100% filled;
+  // energy_consumption_kwh100km covers the PHEV/electric rows. Use these two for any new
+  // consumption display -- see the Configurations table.
+  fuelConsumptionL100km: number | null;
+  energyConsumptionKwh100km: number | null;
   co2EmissionsGKm: number | null;
   batteryCapacityNetKwh: number | null;
   evRangeWltpKm: number | null;
@@ -115,6 +128,8 @@ export interface CatalogMediaItem {
 }
 
 export interface PhaseBundle {
+  phaseId: string;
+  modelId: string;
   brandName: string;
   modelName: string;
   segment: string | null;

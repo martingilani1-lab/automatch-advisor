@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
-import type { DetailData, DetailEngine, DetailTransmission, DetailDrivetrainSystem, DetailFaultItem } from "./types";
+import PhaseSwitcher, { type PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
+import ConfigurationsTable, { type ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
+import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
 // catalog_component_faults.severity's own frozen vocabulary (critical/moderate/minor, see
@@ -51,6 +54,20 @@ function FaultsBlock({ faults, gapsMode }: { faults: DetailFaultItem[]; gapsMode
   );
 }
 
+// Small pill chips for the body types/drivetrains a given engine+gearbox pairing is offered
+// with -- reuses .cfuel-tag's existing rounded-chip look rather than a separate block per
+// body/drivetrain.
+function Chips({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4, marginBottom: 6 }}>
+      {items.map((item) => (
+        <span key={item} className="cfuel-tag">{item}</span>
+      ))}
+    </div>
+  );
+}
+
 const DRIVETRAIN_TYPE_LABELS: Record<string, string> = {
   haldex: "Haldex-type coupling",
   torsen: "Torsen mechanical diff",
@@ -59,11 +76,6 @@ const DRIVETRAIN_TYPE_LABELS: Record<string, string> = {
   dual_motor: "Dual-motor (electric)",
 };
 const DT_TYPE_COLOR = "#8ab4f8";
-
-interface DrivetrainGroup {
-  system: DetailDrivetrainSystem;
-  variants: string[];
-}
 
 function splitSentences(text: string): string[] {
   const parts = text.split(/\.\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
@@ -79,11 +91,17 @@ interface CarDetailProps {
   fuelFilter: string[];
   gearboxFilter: string[];
   drivetrainFilter: string[];
-  // ?gaps=1 -- read by the engine/gearbox widgets' reliability/pros/cons/faults/notes fields
-  // (EngineAccordion and TransmissionAccordion below). In normal mode a missing one of those
-  // is hidden entirely, matching every other field in this view; gaps mode shows it instead.
+  // ?gaps=1 -- read by the engine/gearbox/drivetrain widgets' reliability/pros/cons/faults/
+  // notes fields (EngineAccordion, GearboxAccordion, DrivetrainAccordion below). In normal
+  // mode a missing one of those is hidden entirely, matching every other field in this view;
+  // gaps mode shows it instead.
   gapsMode: boolean;
   onBack: () => void;
+  // Every sibling phase of this car's generation (vehicle page redesign step 1's phase
+  // switcher) -- empty until DbTestView's detail fetch resolves, same "load everything in
+  // one fetch, switch is pure client state" shape as /catalog's VehiclePageClient.
+  siblingPhases: PhaseSwitcherOption[];
+  onSwitchPhase: (phaseId: string) => void;
 }
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -100,16 +118,95 @@ function MissingMarker({ gapsMode, label }: { gapsMode: boolean; label: string }
   );
 }
 
-// Engines tab card. Reliability/pros/cons/faults now mirror TransmissionAccordion below
-// exactly -- catalog_engines.reliability_rating/pros/cons are wired in the same way as
-// transmission_units' were for the gearbox widget.
+// Gearboxes tab card. A gearbox is a real, standalone unit, its own top-level tab
+// independent of Engines -- the same gearbox can be paired with several different engines
+// (engineNames below is which ones, shown as chips alongside body/drivetrain).
+function GearboxAccordion({ gearbox, gapsMode, isOpen, onToggle }: { gearbox: DetailGearboxGroup; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
+  const typeLabel = GEARBOX_TYPES.find((tt) => tt.slug === gearbox.family)?.label;
+  const [maintOpen, setMaintOpen] = useState(false);
+  const rc = gearbox.reliability !== "—" ? REL_COLORS[gearbox.reliability] || "#888" : null;
+  return (
+    <div id={`gearbox-${gearbox.id}`} className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+      <div className="eng-hdr">
+        <div className="eng-left">
+          <span className="eng-name">{gearboxHeaderLabel(gearbox.code, gearbox.speeds, gearbox.family)}</span>
+          <div className="eng-tags">
+            {rc ? (
+              <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{gearbox.reliability}</span>
+            ) : (
+              <MissingMarker gapsMode={gapsMode} label="reliability rating" />
+            )}
+            {typeLabel && <span className="cfuel-tag">{typeLabel}</span>}
+            {gearbox.speeds == null && <MissingMarker gapsMode={gapsMode} label="speeds" />}
+          </div>
+        </div>
+        <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+      </div>
+      {isOpen && (
+        <div className="eng-body">
+          <Chips items={[...gearbox.engineNames, ...gearbox.bodyNames, ...gearbox.drivetrainLabels]} />
+          {gearbox.maintenance_note ? (
+            <div className="cgrid">
+              <div
+                className="cgrid-item cgrid-item-btn"
+                onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
+              >
+                <div className="cgrid-val">{"🔧"} Maintenance {maintOpen ? "▴" : "▾"}</div>
+              </div>
+            </div>
+          ) : (
+            <MissingMarker gapsMode={gapsMode} label="maintenance note" />
+          )}
+          {maintOpen && gearbox.maintenance_note && (
+            <div className="maint-card">
+              {splitSentences(gearbox.maintenance_note).map((s, si) => (
+                <div key={si} className="maint-item">{s}</div>
+              ))}
+            </div>
+          )}
+          {gearbox.reliability_note ? (
+            <>
+              <div className="sub-label">{"⚠️"} Reliability</div>
+              <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{gearbox.reliability_note}</div>
+            </>
+          ) : (
+            <MissingMarker gapsMode={gapsMode} label="reliability note" />
+          )}
+          {gearbox.pros?.length > 0 && (<>
+            <div className="sub-label">{"✅"} Pros</div>
+            {gearbox.pros.map((p, pi) => <div key={pi} className="pro-item">{"·"} {p}</div>)}
+          </>)}
+          {gearbox.pros?.length === 0 && <MissingMarker gapsMode={gapsMode} label="pros" />}
+          {gearbox.cons?.length > 0 && (<>
+            <div className="sub-label">{"❌"} Cons</div>
+            {gearbox.cons.map((c, ci) => <div key={ci} className="con-item">{"·"} {c}</div>)}
+          </>)}
+          {gearbox.cons?.length === 0 && <MissingMarker gapsMode={gapsMode} label="cons" />}
+          {/* catalog_component_faults keys a fault to the unit itself (shared across every
+              car using this gearbox), not this one car -- always "Known faults", never
+              "This car". */}
+          <FaultsBlock faults={gearbox.faults} gapsMode={gapsMode} />
+          {gearbox.phase_note ? (
+            <>
+              <div className="sub-label">In this car</div>
+              <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5 }}>{gearbox.phase_note}</div>
+            </>
+          ) : (
+            <MissingMarker gapsMode={gapsMode} label="in-this-car note" />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Engines tab card.
 function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
-  const isEV = engine.fuel_type === "electric" || engine.battery_kwh != null;
   const rc = engine.reliability !== "—" ? REL_COLORS[engine.reliability] || "#888" : null;
   const cylinders = cylindersLabel(engine.cylinders);
 
   return (
-    <div className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+    <div id={`engine-${engine.id}`} className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
       <div className="eng-hdr">
         <div className="eng-left">
           <span className="eng-name">{engine.engine}</span>
@@ -126,39 +223,26 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: Detai
       </div>
       {isOpen && (
         <div className="eng-body">
+          <Chips items={engine.bodyNames} />
           <div className="cgrid">
-            {isEV ? (
-              <div className="cgrid-item">
-                <div className="cgrid-label">Battery</div>
-                <div className="cgrid-val">{engine.battery_kwh != null ? `${engine.battery_kwh}kWh` : "—"}</div>
-              </div>
-            ) : engine.displacement_cc != null ? (
+            {engine.displacement_cc != null && (
               <div className="cgrid-item">
                 <div className="cgrid-label">Displacement</div>
                 <div className="cgrid-val">{engine.displacement_cc} cm³</div>
               </div>
-            ) : null}
+            )}
             {engine.torque_nm != null && (
               <div className="cgrid-item">
                 <div className="cgrid-label">Torque</div>
                 <div className="cgrid-val">{engine.torque_nm} Nm</div>
               </div>
             )}
-            <div className="cgrid-item">
-              <div className="cgrid-label">Drivetrain</div>
-              <div className="cgrid-val">{engine.drivetrain || "—"}</div>
-            </div>
-            {isEV ? (
-              <div className="cgrid-item">
-                <div className="cgrid-label">Range</div>
-                <div className="cgrid-val">{engine.range_km != null ? `${engine.range_km}km` : "—"}</div>
-              </div>
-            ) : cylinders != null ? (
+            {cylinders != null && (
               <div className="cgrid-item">
                 <div className="cgrid-label">Cylinders</div>
                 <div className="cgrid-val">{cylinders}</div>
               </div>
-            ) : null}
+            )}
           </div>
           {engine.pros?.length > 0 && (<>
             <div className="sub-label">{"✅"} Pros</div>
@@ -177,96 +261,22 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: Detai
   );
 }
 
-function TransmissionAccordion({ trans, gapsMode, isOpen, onToggle }: { trans: DetailTransmission; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
-  const typeLabel = GEARBOX_TYPES.find((tt) => tt.slug === trans.subtype)?.label;
-  const [maintOpen, setMaintOpen] = useState(false);
-  const rc = trans.reliability !== "—" ? REL_COLORS[trans.reliability] || "#888" : null;
-  return (
-    <div className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
-      <div className="eng-hdr">
-        <div className="eng-left">
-          <span className="eng-name">{gearboxHeaderLabel(trans.type, trans.speeds, trans.subtype)}</span>
-          <div className="eng-tags">
-            {rc ? (
-              <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{trans.reliability}</span>
-            ) : (
-              <MissingMarker gapsMode={gapsMode} label="reliability rating" />
-            )}
-            {typeLabel && <span className="cfuel-tag">{typeLabel}</span>}
-            {/* speeds is folded into the header label above when present ("7-speed wet
-                DCT") -- nothing shown here in that case, only a gaps-mode marker when it's
-                genuinely missing (never a visible "Speeds: —" duplicating the header). */}
-            {trans.speeds == null && <MissingMarker gapsMode={gapsMode} label="speeds" />}
-          </div>
-        </div>
-        <span className="chevron">{isOpen ? "▲" : "▼"}</span>
-      </div>
-      {isOpen && (
-        <div className="eng-body">
-          {trans.unit?.maintenance_note ? (
-            <div className="cgrid">
-              <div
-                className="cgrid-item cgrid-item-btn"
-                onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
-              >
-                <div className="cgrid-val">{"🔧"} Maintenance {maintOpen ? "▴" : "▾"}</div>
-              </div>
-            </div>
-          ) : (
-            <MissingMarker gapsMode={gapsMode} label="maintenance note" />
-          )}
-          {maintOpen && trans.unit?.maintenance_note && (
-            <div className="maint-card">
-              {splitSentences(trans.unit.maintenance_note).map((s, si) => (
-                <div key={si} className="maint-item">{s}</div>
-              ))}
-            </div>
-          )}
-          {trans.unit?.reliability_note ? (
-            <>
-              <div className="sub-label">{"⚠️"} Reliability</div>
-              <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{trans.unit.reliability_note}</div>
-            </>
-          ) : (
-            <MissingMarker gapsMode={gapsMode} label="reliability note" />
-          )}
-          {trans.pros?.length > 0 && (<>
-            <div className="sub-label">{"✅"} Pros</div>
-            {trans.pros.map((p, pi) => <div key={pi} className="pro-item">{"·"} {p}</div>)}
-          </>)}
-          {trans.pros?.length === 0 && <MissingMarker gapsMode={gapsMode} label="pros" />}
-          {trans.cons?.length > 0 && (<>
-            <div className="sub-label">{"❌"} Cons</div>
-            {trans.cons.map((c, ci) => <div key={ci} className="con-item">{"·"} {c}</div>)}
-          </>)}
-          {trans.cons?.length === 0 && <MissingMarker gapsMode={gapsMode} label="cons" />}
-          {/* catalog_component_faults keys a fault to the unit itself (shared across every car
-              using this gearbox), not this one car -- always "Known faults", never "This car". */}
-          <FaultsBlock faults={trans.faults} gapsMode={gapsMode} />
-          {trans.phase_note ? (
-            <>
-              <div className="sub-label">In this car</div>
-              <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5 }}>{trans.phase_note}</div>
-            </>
-          ) : (
-            <MissingMarker gapsMode={gapsMode} label="in-this-car note" />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DrivetrainAccordion({ group, showVariants, isOpen, onToggle }: { group: DrivetrainGroup; showVariants: boolean; isOpen: boolean; onToggle: () => void }) {
+function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle }: { group: DetailDrivetrainGroup; showVariants: boolean; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
   const { system, variants } = group;
   const typeLabel = DRIVETRAIN_TYPE_LABELS[system.type] || cap(system.type);
+  const rc = system.reliability !== "—" ? REL_COLORS[system.reliability] || "#888" : null;
   return (
-    <div className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+    <div id={`drivetrain-${system.id}`} className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
       <div className="eng-hdr">
         <div className="eng-left">
           <span className="eng-name">{system.generation || system.code}</span>
           <div className="eng-tags">
             <span className="eng-badge" style={{ background: DT_TYPE_COLOR + "22", color: DT_TYPE_COLOR, border: `1px solid ${DT_TYPE_COLOR}44` }}>{typeLabel}</span>
+            {rc ? (
+              <span className="eng-badge" style={{ background: rc + "22", color: rc, border: `1px solid ${rc}44` }}>{system.reliability}</span>
+            ) : (
+              <MissingMarker gapsMode={gapsMode} label="reliability rating" />
+            )}
             {system.maker && <span className="cfuel-tag">{system.maker}</span>}
             <span className="cfuel-tag" style={{ fontFamily: "monospace" }}>{system.code}</span>
           </div>
@@ -281,19 +291,54 @@ function DrivetrainAccordion({ group, showVariants, isOpen, onToggle }: { group:
           )}
           {system.reliability_note && (<>
             <div className="sub-label">{"⚠️"} Reliability</div>
-            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5 }}>{system.reliability_note}</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{system.reliability_note}</div>
           </>)}
+          {system.pros.length > 0 && (<>
+            <div className="sub-label">{"✅"} Pros</div>
+            {system.pros.map((p, pi) => <div key={pi} className="pro-item">{"·"} {p}</div>)}
+          </>)}
+          {system.pros.length === 0 && <MissingMarker gapsMode={gapsMode} label="pros" />}
+          {system.cons.length > 0 && (<>
+            <div className="sub-label">{"❌"} Cons</div>
+            {system.cons.map((c, ci) => <div key={ci} className="con-item">{"·"} {c}</div>)}
+          </>)}
+          {system.cons.length === 0 && <MissingMarker gapsMode={gapsMode} label="cons" />}
         </div>
       )}
     </div>
   );
 }
 
-export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack }: CarDetailProps) {
+export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack, siblingPhases, onSwitchPhase }: CarDetailProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [activeTabState, setActiveTabState] = useState<string | null>(null);
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
-  const [openTrans, setOpenTrans] = useState<Record<number, boolean>>({});
+  const [openGearboxes, setOpenGearboxes] = useState<Record<number, boolean>>({});
   const [openDrivetrain, setOpenDrivetrain] = useState<Record<number, boolean>>({});
+
+  const focusEngine = searchParams.get("engine");
+  const focusUnit = searchParams.get("unit");
+  const focusDrivetrain = searchParams.get("drivetrain");
+
+  function updateParams(mutate: (p: URLSearchParams) => void) {
+    const params = new URLSearchParams(searchParams.toString());
+    mutate(params);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  function handleConfigNavigate(target: ConfigNavTarget) {
+    updateParams((p) => {
+      p.set("tab", target.kind === "engine" ? "engines" : target.kind === "unit" ? "gearboxes" : "drivetrain");
+      p.delete("engine");
+      p.delete("unit");
+      p.delete("drivetrain");
+      p.set(target.kind, target.id);
+    });
+  }
 
   const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
   const rel = carRel(car);
@@ -328,33 +373,57 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
     return all.filter((e) => fuelFilter.some((sel) => matchesFuelOption(e.fuel_type, sel)));
   }, [detail, fuelFilter]);
 
-  const drivetrainGroups = useMemo<DrivetrainGroup[]>(() => {
-    const groups: DrivetrainGroup[] = [];
-    const byCode = new Map<string, DrivetrainGroup>();
-    for (const t of detail?.t ?? []) {
-      if (!t.drivetrainSystem) continue;
-      const existing = byCode.get(t.drivetrainSystem.code);
-      if (existing) {
-        existing.variants.push(t.type);
-      } else {
-        const group: DrivetrainGroup = { system: t.drivetrainSystem, variants: [t.type] };
-        byCode.set(t.drivetrainSystem.code, group);
-        groups.push(group);
-      }
-    }
-    return groups;
-  }, [detail]);
+  const gearboxGroups = detail?.g ?? [];
+  const drivetrainGroups = detail?.dt ?? [];
+
+  const configs = detail?.configs ?? [];
 
   const tabs: TabDef[] = [];
   if (filteredEngines.length > 0) tabs.push({ id: "engines", label: "Engines", count: filteredEngines.length });
-  if ((detail?.t.length ?? 0) > 0) tabs.push({ id: "transmissions", label: "Gearboxes", count: detail!.t.length });
+  if (configs.length > 0) tabs.push({ id: "configurations", label: "Configurations", count: configs.length });
+  if (gearboxGroups.length > 0) tabs.push({ id: "gearboxes", label: "Gearboxes", count: gearboxGroups.length });
   if (drivetrainGroups.length > 0) tabs.push({ id: "drivetrain", label: "Drivetrain System", count: drivetrainGroups.length });
   if ((detail?.dims.length ?? 0) > 0) tabs.push({ id: "dimensions", label: "Dimensions", count: detail!.dims.length });
   if ((detail?.q.length ?? 0) > 0) tabs.push({ id: "equipment", label: "Trims", count: detail!.q.length });
   if ((detail?.c.length ?? 0) > 0) tabs.push({ id: "faults", label: "Common faults", count: detail!.c.length });
   tabs.push({ id: "safety", label: "NCAP" });
 
-  const activeTab = activeTabState && tabs.some((t) => t.id === activeTabState) ? activeTabState : (tabs[0]?.id ?? null);
+  // The URL's own ?tab= wins over local state when it names a real tab -- set by
+  // handleConfigNavigate (a Configurations-row click) or by a shared/refreshed link.
+  const tabParam = searchParams.get("tab");
+  const urlTab = tabParam && tabs.some((t) => t.id === tabParam) ? tabParam : null;
+  const activeTab = urlTab ?? (activeTabState && tabs.some((t) => t.id === activeTabState) ? activeTabState : (tabs[0]?.id ?? null));
+
+  function selectTab(id: string) {
+    setActiveTabState(id);
+    updateParams((p) => {
+      p.set("tab", id);
+      p.delete("engine");
+      p.delete("unit");
+      p.delete("drivetrain");
+    });
+  }
+
+  // The focused engine/gearbox/drivetrain (if any) must render open even if the user never
+  // clicked it -- computed during render (not set via effect) so there's no cascading-render
+  // setState-in-effect; each accordion's isOpen below ORs this in with its own toggle state.
+  const focusEngineIdx = focusEngine ? filteredEngines.findIndex((e) => e.id === focusEngine) : -1;
+  const focusUnitIdx = focusUnit ? gearboxGroups.findIndex((g) => g.id === focusUnit) : -1;
+  const focusDrivetrainIdx = focusDrivetrain ? drivetrainGroups.findIndex((g) => g.system.id === focusDrivetrain) : -1;
+
+  // Scrolls to and briefly highlights the focused widget -- an imperative DOM action, so it
+  // stays in an effect (unlike the "open" state above), firing after the tab switch has
+  // already committed, so the target card actually exists to scroll to.
+  useEffect(() => {
+    const focusId = focusEngine ? `engine-${focusEngine}` : focusUnit ? `gearbox-${focusUnit}` : focusDrivetrain ? `drivetrain-${focusDrivetrain}` : null;
+    if (!focusId) return;
+    const el = document.getElementById(focusId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("highlight-pulse");
+    const t = setTimeout(() => el.classList.remove("highlight-pulse"), 1200);
+    return () => clearTimeout(t);
+  }, [activeTab, focusEngine, focusUnit, focusDrivetrain]);
 
   return (
     <div className="detail-view">
@@ -397,7 +466,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
             )}
           </div>
         </>) : (
-          <button type="button" className="variety-teaser" onClick={() => setActiveTabState("engines")}>
+          <button type="button" className="variety-teaser" onClick={() => selectTab("engines")}>
             {teaserText} <span className="vt-cta">— tap to explore</span>
           </button>
         )}
@@ -420,9 +489,11 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
       )}
 
       {!loading && tabs.length > 0 && (<>
+        <PhaseSwitcher phases={siblingPhases} selectedId={car.id} onSelect={onSwitchPhase} />
+
         <div className="tab-bar">
           {tabs.map((t) => (
-            <button key={t.id} className={`tab${activeTab === t.id ? " active" : ""}`} onClick={() => setActiveTabState(t.id)}>
+            <button key={t.id} className={`tab${activeTab === t.id ? " active" : ""}`} onClick={() => selectTab(t.id)}>
               {t.label}{t.count != null ? ` (${t.count})` : ""}
             </button>
           ))}
@@ -431,20 +502,22 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         {activeTab === "engines" && (
           <div className="mp-section">
             {filteredEngines.map((e, i) => (
-              <EngineAccordion key={i} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i]} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
+              <EngineAccordion key={i} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i] || i === focusEngineIdx} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
             ))}
           </div>
         )}
 
-        {activeTab === "transmissions" && (
+        {activeTab === "configurations" && (
           <div className="mp-section">
-            {(detail?.t ?? []).length === 0 ? (
-              <div className="mp-hint">No data available.</div>
-            ) : (
-              detail!.t.map((t, i) => (
-                <TransmissionAccordion key={i} trans={t} gapsMode={gapsMode} isOpen={!!openTrans[i]} onToggle={() => setOpenTrans((p) => ({ ...p, [i]: !p[i] }))} />
-              ))
-            )}
+            <ConfigurationsTable configs={configs} onNavigate={handleConfigNavigate} />
+          </div>
+        )}
+
+        {activeTab === "gearboxes" && (
+          <div className="mp-section">
+            {gearboxGroups.map((g, i) => (
+              <GearboxAccordion key={g.code} gearbox={g} gapsMode={gapsMode} isOpen={!!openGearboxes[i] || i === focusUnitIdx} onToggle={() => setOpenGearboxes((p) => ({ ...p, [i]: !p[i] }))} />
+            ))}
           </div>
         )}
 
@@ -455,7 +528,8 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                 key={g.system.code}
                 group={g}
                 showVariants={drivetrainGroups.length > 1}
-                isOpen={!!openDrivetrain[i]}
+                gapsMode={gapsMode}
+                isOpen={!!openDrivetrain[i] || i === focusDrivetrainIdx}
                 onToggle={() => setOpenDrivetrain((p) => ({ ...p, [i]: !p[i] }))}
               />
             ))}

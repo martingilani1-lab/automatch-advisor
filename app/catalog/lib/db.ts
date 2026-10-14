@@ -66,6 +66,88 @@ export async function getPhaseBundle(
   return fetchBundleForPhase(supabase, phaseRow);
 }
 
+// Resolves every phase of ONE generation (same model_id + generation_code -- e.g. both
+// Pre-facelift and Facelift of Audi A4 B9), ordered by year_from, each as a FULL PhaseBundle.
+// Powers the phase switcher (vehicle page redesign step 1): loading every sibling phase's
+// complete data in one server round trip means switching phases client-side is instant, no
+// refetch. Mirrors getPhaseBundle's slug-matching (no slug column anywhere in the schema).
+export async function getGenerationBundles(
+  brandSlug: string,
+  modelSlug: string,
+  generationSlug: string
+): Promise<PhaseBundle[] | null> {
+  const supabase = client();
+
+  const phasesRes = await supabase.from("catalog_phases").select(`
+      id, generation_code, phase_label, year_from, year_to, display_name, platform_code,
+      safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct,
+      ncap_safety_assist_pct, towing_capacity_kg, avg_market_price_eur, price_range_min_eur,
+      price_range_max_eur, typical_mileage_range, resale_value_rating,
+      catalog_models!inner(id, name, segment, origin_country, catalog_brands!inner(id, name))
+    `);
+  if (phasesRes.error) throw phasesRes.error;
+
+  // Step 1: find ONE phase row that matches the full brand/model/generation slug, to learn
+  // its model_id + generation_code -- the key every sibling phase shares.
+  const anchor = (phasesRes.data || []).find((p: any) => {
+    const model = p.catalog_models;
+    const brand = model?.catalog_brands;
+    return (
+      slugify(brand?.name) === brandSlug &&
+      slugify(model?.name) === modelSlug &&
+      slugify(p.generation_code) === generationSlug
+    );
+  }) as any;
+  if (!anchor) return null;
+
+  // Step 2: every phase row sharing that (model_id, generation_code) -- the full sibling set,
+  // ordered oldest first so the switcher reads left-to-right chronologically.
+  const siblings = (phasesRes.data || [])
+    .filter((p: any) => p.catalog_models.id === anchor.catalog_models.id && p.generation_code === anchor.generation_code)
+    .sort((a: any, b: any) => (a.year_from ?? 0) - (b.year_from ?? 0));
+
+  return Promise.all(siblings.map((row: any) => fetchBundleForPhase(supabase, row)));
+}
+
+// Same generation-sibling resolution as getGenerationBundles above, but starting from a known
+// phase id instead of slugs (app/api/db-test/route.ts's GET, which identifies a phase by
+// catalog_phases.id the same way /api/detail identifies a legacy vehicle by vehicles.id).
+export async function getGenerationBundlesByPhaseId(phaseId: string): Promise<PhaseBundle[] | null> {
+  const supabase = client();
+
+  const anchorRes = await supabase
+    .from("catalog_phases")
+    .select("id, generation_code, model_id")
+    .eq("id", phaseId)
+    .maybeSingle();
+  if (anchorRes.error) throw anchorRes.error;
+  if (!anchorRes.data) return null;
+
+  // A NULL generation_code (e.g. Cupra Terramar, seeded with no generation code) can't be
+  // matched with .eq() -- PostgREST's eq.null isn't IS NULL. Treat it as having no siblings
+  // (same as the single-phase case) rather than mis-querying.
+  let siblingsQuery = supabase
+    .from("catalog_phases")
+    .select(`
+      id, generation_code, phase_label, year_from, year_to, display_name, platform_code,
+      safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct,
+      ncap_safety_assist_pct, towing_capacity_kg, avg_market_price_eur, price_range_min_eur,
+      price_range_max_eur, typical_mileage_range, resale_value_rating,
+      catalog_models!inner(id, name, segment, origin_country, catalog_brands!inner(id, name))
+    `)
+    .eq("model_id", anchorRes.data.model_id);
+  siblingsQuery = anchorRes.data.generation_code == null
+    ? siblingsQuery.is("generation_code", null)
+    : siblingsQuery.eq("generation_code", anchorRes.data.generation_code);
+  const siblingsRes = await siblingsQuery;
+  if (siblingsRes.error) throw siblingsRes.error;
+
+  const siblings = (siblingsRes.data || []).sort((a: any, b: any) => (a.year_from ?? 0) - (b.year_from ?? 0));
+  if (siblings.length === 0) return null;
+
+  return Promise.all(siblings.map((row: any) => fetchBundleForPhase(supabase, row as any)));
+}
+
 // Id-based lookup (app/api/db-test/route.ts POST, which identifies a phase by
 // catalog_phases.id the same way /api/detail identifies a legacy vehicle by
 // vehicles.id) -- same phase-row shape as getPhaseBundle above, just resolved
@@ -109,11 +191,12 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
       .select(
         `
         id, body_type_id, acceleration_0_100, top_speed_kmh, fuel_consumption_combined,
+        fuel_consumption_l100km, energy_consumption_kwh100km,
         co2_emissions_g_km, battery_capacity_net_kwh, ev_range_wltp_km, max_charging_kw_dc,
         catalog_body_types(id, name),
         catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type, reliability_rating, pros, cons),
         transmission_units(id, code, family, maker, speeds, reliability_note, maintenance_note, reliability_rating, pros, cons),
-        drivetrain_systems(id, code, type, maker, reliability_note)
+        drivetrain_systems(id, code, type, generation, maker, reliability_note, reliability_rating, pros, cons)
         `
       )
       .eq("phase_id", phaseId),
@@ -261,13 +344,19 @@ function transformBundle(
           id: c.drivetrain_systems.id,
           code: c.drivetrain_systems.code,
           type: c.drivetrain_systems.type,
+          generation: c.drivetrain_systems.generation,
           maker: c.drivetrain_systems.maker,
           reliabilityNote: c.drivetrain_systems.reliability_note,
+          reliabilityRating: c.drivetrain_systems.reliability_rating,
+          pros: c.drivetrain_systems.pros ?? [],
+          cons: c.drivetrain_systems.cons ?? [],
         }
       : null,
     acceleration0To100: c.acceleration_0_100,
     topSpeedKmh: c.top_speed_kmh,
     fuelConsumptionCombined: c.fuel_consumption_combined,
+    fuelConsumptionL100km: c.fuel_consumption_l100km,
+    energyConsumptionKwh100km: c.energy_consumption_kwh100km,
     co2EmissionsGKm: c.co2_emissions_g_km,
     batteryCapacityNetKwh: c.battery_capacity_net_kwh,
     evRangeWltpKm: c.ev_range_wltp_km,
@@ -307,6 +396,8 @@ function transformBundle(
   }));
 
   return {
+    phaseId: phaseRow.id,
+    modelId: model.id,
     brandName: brand.name,
     modelName: model.name,
     segment: model.segment,

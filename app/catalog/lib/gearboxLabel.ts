@@ -1,9 +1,8 @@
 // Shared "<code> · <speeds>-speed <type>" header label for a gearbox widget, e.g.
-// "VW DQ381 · 7-speed wet DCT" -- used by both /catalog (EngineGearboxPanel, Configurator's
-// gearbox options) and /db-test (CarDetail's TransmissionAccordion), which is why this lives
-// in app/catalog/lib rather than inline in one component (db-test already imports from
-// app/catalog/lib/db for the same reason -- there's no separate shared lib for these two
-// routes otherwise).
+// "VW DQ381 · 7-speed wet DCT" -- used by both /catalog (GearboxPanel) and /db-test
+// (CarDetail's GearboxAccordion), which is why this lives in app/catalog/lib rather than
+// inline in one component (db-test already imports from app/catalog/lib/db for the same
+// reason -- there's no separate shared lib for these two routes otherwise).
 //
 // transmission_units.family is an 8-value frozen vocabulary (see
 // supabase/migrations/20260724120000_transmission_drivetrain_reference_tables.sql plus the

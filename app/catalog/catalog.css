@@ -19,3 +19,16 @@
   --color-catalog-text: #f0f0f0;
   --color-catalog-muted: #8a8a90;
 }
+
+/* Brief pulse applied to an engine/gearbox/drivetrain widget after a Configurations-row
+   click scrolls it into view (vehicle page redesign step 1) -- not a Tailwind utility since
+   it needs a keyframe animation, plain CSS added/removed via classList in
+   VehiclePageClient.tsx. */
+@keyframes catalog-highlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px var(--color-catalog-accent); }
+}
+.catalog-highlight {
+  animation: catalog-highlight-pulse 0.6s ease-in-out 2;
+  border-radius: 0.5rem;
+}

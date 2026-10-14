@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { getPhaseBundleById } from "@/app/catalog/lib/db";
+import { getGenerationBundlesByPhaseId } from "@/app/catalog/lib/db";
+import type { PhaseBundle } from "@/app/catalog/lib/types";
+import { groupByGearbox, groupConfigurations } from "@/app/catalog/lib/groupConfigurations";
 import { resolveBodyTile } from "@/app/db-test/lib/filters";
 import type {
   DetailData,
+  DetailDrivetrainGroup,
   DetailEngine,
-  DetailTransmission,
+  DetailGearboxGroup,
+  DetailPhase,
+  DetailResponse,
   DimensionsByBody,
 } from "@/app/db-test/types";
 
@@ -239,29 +244,22 @@ const SEVERITY_LABELS: Record<string, string> = { critical: "Critical", moderate
 // what "4" means.
 const RELIABILITY_LABELS: Record<number, string> = { 5: "Excellent", 4: "Good", 3: "Average", 2: "Below Average", 1: "Poor" };
 
-export async function POST(req: NextRequest) {
-  try {
-    const { vehicleId } = await req.json();
-    const bundle = await getPhaseBundleById(vehicleId);
-
-    if (!bundle) {
-      const empty: DetailData = { e: [], t: [], c: [], pros: [], cons: [], q: [], b: "", specs: emptySpecs(), dims: [] };
-      return NextResponse.json(empty);
-    }
-
-    // Engines tab: one row per distinct engine (several configs can share the same engine
-    // across gearboxes/bodies) -- mirrors the legacy schema's one-row-per-real-engine shape.
-    const engineGroups = new Map<string, typeof bundle.configs>();
-    for (const c of bundle.configs) {
-      const list = engineGroups.get(c.engine.id) ?? [];
-      list.push(c);
-      engineGroups.set(c.engine.id, list);
-    }
-    const e: DetailEngine[] = [...engineGroups.values()].map((group) => {
-      const engine = group[0].engine;
-      const cons = group.map((c) => c.fuelConsumptionCombined).filter((n): n is number => n != null);
-      const battery = group.map((c) => c.batteryCapacityNetKwh).filter((n): n is number => n != null);
-      const range = group.map((c) => c.evRangeWltpKm).filter((n): n is number => n != null);
+// Builds one phase's full DetailData from its PhaseBundle -- the exact same transform the
+// single-phase POST used to run inline, now reused once per sibling phase (vehicle page
+// redesign step 1: every phase of the generation is transformed and returned in one
+// response, so switching phases client-side needs no refetch).
+function buildDetailData(bundle: PhaseBundle): DetailData {
+    // Engines tab: one widget per distinct engine -- groupConfigurations() does the body x
+    // drivetrain x engine x gearbox collapsing so an engine doesn't render once per
+    // body/drivetrain combination. Gearboxes are a separate, independent section below (g),
+    // not nested here -- the same gearbox can be paired with several different engines, so
+    // its own rating/pros/cons/faults/notes describe the unit, not any one engine pairing.
+    const engineGroups = groupConfigurations(bundle.configs);
+    const e: DetailEngine[] = engineGroups.map((group) => {
+      const engine = group.engine;
+      const isEv = engine.fuelType === "electric" || group.configs.some(
+        (c) => c.batteryCapacityNetKwh != null || c.evRangeWltpKm != null
+      );
       return {
         // Display-only convention: "<display_name> (<code>) <power_kw> kW", same as
         // Browse & Compare's own engine labels -- never falls back to the em-dash form,
@@ -273,66 +271,69 @@ export async function POST(req: NextRequest) {
         displacement_cc: engine.displacementCc,
         torque_nm: engine.torqueNm,
         cylinders: engine.cylinders,
-        drivetrain: group.some((c) => c.drivetrain != null) ? "AWD" : "FWD",
-        consumption: cons.length ? Math.round((cons.reduce((a, b) => a + b, 0) / cons.length) * 10) / 10 : null,
-        co2: group[0].co2EmissionsGKm,
-        battery_kwh: battery.length ? battery[0] : null,
-        range_km: range.length ? range[0] : null,
+        is_ev: isEv,
+        id: engine.id,
         reliability: engine.reliabilityRating != null ? RELIABILITY_LABELS[engine.reliabilityRating] ?? "—" : "—",
         faults: bundle.faults
           .filter((f) => f.engineId === engine.id)
           .map((f) => ({ fault: f.fault, severity: f.severity })),
         pros: engine.pros,
         cons: engine.cons,
+        bodyNames: group.bodyNames,
       };
     });
 
-    // Transmissions tab: one row per distinct (gearbox, drivetrain-or-none) pairing actually
-    // used -- preserves real pairing nuance (e.g. a gearbox that's FWD-only on hatchbacks but
-    // Haldex-paired on the estate) instead of collapsing to one row per gearbox code.
-    const transGroups = new Map<string, typeof bundle.configs>();
-    for (const c of bundle.configs) {
-      const key = `${c.gearbox.id}:${c.drivetrain?.id ?? "none"}`;
-      const list = transGroups.get(key) ?? [];
-      list.push(c);
-      transGroups.set(key, list);
+    // Gearboxes tab: one widget per distinct gearbox, independent of which engine(s) use it.
+    const gearboxGroups = groupByGearbox(bundle.configs);
+    const g: DetailGearboxGroup[] = gearboxGroups.map((gg) => ({
+      id: gg.gearbox.id,
+      code: gg.gearbox.code,
+      family: gg.gearbox.family,
+      speeds: gg.gearbox.speeds,
+      reliability: gg.gearbox.reliabilityRating != null ? RELIABILITY_LABELS[gg.gearbox.reliabilityRating] ?? "—" : "—",
+      reliability_note: gg.gearbox.reliabilityNote,
+      maintenance_note: gg.gearbox.maintenanceNote,
+      pros: gg.gearbox.pros,
+      cons: gg.gearbox.cons,
+      phase_note: gg.gearbox.phaseNote,
+      faults: bundle.faults
+        .filter((f) => f.unitId === gg.gearbox.id)
+        .map((f) => ({ fault: f.fault, severity: f.severity })),
+      bodyNames: gg.bodyNames,
+      drivetrainLabels: gg.drivetrainLabels,
+      engineNames: gg.engineNames,
+    }));
+
+    // Drivetrain-system tab: a drivetrain system is a real, standalone component independent
+    // of any one engine/gearbox pairing (the same Haldex unit can sit behind several
+    // different gearboxes), so it stays its own top-level group rather than nested under an
+    // engine/gearbox -- `variants` is the distinct gearbox codes it's actually paired with.
+    const drivetrainGroupsByCode = new Map<string, DetailDrivetrainGroup>();
+    for (const cfg of bundle.configs) {
+      if (!cfg.drivetrain) continue;
+      const existing = drivetrainGroupsByCode.get(cfg.drivetrain.code);
+      if (existing) {
+        if (!existing.variants.includes(cfg.gearbox.code)) existing.variants.push(cfg.gearbox.code);
+      } else {
+        drivetrainGroupsByCode.set(cfg.drivetrain.code, {
+          system: {
+            id: cfg.drivetrain.id,
+            code: cfg.drivetrain.code,
+            type: cfg.drivetrain.type,
+            generation: cfg.drivetrain.generation,
+            maker: cfg.drivetrain.maker,
+            description: null,
+            reliability: cfg.drivetrain.reliabilityRating != null ? RELIABILITY_LABELS[cfg.drivetrain.reliabilityRating] ?? "—" : "—",
+            reliability_note: cfg.drivetrain.reliabilityNote,
+            maintenance_note: null,
+            pros: cfg.drivetrain.pros,
+            cons: cfg.drivetrain.cons,
+          },
+          variants: [cfg.gearbox.code],
+        });
+      }
     }
-    const t: DetailTransmission[] = [...transGroups.values()].map((group) => {
-      const gearbox = group[0].gearbox;
-      const drivetrain = group[0].drivetrain;
-      return {
-        type: gearbox.code,
-        trans_type: gearbox.family,
-        subtype: gearbox.family,
-        speeds: gearbox.speeds,
-        maintenance_km: null,
-        reliability: gearbox.reliabilityRating != null ? RELIABILITY_LABELS[gearbox.reliabilityRating] ?? "—" : "—",
-        faults: bundle.faults
-          .filter((f) => f.unitId === gearbox.id)
-          .map((f) => ({ fault: f.fault, severity: f.severity })),
-        notes: "",
-        pros: gearbox.pros,
-        cons: gearbox.cons,
-        phase_note: gearbox.phaseNote,
-        unit: {
-          code: gearbox.code,
-          family: gearbox.family,
-          reliability_note: gearbox.reliabilityNote,
-          maintenance_note: gearbox.maintenanceNote,
-        },
-        drivetrainSystem: drivetrain
-          ? {
-              code: drivetrain.code,
-              type: drivetrain.type,
-              generation: null,
-              maker: drivetrain.maker,
-              description: null,
-              reliability_note: drivetrain.reliabilityNote,
-              maintenance_note: null,
-            }
-          : null,
-      };
-    });
+    const dt: DetailDrivetrainGroup[] = [...drivetrainGroupsByCode.values()];
 
     // Common faults tab: the same catalog_component_faults rows shown inline above,
     // consolidated with a readable "area" label resolved back to the engine/gearbox they
@@ -380,16 +381,42 @@ export async function POST(req: NextRequest) {
       seats: d.seatsCount,
     }));
 
-    const result: DetailData = {
-      e, t, c, pros: [], cons: [], q,
+    return {
+      e, g, dt, c, pros: [], cons: [], q,
       b: "Check full service history and verify mileage.",
       specs, dims,
+      // Passed through unchanged -- see DetailData.configs' own comment in db-test/types.ts.
+      configs: bundle.configs,
+    };
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { vehicleId } = await req.json();
+    // Loads every phase of the requested phase's generation (vehicle page redesign step 1's
+    // phase switcher) in one fetch, so switching phases in the detail panel is pure client
+    // state -- see DbTestView.tsx, which merges every returned phase into its detail cache.
+    const bundles = await getGenerationBundlesByPhaseId(vehicleId);
+
+    if (!bundles || bundles.length === 0) {
+      const empty: DetailResponse = { phases: [] };
+      return NextResponse.json(empty);
+    }
+
+    const result: DetailResponse = {
+      phases: bundles.map((bundle): DetailPhase => ({
+        phaseId: bundle.phaseId,
+        phaseLabel: bundle.phaseLabel,
+        yearFrom: bundle.yearFrom,
+        yearTo: bundle.yearTo,
+        detail: buildDetailData(bundle),
+      })),
     };
 
     return NextResponse.json(result);
   } catch (err) {
     console.error("[/api/db-test POST]", err);
-    const empty: DetailData = { e: [], t: [], c: [], pros: [], cons: [], q: [], b: "Could not load data.", specs: emptySpecs(), dims: [] };
+    const empty: DetailResponse = { phases: [] };
     return NextResponse.json(empty, { status: 500 });
   }
 }

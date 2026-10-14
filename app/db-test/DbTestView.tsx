@@ -22,7 +22,8 @@ import {
 import CarRow from "./CarRow";
 import FilterPanel from "./FilterPanel";
 import CarDetail from "./CarDetail";
-import type { DetailData } from "./types";
+import type { DetailData, DetailResponse } from "./types";
+import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 
 // No "Reliability" sort here -- unlike the legacy schema, catalog_engines/transmission_units
 // carry no reliability-tier column at all, so there is nothing honest to sort by (see
@@ -134,6 +135,10 @@ export default function DbTestView() {
   const openCarData = useMemo(() => (carId ? allCars.find((c) => c.id === carId) ?? null : null), [carId, allCars]);
 
   const [detailCache, setDetailCache] = useState<Record<string, DetailData>>({});
+  // Every sibling phase of the generation a given phase id belongs to (vehicle page redesign
+  // step 1's phase switcher) -- populated from the SAME response that filled detailCache
+  // above, keyed under every sibling id so a lookup works no matter which one is open.
+  const [phaseSiblings, setPhaseSiblings] = useState<Record<string, PhaseSwitcherOption[]>>({});
   const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({});
 
   const loadDetail = useCallback((id: string) => {
@@ -145,7 +150,23 @@ export default function DbTestView() {
         body: JSON.stringify({ vehicleId: id }),
       }))
       .then((r) => r.json())
-      .then((data) => setDetailCache((p) => ({ ...p, [id]: data })))
+      .then((data: DetailResponse) => {
+        // Merges every returned sibling phase at once -- not just the one requested -- so
+        // switching to a sibling via the phase switcher is instant, no second fetch.
+        const siblings: PhaseSwitcherOption[] = data.phases.map((p) => ({
+          id: p.phaseId, phaseLabel: p.phaseLabel, yearFrom: p.yearFrom, yearTo: p.yearTo,
+        }));
+        setDetailCache((prev) => {
+          const next = { ...prev };
+          for (const p of data.phases) next[p.phaseId] = p.detail;
+          return next;
+        });
+        setPhaseSiblings((prev) => {
+          const next = { ...prev };
+          for (const p of data.phases) next[p.phaseId] = siblings;
+          return next;
+        });
+      })
       .catch((e) => console.error("DB test detail fetch failed:", e))
       .finally(() => setDetailLoading((p) => ({ ...p, [id]: false })));
   }, [detailCache, detailLoading]);
@@ -215,6 +236,8 @@ export default function DbTestView() {
           drivetrainFilter={filters.drivetrain}
           gapsMode={gapsMode}
           onBack={closeCar}
+          siblingPhases={phaseSiblings[openCarData.id] ?? []}
+          onSwitchPhase={openCar}
         />
       ) : (<>
         <div className="results-hdr">

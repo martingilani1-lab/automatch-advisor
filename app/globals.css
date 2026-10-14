@@ -303,3 +303,10 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 @keyframes blink2{0%,28%{opacity:0}16%,24%{opacity:1}}
 @keyframes blink3{0%,36%{opacity:0}24%,32%{opacity:1}}
 @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Brief pulse applied to an engine/gearbox/drivetrain card after a Configurations-row click
+   scrolls it into view (vehicle page redesign step 1) -- added/removed via classList in
+   CarDetail.tsx. The /catalog equivalent (.catalog-highlight) lives in its own scoped
+   catalog.css, never loaded here, hence this separate same-purpose class. */
+@keyframes highlightPulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px #e8ff47}}
+.highlight-pulse{animation:highlightPulse .6s ease-in-out 2;border-radius:10px}
