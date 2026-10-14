@@ -28,7 +28,7 @@ export default function MediaGallery({ bodies, media, gapsMode }: MediaGalleryPr
   return (
     <section>
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-medium text-catalog-text">Media</h2>
+        <h2 className="text-lg font-medium text-primary">Media</h2>
         <SectionGapsBadge count={emptyBodyCount} />
       </div>
       <Tabs defaultValue={bodies[0].bodyTypeId} className="mt-2">
@@ -52,12 +52,12 @@ export default function MediaGallery({ bodies, media, gapsMode }: MediaGalleryPr
                   {items.map((m) => (
                     <figure
                       key={m.id}
-                      className="overflow-hidden rounded-lg border border-catalog-border bg-catalog-surface"
+                      className="overflow-hidden rounded-xl border border-white/5 bg-panel hover:border-zinc-700 transition-colors"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element -- external, unoptimized catalog image URLs, not a static asset */}
                       <img src={m.imageUrl} alt={`${b.bodyName} ${m.viewAngle ?? ""}`} className="aspect-video w-full object-cover" />
                       {m.viewAngle && (
-                        <figcaption className="p-2 text-xs text-catalog-muted">
+                        <figcaption className="p-2 text-xs text-secondary">
                           {m.viewAngle}
                           {m.isMain && " · main"}
                         </figcaption>

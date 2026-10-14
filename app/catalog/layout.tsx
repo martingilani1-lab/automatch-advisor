@@ -10,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function CatalogLayout({ children }: { children: React.ReactNode }) {
-  return <div className="dark min-h-screen bg-catalog-bg text-catalog-text">{children}</div>;
+  return <div className="theme-garage theme-garage-page dark min-h-screen text-primary">{children}</div>;
 }

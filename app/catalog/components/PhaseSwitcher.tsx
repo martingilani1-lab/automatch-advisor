@@ -1,6 +1,6 @@
 "use client";
 
-import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import * as RadixTabs from "@radix-ui/react-tabs";
 
 export interface PhaseSwitcherOption {
   id: string;
@@ -23,26 +23,30 @@ function phaseLabelText(p: PhaseSwitcherOption): string {
   return label ? `${label} ${years}` : years;
 }
 
-// A segmented control built on the same Radix Tabs primitive as every other tab group on
-// this page (BodyDimensionsTabs/MediaGallery's own per-body tabs, and the new page-level
-// tab bar) -- no ToggleGroup package is installed, and Tabs already does exactly this job
-// with no TabsContent required when used in controlled mode. Renders static text with no
-// switcher at all when the generation has only one phase (nothing to switch between).
+// A segmented pill control -- visually distinct from the page's own underline-style tab bar
+// (ui/tabs.tsx), so this uses Radix's Tabs primitives directly rather than that shared
+// TabsList/TabsTrigger (whose default classes are tuned for the underline look, not a
+// pill segment). Renders static text with no switcher at all when the generation has only
+// one phase (nothing to switch between).
 export default function PhaseSwitcher({ phases, selectedId, onSelect }: PhaseSwitcherProps) {
   if (phases.length <= 1) {
     const only = phases[0];
-    return only ? <p className="text-sm text-catalog-muted">{phaseLabelText(only)}</p> : null;
+    return only ? <p className="text-sm text-secondary">{phaseLabelText(only)}</p> : null;
   }
 
   return (
-    <Tabs value={selectedId} onValueChange={onSelect}>
-      <TabsList>
+    <RadixTabs.Root value={selectedId} onValueChange={onSelect}>
+      <RadixTabs.List className="inline-flex gap-1 rounded-lg border border-white/5 bg-panel p-1">
         {phases.map((p) => (
-          <TabsTrigger key={p.id} value={p.id}>
+          <RadixTabs.Trigger
+            key={p.id}
+            value={p.id}
+            className="rounded-md border-0 bg-transparent px-3 py-1.5 text-sm text-secondary transition-colors data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:text-white"
+          >
             {phaseLabelText(p)}
-          </TabsTrigger>
+          </RadixTabs.Trigger>
         ))}
-      </TabsList>
-    </Tabs>
+      </RadixTabs.List>
+    </RadixTabs.Root>
   );
 }

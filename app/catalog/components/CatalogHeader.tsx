@@ -30,12 +30,12 @@ export default function CatalogHeader({ bundle, gapsMode }: CatalogHeaderProps) 
   ];
 
   return (
-    <header className="flex flex-col gap-3 border-b border-catalog-border pb-6">
+    <header className="flex flex-col gap-3 border-b border-white/5 pb-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-wide text-catalog-muted">{bundle.brandName}</p>
+          <p className="text-sm uppercase tracking-wide text-secondary">{bundle.brandName}</p>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-semibold text-catalog-text">{bundle.modelName}</h1>
+            <h1 className="text-3xl font-semibold text-primary">{bundle.modelName}</h1>
             <SectionGapsBadge count={countGaps(fields)} />
           </div>
         </div>

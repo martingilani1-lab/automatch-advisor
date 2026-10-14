@@ -103,7 +103,7 @@ export default function VehiclePageClient({ phases, routePhaseId, gapsMode }: Ve
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.classList.add("catalog-highlight");
-    const t = setTimeout(() => el.classList.remove("catalog-highlight"), 1200);
+    const t = setTimeout(() => el.classList.remove("catalog-highlight"), 1500);
     return () => clearTimeout(t);
   }, [activeTab, selectedPhaseId, focusEngine, focusUnit, focusDrivetrain]);
 

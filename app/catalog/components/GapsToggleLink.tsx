@@ -8,7 +8,7 @@ export default function GapsToggleLink({ gapsMode }: GapsToggleLinkProps) {
   return (
     <a
       href={gapsMode ? "?" : "?gaps=1"}
-      className="shrink-0 rounded-md border border-catalog-border px-3 py-1.5 text-sm text-catalog-muted transition-colors hover:text-catalog-text"
+      className="shrink-0 rounded-md border border-white/5 px-3 py-1.5 text-sm text-secondary transition-colors hover:text-primary hover:border-zinc-700"
     >
       {gapsMode ? "Hide gaps" : "Show gaps"}
     </a>

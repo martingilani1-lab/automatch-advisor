@@ -17,7 +17,7 @@ export default function EngineList({ configs, faults, gapsMode }: EngineListProp
 
   return (
     <section>
-      <h2 className="text-lg font-medium text-catalog-text">Engines</h2>
+      <h2 className="text-lg font-medium text-primary">Engines</h2>
       <div className="mt-2 flex flex-col gap-4">
         {groups.map((group) => (
           <EnginePanel key={group.engine.id} group={group} faults={faults} gapsMode={gapsMode} />

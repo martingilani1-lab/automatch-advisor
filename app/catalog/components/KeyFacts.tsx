@@ -41,10 +41,10 @@ export default function KeyFacts({ bundle, gapsMode }: KeyFactsProps) {
   return (
     <section>
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-medium text-catalog-text">Key facts</h2>
+        <h2 className="text-lg font-medium text-primary">Key facts</h2>
         <SectionGapsBadge count={countGaps(fields)} />
       </div>
-      <div className="mt-2 rounded-lg border border-catalog-border bg-catalog-surface p-4">
+      <div className="mt-2 rounded-xl border border-white/5 bg-panel p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] hover:border-zinc-700 transition-colors">
         {fields.map((f) => (
           <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
         ))}

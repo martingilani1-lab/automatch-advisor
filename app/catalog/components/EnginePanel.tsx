@@ -7,6 +7,7 @@ import Badge from "./ui/badge";
 import Chips from "./ui/chips";
 import ProsConsList from "./ui/pros-cons-list";
 import FaultsList from "./ui/faults-list";
+import Rating from "./ui/rating";
 import SectionGapsBadge from "./SectionGapsBadge";
 
 interface EnginePanelProps {
@@ -14,11 +15,6 @@ interface EnginePanelProps {
   faults: CatalogFault[];
   gapsMode: boolean;
 }
-
-// catalog_engines.reliability_rating is a smallint 1-5 -- same scale and word labels as the
-// mapping used when importing it (scripts/fill/engine-import-resolve.mjs's RELIABILITY_MAP,
-// reversed), so display and import agree on what "4" means.
-const RELIABILITY_LABELS: Record<number, string> = { 5: "Excellent", 4: "Good", 3: "Average", 2: "Below Average", 1: "Poor" };
 
 // Engines and gearboxes are each their own top-level section (see EngineList.tsx/
 // GearboxList.tsx) -- a gearbox's own rating/pros/cons/faults describe the unit itself, not
@@ -40,6 +36,8 @@ export default function EnginePanel({ group, faults, gapsMode }: EnginePanelProp
         : null;
   const hybridSystemValue = engine.hybridType ?? "Conventional";
 
+  // Reliability rating renders as the 5-dot Rating indicator below, not a Field row -- kept
+  // out of this list so countGaps doesn't double-count it against Rating's own null check.
   const engineFields: GapField[] = [
     { label: "Code", value: engine.code },
     { label: "Displacement", value: engine.displacementCc != null ? `${engine.displacementCc} cm³` : null },
@@ -51,12 +49,11 @@ export default function EnginePanel({ group, faults, gapsMode }: EnginePanelProp
     { label: "Timing replacement", value: timingReplacementValue },
     { label: "Oil capacity", value: engine.engineOilCapacityLiters != null ? `${engine.engineOilCapacityLiters} L` : null },
     { label: "Hybrid system", value: hybridSystemValue },
-    { label: "Reliability rating", value: engine.reliabilityRating != null ? RELIABILITY_LABELS[engine.reliabilityRating] : null },
   ];
 
   // catalog_component_faults keys a fault to EITHER an engine OR a unit, never a vehicle.
   const engineFaults = faults.filter((f) => f.engineId === engine.id);
-  const totalGaps = countGaps(engineFields);
+  const totalGaps = countGaps(engineFields) + (engine.reliabilityRating == null ? 1 : 0);
 
   // Tire sizes are per-configuration -- union across every config this engine actually uses,
   // deduped by (tireSize, isStandard) so the same size offered on two bodies doesn't repeat.
@@ -67,28 +64,32 @@ export default function EnginePanel({ group, faults, gapsMode }: EnginePanelProp
   const tireSizes = [...tireSizeMap.values()];
 
   return (
-    <div id={`engine-${engine.id}`} className="flex flex-col gap-4 rounded-lg border border-catalog-border bg-catalog-bg p-4">
+    <div
+      id={`engine-${engine.id}`}
+      className="flex flex-col gap-4 rounded-xl border border-white/5 bg-panel p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] hover:border-zinc-700 transition-colors"
+    >
       <div className="flex items-center gap-2">
         {/* Display-only convention: "<display_name> (<code>) <power_kw> kW", same as
             Browse & Compare's own engine labels -- never changes display_name itself. */}
-        <h3 className="text-base font-medium text-catalog-text">
+        <h3 className="text-base font-medium text-primary">
           Engine — {engine.displayName ? `${engine.displayName} (${engine.code}) ${engine.powerKw} kW` : `${engine.code} ${engine.powerKw} kW`}
         </h3>
         <SectionGapsBadge count={totalGaps} />
       </div>
       <Chips items={group.bodyNames} />
 
-      <div className="rounded-lg border border-catalog-border bg-catalog-surface p-4">
+      <div className="rounded-lg bg-panel-2 p-4">
         {engineFields.map((f) => (
           <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
         ))}
+        <Rating value={engine.reliabilityRating} label="Reliability" />
         <ProsConsList pros={engine.pros} cons={engine.cons} gapsMode={gapsMode} />
         <FaultsList faults={engineFaults} gapsMode={gapsMode} />
       </div>
 
       <div>
         <div className="mb-2 flex items-center gap-2">
-          <p className="text-sm font-medium text-catalog-text">Tire sizes</p>
+          <p className="text-sm font-medium text-primary">Tire sizes</p>
           <SectionGapsBadge count={tireSizes.length === 0 ? 1 : 0} />
         </div>
         {tireSizes.length === 0 ? (

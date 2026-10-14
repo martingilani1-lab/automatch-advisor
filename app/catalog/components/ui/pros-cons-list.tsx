@@ -8,6 +8,8 @@ interface ProsConsListProps {
 
 // Shared by the Engine, Gearbox and Drivetrain panels -- each has its own pros/cons text
 // columns (catalog_engines/transmission_units/drivetrain_systems) but renders them identically.
+// Marker color carries the pro/con meaning (emerald/amber); body text stays zinc-300 either
+// way, matching the brief exactly.
 export default function ProsConsList({ pros, cons, gapsMode }: ProsConsListProps) {
   if (pros.length === 0 && cons.length === 0) {
     return gapsMode ? <Badge variant="missing">no pros/cons recorded</Badge> : null;
@@ -17,8 +19,8 @@ export default function ProsConsList({ pros, cons, gapsMode }: ProsConsListProps
       {pros.length > 0 && (
         <ul className="flex flex-col gap-1">
           {pros.map((p, i) => (
-            <li key={i} className="text-xs text-catalog-text">
-              <span className="text-catalog-accent">+</span> {p}
+            <li key={i} className="text-xs text-zinc-300">
+              <span className="text-emerald-400">+</span> {p}
             </li>
           ))}
         </ul>
@@ -26,8 +28,8 @@ export default function ProsConsList({ pros, cons, gapsMode }: ProsConsListProps
       {cons.length > 0 && (
         <ul className="flex flex-col gap-1">
           {cons.map((c, i) => (
-            <li key={i} className="text-xs text-catalog-muted">
-              <span className="text-orange-400">–</span> {c}
+            <li key={i} className="text-xs text-zinc-300">
+              <span className="text-amber-400">–</span> {c}
             </li>
           ))}
         </ul>

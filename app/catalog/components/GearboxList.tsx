@@ -18,7 +18,7 @@ export default function GearboxList({ configs, faults, gapsMode }: GearboxListPr
 
   return (
     <section>
-      <h2 className="text-lg font-medium text-catalog-text">Gearboxes</h2>
+      <h2 className="text-lg font-medium text-primary">Gearboxes</h2>
       <div className="mt-2 flex flex-col gap-4">
         {groups.map((group) => (
           <GearboxPanel key={group.gearbox.id} group={group} faults={faults} gapsMode={gapsMode} />

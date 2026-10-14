@@ -27,16 +27,16 @@ export default function FaultsList({ faults, gapsMode }: FaultsListProps) {
   );
   return (
     <div className="mt-2">
-      <p className="mb-1 text-xs uppercase tracking-wide text-catalog-muted">
+      <p className="mb-1 text-xs uppercase tracking-wide text-secondary">
         Known faults ({faults.length})
       </p>
       <ul className="flex flex-col gap-2">
         {sorted.map((f) => (
           <li
             key={f.id}
-            className="flex items-center justify-between gap-3 rounded-lg border border-catalog-border bg-catalog-surface p-3"
+            className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-panel p-3"
           >
-            <span className="text-sm text-catalog-text">{f.fault}</span>
+            <span className="text-sm text-primary">{f.fault}</span>
             {f.severity && <Badge variant={SEVERITY_BADGE_VARIANT[f.severity] ?? "warning"}>{f.severity}</Badge>}
           </li>
         ))}

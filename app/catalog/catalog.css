@@ -7,28 +7,67 @@
    (Next.js doesn't remove a route's global stylesheet on navigation -- see
    node_modules/next/dist/docs/01-app/01-getting-started/11-css.md). Without preflight, a
    lingering stylesheet is harmless: it only paints elements carrying its exact utility
-   classnames. */
+   classnames. Also loaded on /db-test (app/db-test/layout.tsx) for the same reason, scoped
+   there to CarDetail.tsx's own classnames only -- DbTestView's list/filter UI never uses
+   these tokens, it stays on its own app/globals.css classes.
+
+   "Garage" dark theme (vehicle detail page redesign) -- every token below is scoped by
+   convention, not by a CSS selector: these classnames are only ever used inside the vehicle
+   detail page's own components (app/catalog/components/*, app/db-test/CarDetail.tsx +
+   ConfigRows.tsx), never on the car list pages (Quiz results in app/page.tsx, /prehlad, or
+   /db-test's own list view), so nothing outside those two detail views can pick them up.
+   The <div className="theme-garage"> wrapper on each page's root exists for that
+   documentation/intent, matching the brief's "apply under a wrapper class" instruction --
+   Tailwind v4's @theme tokens still generate real global utility classes at the CSS level
+   (there is no selector-scoping mechanism for @theme itself), so the wrapper is the
+   contract, not an enforcement boundary.
+
+   Token naming: Tailwind v4 ties ONE value per --color-<name> across every utility type
+   (bg-<name>/text-<name>/border-<name>/ring-<name>/...). "bg-panel" (zinc-900) and the
+   brief's own "border-panel" (white/5) are two DIFFERENT values, so they can't share one
+   token name -- borders use Tailwind's own built-in white/5 and zinc-800 utilities directly
+   (border-white/5, border-zinc-800), exactly as the brief's own card-style example already
+   does ("bg-panel, border border-white/5"); only the values below get a named token. */
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
 @theme {
-  --color-catalog-bg: #0e0e0f;
-  --color-catalog-surface: #181818;
-  --color-catalog-border: #2a2a2e;
-  --color-catalog-accent: #e8ff47;
-  --color-catalog-text: #f0f0f0;
-  --color-catalog-muted: #8a8a90;
+  --color-app: #09090b;              /* zinc-950 -- page background */
+  --color-panel: #18181b;            /* zinc-900 -- cards, panels, tab content, widgets */
+  --color-panel-2: rgb(39 39 42 / 0.6); /* zinc-800/60 -- nested rows, table header, hover */
+  --color-primary: #ffffff;          /* text-primary */
+  --color-secondary: #a1a1aa;        /* text-secondary, zinc-400 */
+  --color-muted: #71717a;            /* text-muted, zinc-500 -- only for >=14px labels */
+  --color-accent: #ea580c;           /* orange-600; hover state uses orange-500 directly */
+  --color-accent-fg: #09090b;        /* zinc-950 -- text/icon color ON an accent-filled surface */
+  --color-accent-2: #2563eb;         /* blue-600 -- fills/borders */
+  --color-accent-2-text: #60a5fa;    /* blue-400 */
+  --color-danger: #dc2626;           /* red-600 -- fills/borders */
+  --color-danger-text: #ef4444;      /* red-500 */
+  --color-warning: #f59e0b;          /* amber-500 -- moderate faults */
+  --color-minor: #a1a1aa;            /* zinc-400 -- minor faults (same value as secondary,
+                                         named separately for semantic clarity at call sites) */
 }
 
-/* Brief pulse applied to an engine/gearbox/drivetrain widget after a Configurations-row
-   click scrolls it into view (vehicle page redesign step 1) -- not a Tailwind utility since
-   it needs a keyframe animation, plain CSS added/removed via classList in
-   VehiclePageClient.tsx. */
-@keyframes catalog-highlight-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50% { box-shadow: 0 0 0 4px var(--color-catalog-accent); }
+/* Very subtle top gradient so the page reads as something other than flat black behind the
+   header -- fades from --color-panel to transparent (revealing --color-app) over 420px, not
+   stretched across the whole page height. Applied via .theme-garage-page on each page's root
+   (app/catalog/layout.tsx, app/db-test/CarDetail.tsx), alongside the .theme-garage token-
+   scope wrapper. */
+.theme-garage-page {
+  background-color: var(--color-app);
+  background-image: linear-gradient(to bottom, var(--color-panel), transparent 420px);
+}
+
+/* Deep-link focus ring: a Configurations-row click scrolls an engine/gearbox/drivetrain
+   widget into view and this fades in then out around it once, rather than the page's normal
+   persistent focus styling. One-shot fade (not a repeating pulse) -- added via classList in
+   VehiclePageClient.tsx / CarDetail.tsx, removed once the animation finishes. */
+@keyframes catalog-highlight-fade {
+  0% { box-shadow: 0 0 0 2px rgb(234 88 12 / 0.6); }
+  100% { box-shadow: 0 0 0 2px rgb(234 88 12 / 0); }
 }
 .catalog-highlight {
-  animation: catalog-highlight-pulse 0.6s ease-in-out 2;
-  border-radius: 0.5rem;
+  animation: catalog-highlight-fade 1.5s ease-out forwards;
+  border-radius: 0.75rem;
 }
