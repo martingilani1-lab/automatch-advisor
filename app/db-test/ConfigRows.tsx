@@ -42,6 +42,17 @@ function dbTestSortConfigs(configs: CatalogConfig[]): CatalogConfig[] {
   });
 }
 
+// One small header per fuel group, not per row -- dbTestSortConfigs above already keeps a
+// fuel type's rows contiguous, so the render loop just watches for the fuel type changing
+// from the previous row to know when to drop in a new header.
+const FUEL_GROUP_LABELS: Record<string, string> = {
+  petrol: "Petrol variants", lpg: "LPG variants", diesel: "Diesel variants",
+  hybrid: "Hybrid variants", phev: "Plug-in hybrid variants", electric: "Electric variants",
+};
+function fuelGroupLabel(fuelType: string): string {
+  return FUEL_GROUP_LABELS[fuelType] || `${fuelType.charAt(0).toUpperCase()}${fuelType.slice(1)} variants`;
+}
+
 // db-test's own native-styled Configurations tab -- same data/sorting/formatting as
 // /catalog's ConfigurationsTable.tsx (both import from ../catalog/lib/configDisplay.ts), but
 // rendered with this page's existing hand-rolled classes (.eq-item, .cgrid/.cgrid-item-btn --
@@ -54,45 +65,57 @@ export default function ConfigRows({ configs, onNavigate }: ConfigRowsProps) {
 
   return (
     <div>
-      {sorted.map((c) => (
-        <div key={c.id} className="eq-item">
-          <button
-            type="button"
-            className="cfg-link"
-            style={{ display: "block", fontWeight: 700, fontSize: ".85rem", marginBottom: 8 }}
-            onClick={() => onNavigate({ kind: "engine", id: c.engine.id })}
-          >
-            {dbTestEngineLabel(c)}
-          </button>
-          <div className="cgrid">
-            <div
-              className="cgrid-item cgrid-item-btn"
-              onClick={() => onNavigate({ kind: "unit", id: c.gearbox.id })}
+      {sorted.map((c, i) => (
+        <div key={c.id}>
+          {c.engine.fuelType !== sorted[i - 1]?.engine.fuelType && (
+            // i === 0's header is the very first thing in the tab -- no margin-top needed
+            // (every other group header does need the extra gap, but each header here is
+            // nested inside its own row's wrapper div, not a true sibling of the others, so
+            // a :first-child CSS rule can't distinguish "first in this row" from "first
+            // overall"; i === 0 is the only reliable check).
+            <div className="cfg-group-header" style={i === 0 ? { marginTop: 0 } : undefined}>
+              {fuelGroupLabel(c.engine.fuelType)}
+            </div>
+          )}
+          <div className="eq-item">
+            <button
+              type="button"
+              className="cfg-link"
+              style={{ display: "block", fontWeight: 700, fontSize: ".85rem", marginBottom: 8 }}
+              onClick={() => onNavigate({ kind: "engine", id: c.engine.id })}
             >
-              <div className="cgrid-label">Transmission</div>
-              <div className="cgrid-val cfg-link">{transmissionLabel(c)}</div>
-            </div>
-            <div className="cgrid-item">
-              <div className="cgrid-label">Body</div>
-              <div className="cgrid-val">{c.bodyName}</div>
-            </div>
-            {c.drivetrain ? (
+              {dbTestEngineLabel(c)}
+            </button>
+            <div className="cgrid">
               <div
                 className="cgrid-item cgrid-item-btn"
-                onClick={() => onNavigate({ kind: "drivetrain", id: c.drivetrain!.id })}
+                onClick={() => onNavigate({ kind: "unit", id: c.gearbox.id })}
               >
-                <div className="cgrid-label">Drivetrain</div>
-                <div className="cgrid-val cfg-link">{drivetrainLabel(c)}</div>
+                <div className="cgrid-label">Transmission</div>
+                <div className="cgrid-val cfg-link">{transmissionLabel(c)}</div>
               </div>
-            ) : (
               <div className="cgrid-item">
-                <div className="cgrid-label">Drivetrain</div>
-                <div className="cgrid-val">FWD</div>
+                <div className="cgrid-label">Body</div>
+                <div className="cgrid-val">{c.bodyName}</div>
               </div>
-            )}
-            <div className="cgrid-item">
-              <div className="cgrid-label">Consumption</div>
-              <div className="cgrid-val">{consumptionLabel(c)}</div>
+              {c.drivetrain ? (
+                <div
+                  className="cgrid-item cgrid-item-btn"
+                  onClick={() => onNavigate({ kind: "drivetrain", id: c.drivetrain!.id })}
+                >
+                  <div className="cgrid-label">Drivetrain</div>
+                  <div className="cgrid-val cfg-link">{drivetrainLabel(c)}</div>
+                </div>
+              ) : (
+                <div className="cgrid-item">
+                  <div className="cgrid-label">Drivetrain</div>
+                  <div className="cgrid-val">FWD</div>
+                </div>
+              )}
+              <div className="cgrid-item">
+                <div className="cgrid-label">Consumption</div>
+                <div className="cgrid-val">{consumptionLabel(c)}</div>
+              </div>
             </div>
           </div>
         </div>

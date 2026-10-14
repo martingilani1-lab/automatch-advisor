@@ -164,6 +164,11 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .ncap-pv{font-size:.75rem;color:#aaa;min-width:32px;text-align:right}
 .ncap-verdict{font-size:.8rem;font-weight:600;margin-top:6px}
 .ncap-na{font-size:.8rem;color:#ff9800;padding:8px 0}
+/* /db-test's Configurations tab (ConfigRows.tsx) only -- one small, muted label per fuel
+   group ("Petrol variants", "Diesel variants", ...), not per row. Deliberately subdued
+   (low-opacity white, no background/border) rather than a styled section heading -- a quiet
+   group divider, not another visual element competing with the engine rows themselves. */
+.cfg-group-header{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.32);margin:18px 0 8px}
 .eq-item{background:#1c1c1e;border:1px solid #2a2a2e;border-radius:8px;padding:10px;margin-bottom:6px}
 .eq-trim{font-weight:700;font-size:.85rem;margin-bottom:2px}
 .eq-target{font-size:.7rem;color:#e8ff47;margin-bottom:4px}
