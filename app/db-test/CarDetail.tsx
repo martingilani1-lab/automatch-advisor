@@ -11,7 +11,6 @@ import PhaseSwitcher, { type PhaseSwitcherOption } from "@/app/catalog/component
 import ConfigurationsTable, { type ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 import Badge from "@/app/catalog/components/ui/badge";
 import Chips from "@/app/catalog/components/ui/chips";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/catalog/components/ui/tabs";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -99,6 +98,31 @@ const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 function MissingMarker({ gapsMode, label }: { gapsMode: boolean; label: string }) {
   if (!gapsMode) return null;
   return <Badge variant="missing">missing: {label}</Badge>;
+}
+
+// Horizontally-scrollable pill tab bar -- replaces the boxy default-button look a bare
+// Radix Tabs.Trigger had without tailwindcss/preflight (see catalog.css's own header
+// comment on why preflight isn't imported). Plain buttons, not Radix, since nothing here
+// needs Radix's roving-tabindex/ARIA layer beyond what a button row already gives for free.
+function TabBar({ tabs, activeTab, onSelect }: { tabs: TabDef[]; activeTab: string | null; onSelect: (id: string) => void }) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => onSelect(t.id)}
+          className={`shrink-0 whitespace-nowrap rounded-t-lg border-0 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === t.id
+              ? "bg-zinc-800 border-orange-600 text-white"
+              : "bg-transparent border-transparent text-secondary hover:bg-zinc-800/50 hover:text-white"
+          }`}
+        >
+          {t.label}{t.count != null ? ` (${t.count})` : ""}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 // Gearboxes tab card. A gearbox is a real, standalone unit, its own top-level tab
@@ -194,22 +218,24 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: Detai
   return (
     <div
       id={`engine-${engine.id}`}
-      className="cursor-pointer rounded-xl border border-white/5 bg-panel p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors hover:border-zinc-700"
+      className="mb-3 cursor-pointer rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-4 transition hover:bg-zinc-900"
       onClick={onToggle}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-1 flex-col gap-1.5">
-          <span className="text-base font-medium text-primary">{engine.engine}</span>
+          {/* engine.engine is already "<name> (<code>) <power_kw> kW" (server-built, see
+              app/api/db-test/route.ts) -- no separate power suffix needed here. */}
+          <span className="text-base text-white">{engine.engine}</span>
           <div className="flex flex-wrap items-center gap-1.5">
             {rc ? (
-              <span className="rounded-full border px-2 py-0.5 text-xs font-medium" style={{ background: rc + "22", color: rc, borderColor: rc + "44" }}>{engine.reliability}</span>
+              <span className="rounded-full border px-2 py-0.5 text-xs font-medium" style={{ background: rc + "1a", color: rc, borderColor: rc + "33" }}>{engine.reliability}</span>
             ) : (
               <MissingMarker gapsMode={gapsMode} label="reliability rating" />
             )}
             {engine.fuel_type && <Badge>{fuelLabel(engine.fuel_type)}</Badge>}
           </div>
         </div>
-        <span className="text-secondary">{isOpen ? "▲" : "▼"}</span>
+        <span className="shrink-0 text-secondary">{isOpen ? "▲" : "▼"}</span>
       </div>
       {isOpen && (
         <div className="mt-3 flex flex-col gap-1">
@@ -335,6 +361,24 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   }
 
   const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
+
+  // car.model is server-built as "<name> (<generation_code>) <phase_label>" in one string
+  // (app/api/db-test/route.ts's modelLabel, also what CarRow uses -- not something to
+  // reshape there, it's shared with the list). The hero/sub-info split below derives the
+  // phase label/years separately from siblingPhases (already-available structured data, no
+  // new fetch) instead of parsing car.model -- heroModel strips the matched phase_label
+  // suffix only when it's genuinely present, falling back to the full string otherwise.
+  const currentPhase = siblingPhases.find((p) => p.id === car.id) ?? null;
+  const heroModel =
+    currentPhase?.phaseLabel && car.model.endsWith(currentPhase.phaseLabel)
+      ? car.model.slice(0, -currentPhase.phaseLabel.length).trim()
+      : car.model;
+  const subInfoParts = [
+    currentPhase?.phaseLabel,
+    currentPhase?.yearFrom != null ? `${currentPhase.yearFrom} – ${currentPhase.yearTo ?? ""}`.trim() : null,
+    bodyLabel(car.body),
+  ].filter(Boolean);
+  const subInfoLine = subInfoParts.length > 0 ? subInfoParts.join(" · ") : originLine(car);
   const rel = carRel(car);
   const relColor = REL_COLORS[rel] || "#888";
   const stars = carStars(car);
@@ -429,13 +473,12 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
       </button>
 
       <div className="border-b border-white/5 pb-4">
-        <div className="text-sm uppercase tracking-wide text-secondary">{car.make}</div>
-        <div className="text-2xl font-semibold text-primary">{car.model}</div>
-        <div className="mt-0.5 text-sm text-secondary">{originLine(car)}</div>
+        <h1 className="text-3xl font-extrabold text-white">{car.make} {heroModel}</h1>
+        <p className="mt-1 text-sm text-secondary">{subInfoLine}</p>
         <div className="mt-2">
-          <Chips items={[bodyLabel(car.body), ...(car.fuel || []).map(fuelLabel)]} />
+          <Chips items={(car.fuel || []).map(fuelLabel)} />
         </div>
-        <div className="mt-2 text-xl font-semibold text-primary">{price}</div>
+        <p className="mt-2 text-2xl font-bold text-white">{price}</p>
 
         {hasUnlockedSpecs ? (<>
           <p className="mb-1 mt-2.5 text-xs uppercase tracking-wide text-secondary">Matches your filter</p>
@@ -503,36 +546,32 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
           <PhaseSwitcher phases={siblingPhases} selectedId={car.id} onSelect={onSwitchPhase} />
         </div>
 
-        <Tabs value={activeTab ?? tabs[0].id} onValueChange={selectTab} className="mt-3">
-          <TabsList>
-            {tabs.map((t) => (
-              <TabsTrigger key={t.id} value={t.id}>
-                {t.label}{t.count != null ? ` (${t.count})` : ""}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className="mt-3">
+          <TabBar tabs={tabs} activeTab={activeTab} onSelect={selectTab} />
+        </div>
 
-          <TabsContent value="configurations">
+        <div className="mt-4">
+          {activeTab === "configurations" && (
             <ConfigurationsTable configs={configs} onNavigate={handleConfigNavigate} />
-          </TabsContent>
+          )}
 
-          <TabsContent value="engines">
+          {activeTab === "engines" && (
             <div className="flex flex-col gap-3">
               {filteredEngines.map((e, i) => (
                 <EngineAccordion key={i} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i] || i === focusEngineIdx} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
               ))}
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="gearboxes">
+          {activeTab === "gearboxes" && (
             <div className="flex flex-col gap-3">
               {gearboxGroups.map((g, i) => (
                 <GearboxAccordion key={g.code} gearbox={g} gapsMode={gapsMode} isOpen={!!openGearboxes[i] || i === focusUnitIdx} onToggle={() => setOpenGearboxes((p) => ({ ...p, [i]: !p[i] }))} />
               ))}
             </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="drivetrain">
+          {activeTab === "drivetrain" && (
             <div className="flex flex-col gap-3">
               {drivetrainGroups.map((g, i) => (
                 <DrivetrainAccordion
@@ -545,34 +584,32 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                 />
               ))}
             </div>
-          </TabsContent>
+          )}
 
           {/* New vs. the Prehľad original -- phase_body_dimensions is per (phase, body_type),
               which the legacy vehicles table never modeled (one flat dimension set per
               generation). No existing tab had anywhere to put this, so it's a tab of its own. */}
-          <TabsContent value="dimensions">
-            {(detail?.dims ?? []).map((d, i) => (
-              <div key={i} className="mb-4">
-                <p className="mb-1 text-xs uppercase tracking-wide text-secondary">{d.bodyName}</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Length</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.length != null ? `${d.length}mm` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Width</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.width != null ? `${d.width}mm` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Height</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.height != null ? `${d.height}mm` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Ground clearance</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.groundClearance != null ? `${d.groundClearance}mm` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Curb weight</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.curbWeight != null ? `${d.curbWeight}kg` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Boot</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.bootCapacity != null ? `${d.bootCapacity}L` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Boot (max)</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.bootMax != null ? `${d.bootMax}L` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Gross vehicle weight</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.grossVehicleWeight != null ? `${d.grossVehicleWeight}kg` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Payload</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.payload != null ? `${d.payload}kg` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Fuel tank</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.fuelTank != null ? `${d.fuelTank}L` : "—"}</div></div>
-                  <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Seats</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.seats ?? "—"}</div></div>
-                </div>
+          {activeTab === "dimensions" && (detail?.dims ?? []).map((d, i) => (
+            <div key={i} className="mb-4">
+              <p className="mb-1 text-xs uppercase tracking-wide text-secondary">{d.bodyName}</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Length</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.length != null ? `${d.length}mm` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Width</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.width != null ? `${d.width}mm` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Height</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.height != null ? `${d.height}mm` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Ground clearance</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.groundClearance != null ? `${d.groundClearance}mm` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Curb weight</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.curbWeight != null ? `${d.curbWeight}kg` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Boot</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.bootCapacity != null ? `${d.bootCapacity}L` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Boot (max)</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.bootMax != null ? `${d.bootMax}L` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Gross vehicle weight</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.grossVehicleWeight != null ? `${d.grossVehicleWeight}kg` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Payload</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.payload != null ? `${d.payload}kg` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Fuel tank</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.fuelTank != null ? `${d.fuelTank}L` : "—"}</div></div>
+                <div className="rounded-lg bg-panel-2 p-2 text-center"><div className="text-[.6rem] uppercase tracking-wide text-secondary">Seats</div><div className="mt-0.5 text-sm font-semibold text-primary">{d.seats ?? "—"}</div></div>
               </div>
-            ))}
-          </TabsContent>
+            </div>
+          ))}
 
-          <TabsContent value="equipment">
-            {(detail?.q ?? []).length === 0 ? (
+          {activeTab === "equipment" && (
+            (detail?.q ?? []).length === 0 ? (
               <p className="text-sm text-secondary">No data available.</p>
             ) : (
               <div className="flex flex-col gap-2">
@@ -583,11 +620,11 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                   </div>
                 ))}
               </div>
-            )}
-          </TabsContent>
+            )
+          )}
 
-          <TabsContent value="faults">
-            {(detail?.c ?? []).length === 0 ? (
+          {activeTab === "faults" && (
+            (detail?.c ?? []).length === 0 ? (
               <p className="text-sm text-secondary">No data available.</p>
             ) : (
               <div className="flex flex-col gap-2">
@@ -604,46 +641,48 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                   );
                 })}
               </div>
-            )}
-          </TabsContent>
+            )
+          )}
 
           {/* Safety — Euro NCAP only. The Prehľad original additionally shows GSR2-mandated
               and beyond-baseline safety-feature sections (safety_features/
               vehicle_safety_features) -- catalog_ has no equivalent table at all, so rather
               than render a permanent "reference data isn't loaded" placeholder for every single
               car, that content is left out entirely here. */}
-          <TabsContent value="safety">
-            <p className="mb-2 text-sm font-medium text-primary">{"\u{1F6E1}️"} NCAP {"—"} Euro NCAP</p>
-            {stars != null ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <span key={n} className={n <= (stars || 0) ? "text-orange-500" : "text-zinc-500"}>★</span>
-                  ))}
-                  <span className="ml-1 text-sm text-secondary">{stars}/5{ncapYear ? ` · ${ncapYear}` : ""}</span>
-                </div>
-                {[{ l: "Adult", v: adult }, { l: "Child", v: child }, { l: "Pedestrian", v: ped }, { l: "Safety Assist", v: assist }].filter((b) => b.v != null).map((b) => (
-                  <div key={b.l} className="flex items-center gap-2">
-                    <span className="w-28 text-sm text-secondary">{b.l}</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-panel-2">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: b.v + "%",
-                          background: (b.v || 0) >= 90 ? "#34d399" : (b.v || 0) >= 75 ? "#fbbf24" : (b.v || 0) >= 60 ? "#f59e0b" : "#ef4444",
-                        }}
-                      />
-                    </div>
-                    <span className="w-10 text-right text-sm text-secondary">{b.v}%</span>
+          {activeTab === "safety" && (
+            <>
+              <p className="mb-2 text-sm font-medium text-primary">{"\u{1F6E1}️"} NCAP {"—"} Euro NCAP</p>
+              {stars != null ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span key={n} className={n <= (stars || 0) ? "text-orange-500" : "text-zinc-500"}>★</span>
+                    ))}
+                    <span className="ml-1 text-sm text-secondary">{stars}/5{ncapYear ? ` · ${ncapYear}` : ""}</span>
                   </div>
-                ))}
-                <p className="text-sm font-medium" style={{ color: (stars || 0) >= 5 ? "#34d399" : (stars || 0) >= 4 ? "#fbbf24" : "#f59e0b" }}>
-                  {(stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}
-                </p>
-              </div>
-            ) : <p className="text-sm text-secondary">{"⚠️"} Not tested by Euro NCAP</p>}
-          </TabsContent>
-        </Tabs>
+                  {[{ l: "Adult", v: adult }, { l: "Child", v: child }, { l: "Pedestrian", v: ped }, { l: "Safety Assist", v: assist }].filter((b) => b.v != null).map((b) => (
+                    <div key={b.l} className="flex items-center gap-2">
+                      <span className="w-28 text-sm text-secondary">{b.l}</span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-panel-2">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: b.v + "%",
+                            background: (b.v || 0) >= 90 ? "#34d399" : (b.v || 0) >= 75 ? "#fbbf24" : (b.v || 0) >= 60 ? "#f59e0b" : "#ef4444",
+                          }}
+                        />
+                      </div>
+                      <span className="w-10 text-right text-sm text-secondary">{b.v}%</span>
+                    </div>
+                  ))}
+                  <p className="text-sm font-medium" style={{ color: (stars || 0) >= 5 ? "#34d399" : (stars || 0) >= 4 ? "#fbbf24" : "#f59e0b" }}>
+                    {(stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}
+                  </p>
+                </div>
+              ) : <p className="text-sm text-secondary">{"⚠️"} Not tested by Euro NCAP</p>}
+            </>
+          )}
+        </div>
       </>)}
 
       {!loading && tabs.length === 0 && (
