@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, carRel, carStars, carAdult, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carStars, carAdult, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
@@ -112,10 +112,10 @@ function TabBar({ tabs, activeTab, onSelect }: { tabs: TabDef[]; activeTab: stri
           key={t.id}
           type="button"
           onClick={() => onSelect(t.id)}
-          className={`shrink-0 whitespace-nowrap rounded-t-lg border-0 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+          className={`shrink-0 whitespace-nowrap border-0 border-b-2 bg-transparent px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === t.id
-              ? "bg-zinc-800 border-orange-600 text-white"
-              : "bg-transparent border-transparent text-secondary hover:bg-zinc-800/50 hover:text-white"
+              ? "border-orange-500 text-white"
+              : "border-transparent text-zinc-400 hover:text-white"
           }`}
         >
           {t.label}{t.count != null ? ` (${t.count})` : ""}
@@ -216,26 +216,27 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: Detai
   const cylinders = cylindersLabel(engine.cylinders);
 
   return (
+    // Flat row, no card border/background -- "clean typography and generous vertical
+    // padding between rows" instead of boxed cards; separation comes from the parent list's
+    // divide-y, not a per-row border.
     <div
       id={`engine-${engine.id}`}
-      className="mb-3 cursor-pointer rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-4 transition hover:bg-zinc-900"
+      className="cursor-pointer py-4"
       onClick={onToggle}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-1 flex-col gap-1.5">
-          {/* engine.engine is already "<name> (<code>) <power_kw> kW" (server-built, see
-              app/api/db-test/route.ts) -- no separate power suffix needed here. */}
-          <span className="text-base text-white">{engine.engine}</span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {rc ? (
-              <span className="rounded-full border px-2 py-0.5 text-xs font-medium" style={{ background: rc + "1a", color: rc, borderColor: rc + "33" }}>{engine.reliability}</span>
-            ) : (
-              <MissingMarker gapsMode={gapsMode} label="reliability rating" />
-            )}
-            {engine.fuel_type && <Badge>{fuelLabel(engine.fuel_type)}</Badge>}
-          </div>
-        </div>
-        <span className="shrink-0 text-secondary">{isOpen ? "▲" : "▼"}</span>
+        {/* engine.engine is already "<name> (<code>) <power_kw> kW" (server-built, see
+            app/api/db-test/route.ts) -- no separate power suffix needed here. */}
+        <span className="font-medium text-white">{engine.engine}</span>
+        <span className="shrink-0 text-zinc-400">{isOpen ? "▲" : "▼"}</span>
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        {rc ? (
+          <span style={{ color: rc }}>{engine.reliability}</span>
+        ) : (
+          <MissingMarker gapsMode={gapsMode} label="reliability rating" />
+        )}
+        {engine.fuel_type && <span className="text-white">{fuelLabel(engine.fuel_type)}</span>}
       </div>
       {isOpen && (
         <div className="mt-3 flex flex-col gap-1">
@@ -379,8 +380,6 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
     bodyLabel(car.body),
   ].filter(Boolean);
   const subInfoLine = subInfoParts.length > 0 ? subInfoParts.join(" · ") : originLine(car);
-  const rel = carRel(car);
-  const relColor = REL_COLORS[rel] || "#888";
   const stars = carStars(car);
   const adult = carAdult(car);
   const child = car.safety?.childOccupant;
@@ -464,16 +463,21 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   }, [activeTab, focusEngine, focusUnit, focusDrivetrain]);
 
   return (
-    <div className="theme-garage theme-garage-page rounded-2xl p-4 sm:p-6">
+    // bg-zinc-900 (soft dark gray), not .theme-garage-page's near-black gradient -- that
+    // class is shared with /catalog's page background via catalog.css, so it's overridden
+    // here with a direct utility rather than changed at the token level (out of this
+    // request's db-test-only scope).
+    <div className="theme-garage rounded-2xl bg-zinc-900 p-4 sm:p-6">
       <button
-        className="mb-3.5 w-full rounded-lg border border-white/5 bg-panel-2 py-2 text-sm text-secondary transition-colors hover:text-primary"
+        type="button"
+        className="mb-3.5 border-0 bg-transparent p-0 text-sm text-zinc-400 transition-colors hover:text-white"
         onClick={onBack}
       >
         {"←"} Back to results
       </button>
 
-      <div className="border-b border-white/5 pb-4">
-        <h1 className="text-3xl font-extrabold text-white">{car.make} {heroModel}</h1>
+      <div className="pb-4">
+        <h1 className="text-3xl font-bold text-white">{car.make} {heroModel}</h1>
         <p className="mt-1 text-sm text-secondary">{subInfoLine}</p>
         <div className="mt-2">
           <Chips items={(car.fuel || []).map(fuelLabel)} />
@@ -512,12 +516,12 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
             className="mt-2.5 w-full rounded-lg border-0 bg-panel-2 px-3 py-2 text-left text-sm text-secondary transition-colors hover:text-primary"
             onClick={() => selectTab("engines")}
           >
-            {teaserText} <span className="font-semibold text-accent">— tap to explore</span>
+            {teaserText} <span className="font-semibold text-orange-500">— tap to explore</span>
           </button>
         )}
 
-        <div className="mt-3 flex items-center gap-3">
-          <span className="rounded-full border px-2 py-0.5 text-xs font-medium" style={{ background: relColor + "22", color: relColor, borderColor: relColor + "44" }}>{rel}</span>
+        <div className="mt-3 flex items-center gap-2">
+          <span aria-hidden="true">🚗</span>
           {stars != null ? (
             // Filled/empty stars use the same orange-500/zinc-500 pairing as ui/rating.tsx's
             // reliability dots (zinc-500, not the spec's literal zinc-700 -- see that
@@ -556,7 +560,9 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
           )}
 
           {activeTab === "engines" && (
-            <div className="flex flex-col gap-3">
+            // divide-y, not per-row cards -- "generous vertical padding between rows" is
+            // the separation, see EngineAccordion's own comment.
+            <div className="divide-y divide-zinc-800">
               {filteredEngines.map((e, i) => (
                 <EngineAccordion key={i} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i] || i === focusEngineIdx} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
               ))}
