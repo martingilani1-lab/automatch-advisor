@@ -3,7 +3,7 @@ import DbTestView from "./DbTestView";
 
 function DbTestFallback() {
   return (
-    <main className="w">
+    <main className="w db-test-page">
       <div className="results-hdr">
         <h3>DB test</h3>
       </div>

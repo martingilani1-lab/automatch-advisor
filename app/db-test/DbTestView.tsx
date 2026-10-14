@@ -218,7 +218,9 @@ export default function DbTestView() {
   }
 
   return (
-    <main className="w">
+    // db-test-page: scopes the blue accent override in globals.css to this route only --
+    // /prehlad and the quiz share these same BEM classes and keep their yellow accent.
+    <main className="w db-test-page">
       {!openCarData && (
         <Link href="/" className="restart" style={{ display: "block", textDecoration: "none", textAlign: "center" }}>
           {"←"} Back

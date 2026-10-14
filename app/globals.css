@@ -303,3 +303,49 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 @keyframes blink2{0%,28%{opacity:0}16%,24%{opacity:1}}
 @keyframes blink3{0%,36%{opacity:0}24%,32%{opacity:1}}
 @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Brief pulse applied to an engine/gearbox/drivetrain card after a Configurations-row click
+   scrolls it into view (vehicle page redesign step 1) -- added/removed via classList in
+   CarDetail.tsx. The /catalog equivalent (.catalog-highlight) lives in its own scoped
+   catalog.css, never loaded here, hence this separate same-purpose class. Only /db-test
+   uses this (confirmed -- no other route references .highlight-pulse), so it's defined
+   directly in the /db-test accent blue rather than needing a .db-test-page scope. */
+@keyframes highlightPulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px #3b82f6}}
+.highlight-pulse{animation:highlightPulse .6s ease-in-out 2;border-radius:10px}
+
+/* Inline text styled as clickable (Configurations tab's engine/transmission/drivetrain
+   cells deep-linking into their own widget). Only /db-test's ConfigRows.tsx uses this
+   class, so -- like .highlight-pulse above -- it's defined directly in the /db-test
+   accent blue rather than needing a .db-test-page scope. */
+.cfg-link{color:#3b82f6;cursor:pointer;background:none;border:none;padding:0;margin:0;font:inherit;text-align:left}
+.cfg-link:hover{text-decoration:underline}
+
+/* ---- /db-test accent override ----
+   This whole stylesheet is shared verbatim by the quiz (page.tsx), /prehlad, and
+   /db-test (db-test was built as "Browse & Compare rebuilt on catalog_ data, same UI").
+   Every selector below is one of those shared classes, still yellow (#e8ff47) for the
+   quiz and /prehlad -- only /db-test's accent changes to #3b82f6, scoped under
+   .db-test-page (the class on db-test's own <main> wrapper, see DbTestView.tsx/page.tsx).
+   Euro NCAP safety colour is deliberately NOT touched here (.ns-lg.on and the inline
+   verdict/bar colors in CarDetail.tsx stay yellow) -- safety rating colour stays
+   consistent across every page, by explicit request. */
+.db-test-page .cmake,
+.db-test-page .cprice,
+.db-test-page .vt-cta,
+.db-test-page .row-price,
+.db-test-page .load-msg,
+.db-test-page .results-hdr h3,
+.db-test-page .filter-group-title,
+.db-test-page .filter-badge,
+.db-test-page .filter-brand summary{color:#3b82f6}
+.db-test-page .filter-badge{background:rgba(59,130,246,.1)}
+.db-test-page .btn-back:hover,
+.db-test-page .restart:hover{border-color:#3b82f6;color:#3b82f6}
+.db-test-page .opt-btn:hover{border-color:#3b82f6}
+.db-test-page .tab.active{color:#3b82f6;border-bottom-color:#3b82f6}
+.db-test-page .eng-card.open,
+.db-test-page .tx-card.open{border-color:rgba(59,130,246,.3)}
+.db-test-page .cfuel-tag{background:rgba(59,130,246,.1)}
+.db-test-page .cfuel-tag.match{background:rgba(59,130,246,.15);color:#3b82f6;border-color:rgba(59,130,246,.4)}
+.db-test-page .filter-opt input[type="checkbox"]{accent-color:#3b82f6}
+.db-test-page .spin{border-top-color:#3b82f6}
