@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, carRel, carStars, carAdult, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
@@ -460,8 +460,11 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
       <button className="btn-back" style={{ width: "100%", marginBottom: 14 }} onClick={onBack}>{"←"} Back to results</button>
 
       <div className="detail-header">
-        <div className="cmake">{car.make}</div>
-        <div className="cmodel">{car.model}</div>
+        <div className="model-row">
+          <span className="cmake">{car.make}</span>
+          <span className="cmodel">{carModelBase(car)}</span>
+        </div>
+        {car.phaseLabel && <div className="cphase">{car.phaseLabel}</div>}
         <div className="cgen">{originLine(car)}</div>
         <div className="row-tags" style={{ marginTop: 8 }}>
           <span className="cfuel-tag">{bodyLabel(car.body)}</span>

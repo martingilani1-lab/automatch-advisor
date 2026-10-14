@@ -104,6 +104,7 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
     id: phase.id,
     make: brand.name,
     model: modelLabel,
+    phaseLabel: phase.phase_label || null,
     gen: years,
     years,
     yearTo: phase.year_to ?? undefined,

@@ -198,7 +198,14 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    existing ellipsis-truncation kicks in before text would run underneath
    them, at any card width. */
 .row-main{min-width:0;flex:1;padding-right:145px}
-.row-main>.cmake,.row-main>.cmodel,.row-main>.cgen{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-main>.cgen,.row-main>.cphase{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* make+model(+generation) on one row, phase on its own row underneath (db-test and
+   Prehľad/quiz both still render .cmake/.cmodel -- only db-test wraps them in .model-row,
+   so the shared rule above lost its >.cmake/>.cmodel truncation targets when db-test
+   started nesting them; this restores the same ellipsis behaviour one level down). */
+.model-row{display:flex;align-items:baseline;gap:6px;min-width:0}
+.model-row .cmake,.model-row .cmodel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cphase{font-size:.8rem;font-weight:600;color:#999;margin-bottom:2px}
 .row-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px}
 .row-body-label{font-size:.72rem;color:#6b6b72;font-weight:600}
 .row-tags-sep{color:#3a3a3e;font-size:.72rem}

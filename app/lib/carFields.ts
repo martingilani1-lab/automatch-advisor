@@ -40,6 +40,12 @@ export interface CarData {
   // only for now (Track A Step 1): populated from vehicles.tags on /api/cars
   // responses, unread by scoring, the quiz, browse filtering, or tiles.
   tags?: string[];
+  // catalog_phases.phase_label (e.g. "Pre-facelift") -- catalog_/db-test only, since the
+  // legacy vehicles schema /api/cars reads has no phase concept at all. Always undefined on
+  // /prehlad and quiz cars. `model` already has this baked in (see modelLabel in
+  // app/api/db-test/route.ts) -- this field exists purely so carModelBase() below can strip
+  // it back out for display, without re-parsing or duplicating the server-built string.
+  phaseLabel?: string | null;
 }
 
 export const REL_RANK: Record<string, number> = { Excellent: 3, Good: 2, Average: 1, Poor: 0 };
@@ -58,6 +64,18 @@ export const REL_SCALE_TITLE = "Reliability: Excellent > Good > Average > Poor";
 export function originLine(c: CarData): string {
   const origin = c.origin ? c.origin.charAt(0).toUpperCase() + c.origin.slice(1) : "";
   return origin ? `${c.originFlag || "\u{1F30D}"} ${origin} · ${c.years}` : c.years;
+}
+
+// `model` is "<name> (<generation_code>) <phase_label>" (see modelLabel in
+// app/api/db-test/route.ts) -- db-test's card/detail header shows make+model+generation on
+// one row and the phase on its own row underneath, so this strips the already-known
+// phaseLabel suffix back off rather than re-deriving it with a parse. No-op (returns `model`
+// unchanged) whenever phaseLabel is absent, which is every /prehlad/quiz car.
+export function carModelBase(c: CarData): string {
+  if (c.phaseLabel && c.model.endsWith(c.phaseLabel)) {
+    return c.model.slice(0, -c.phaseLabel.length).trim();
+  }
+  return c.model;
 }
 
 const FUEL_LABELS: Record<string, string> = { petrol: "⛽ Petrol", diesel: "\u{1F6E2}️ Diesel", electric: "⚡ Electric", hybrid: "⚡ Hybrid", phev: "⚡ PHEV", lpg: "\u{1F4A7} LPG" };

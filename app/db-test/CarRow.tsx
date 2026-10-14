@@ -1,5 +1,5 @@
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, carRel, carMileage, REL_COLORS, originLine, bodyLabel } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carRel, carMileage, carModelBase, REL_COLORS, originLine, bodyLabel } from "@/app/lib/carFields";
 import { matchesFuelOption } from "@/app/db-test/lib/filters";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -36,8 +36,11 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
     >
       <div className="row-photo" aria-hidden="true">{"\u{1F4F7}"}</div>
       <div className="row-main">
-        <div className="cmake">{car.make}</div>
-        <div className="cmodel">{car.model}</div>
+        <div className="model-row">
+          <span className="cmake">{car.make}</span>
+          <span className="cmodel">{carModelBase(car)}</span>
+        </div>
+        {car.phaseLabel && <div className="cphase">{car.phaseLabel}</div>}
         <div className="cgen">{originLine(car)}</div>
         <div className="row-tags">
           <span className="row-body-label">{bodyLabel(car.body)}</span>
