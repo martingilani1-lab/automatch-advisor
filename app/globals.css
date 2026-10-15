@@ -304,10 +304,21 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .variety-teaser{display:block;width:100%;text-align:left;background:none;border:none;padding:0;margin-top:10px;font-size:.72rem;color:#9999aa;cursor:pointer;font-family:'DM Sans',sans-serif;line-height:1.5}
 .variety-teaser:hover{color:#ccc}
 .vt-cta{color:#e8ff47;font-weight:600}
-.tab-bar{display:flex;gap:4px;border-bottom:1px solid #2a2a2e;margin:18px 0 14px;overflow-x:auto}
+.tab-bar{display:flex;gap:4px;border-bottom:1px solid #2a2a2e;margin:18px 0 14px;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
 .tab{background:none;border:none;padding:8px 14px;font-size:.82rem;font-weight:600;color:#6b6b72;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:color .12s}
 .tab:hover{color:#aaa}
 .tab.active{color:#e8ff47;border-bottom-color:#e8ff47}
+
+/* Right-edge "there's more" cue for an overflowing .tab-bar -- only shown (via TabBarRow's
+   .visible toggle, computed from scrollWidth > clientWidth, see db-test/CarDetail.tsx) when
+   the row actually overflows, since .tab-bar's own box width is parent-driven, not
+   content-driven, and a fade that's always on would needlessly clip a short tab list that
+   already fits. Sits over .tab-bar's own bottom border, not the full row height, so it never
+   crosses the active-tab underline it's covering a sliver of. */
+.tab-bar-wrap{position:relative}
+.tab-bar-fade{position:absolute;top:0;right:0;bottom:0;width:32px;background:linear-gradient(to right,transparent,#0e0e0f);pointer-events:none;opacity:0;transition:opacity .15s}
+.tab-bar-fade.visible{opacity:1}
 
 /* Scroll indicator — turn signal chevrons */
 .scroll-hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:50;animation:fadeInUp .4s ease;pointer-events:auto;cursor:pointer}

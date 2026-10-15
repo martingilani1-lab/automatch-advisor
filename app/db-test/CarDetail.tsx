@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
@@ -117,6 +118,35 @@ function phaseLabelText(p: PhaseSwitcherOption): string {
   return label ? `${label} ${years}` : years;
 }
 
+// Wraps a .tab-bar row with an overflow-aware right-edge fade. A pure-CSS fade can't tell
+// whether the row actually overflows -- .tab-bar's own box width is parent-driven (a wide
+// desktop column), not content-driven, so a handful of short tab labels can sit well inside
+// it with room to spare, and a fade that's always on would clip the last tab's label for no
+// reason. ResizeObserver re-checks on any width change (window resize, tab add/remove).
+function TabBarRow({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setOverflowing(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+
+  return (
+    <div className="tab-bar-wrap">
+      <div className="tab-bar" ref={ref}>
+        {children}
+      </div>
+      <div className={`tab-bar-fade${overflowing ? " visible" : ""}`} aria-hidden="true" />
+    </div>
+  );
+}
+
 // Phase switcher, reusing the exact .tab-bar/.tab classes the main tab bar below already
 // uses -- the /catalog equivalent (PhaseSwitcher.tsx) is Tailwind-styled and looked visually
 // foreign dropped into this page's hand-rolled design, so this is a native-styled sibling
@@ -128,13 +158,13 @@ function PhaseSwitcherTabs({ phases, selectedId, onSelect }: { phases: PhaseSwit
     return <div className="tg" style={{ marginBottom: 10 }}>{phaseLabelText(phases[0])}</div>;
   }
   return (
-    <div className="tab-bar">
+    <TabBarRow>
       {phases.map((p) => (
         <button key={p.id} className={`tab${p.id === selectedId ? " active" : ""}`} onClick={() => onSelect(p.id)}>
           {phaseLabelText(p)}
         </button>
       ))}
-    </div>
+    </TabBarRow>
   );
 }
 
@@ -528,13 +558,13 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
       {!loading && tabs.length > 0 && (<>
         <PhaseSwitcherTabs phases={siblingPhases} selectedId={car.id} onSelect={onSwitchPhase} />
 
-        <div className="tab-bar">
+        <TabBarRow>
           {tabs.map((t) => (
             <button key={t.id} className={`tab${activeTab === t.id ? " active" : ""}`} onClick={() => selectTab(t.id)}>
               {t.label}{t.count != null ? ` (${t.count})` : ""}
             </button>
           ))}
-        </div>
+        </TabBarRow>
 
         {activeTab === "engines" && (
           <div className="mp-section">

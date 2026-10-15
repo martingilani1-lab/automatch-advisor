@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 
 import type { CatalogMediaItem } from "../lib/types";
@@ -24,7 +27,11 @@ interface CarHeroProps {
 // VehiclePageClient swaps `bundle` client-side), so this doesn't need its own switch-tracking
 // state, just something that reliably changes identity when the photo does.
 export default function CarHero({ media, alt }: CarHeroProps) {
-  if (!media) return null;
+  // Tracks the URL that failed, not just a bool -- so a later phase switch to a different
+  // photo isn't permanently suppressed by an earlier broken one (both pages remount the whole
+  // detail view on phase switch anyway, but this stays correct even if that ever changes).
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  if (!media || failedUrl === media.imageUrl) return null;
 
   return (
     <div key={media.imageUrl} className="hero-fade-in relative mx-auto aspect-video w-full max-h-[720px]">
@@ -45,6 +52,7 @@ export default function CarHero({ media, alt }: CarHeroProps) {
         sizes="(max-width: 768px) 100vw, 720px"
         style={{ objectFit: "contain" }}
         className="relative"
+        onError={() => setFailedUrl(media.imageUrl)}
       />
     </div>
   );

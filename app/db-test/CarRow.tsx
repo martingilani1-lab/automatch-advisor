@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Image from "next/image";
 
 import type { CarData } from "@/app/lib/carFields";
@@ -37,6 +38,11 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
   const mileage = carMileage(car);
   const rel = carRel(car);
   const relColor = REL_COLORS[rel] || "#888";
+  // Same "track the URL that failed" rationale as CarHero -- a different car's row reusing
+  // this component instance (list re-render, not remount) must not stay stuck on a stale
+  // broken-image fallback.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showPhoto = car.mainImageUrl && failedUrl !== car.mainImageUrl;
 
   return (
     <div
@@ -47,13 +53,14 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
     >
       <div className="row-photo">
-        {car.mainImageUrl ? (
+        {showPhoto ? (
           <Image
-            src={car.mainImageUrl}
+            src={car.mainImageUrl!}
             alt={`${car.make} ${carModelBase(car)}`}
             fill
             sizes="96px"
             loading="lazy"
+            onError={() => setFailedUrl(car.mainImageUrl!)}
           />
         ) : (
           <CarSilhouette />
