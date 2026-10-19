@@ -23,7 +23,10 @@ function dbTestEngineLabel(c: CatalogConfig): string {
 // fuel group by displacementCc instead of powerKw. A handful of rows (mostly electric
 // engines) have a null displacementCc -- those sort after every known displacement in their
 // fuel group rather than colliding at 0, which would wrongly claim to be the smallest.
-const FUEL_SORT_ORDER: Record<string, number> = {
+// Exported so the Engines tab (CarDetail.tsx) can group that tab's own engine list the same
+// way -- same fuel-group order and header copy the user asked to reuse, no second copy of
+// either table.
+export const FUEL_SORT_ORDER: Record<string, number> = {
   petrol: 0, lpg: 1, diesel: 2, hybrid: 3, phev: 4, electric: 5,
 };
 
@@ -49,7 +52,7 @@ const FUEL_GROUP_LABELS: Record<string, string> = {
   petrol: "Petrol variants", lpg: "LPG variants", diesel: "Diesel variants",
   hybrid: "Hybrid variants", phev: "Plug-in hybrid variants", electric: "Electric variants",
 };
-function fuelGroupLabel(fuelType: string): string {
+export function fuelGroupLabel(fuelType: string): string {
   return FUEL_GROUP_LABELS[fuelType] || `${fuelType.charAt(0).toUpperCase()}${fuelType.slice(1)} variants`;
 }
 

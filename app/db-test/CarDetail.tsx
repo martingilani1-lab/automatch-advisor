@@ -12,7 +12,7 @@ import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 import CarHero from "@/app/catalog/components/CarHero";
 import { pickMainMedia } from "@/app/catalog/lib/media";
-import ConfigRows from "./ConfigRows";
+import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -429,10 +429,23 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
     return parts.length ? parts.join(" · ") : "Explore variants";
   }, [car]);
 
+  // Grouped by fuel type, same order/labels as the Configurations tab's ConfigRows (petrol <
+  // lpg < diesel < hybrid < phev < electric), ranked within a group by displacement like that
+  // tab is -- a null displacement_cc (mostly electric engines) sorts after every known value
+  // in its group rather than colliding at 0.
   const filteredEngines = useMemo(() => {
     const all = detail?.e ?? [];
-    if (!fuelFilter || fuelFilter.length === 0) return all;
-    return all.filter((e) => fuelFilter.some((sel) => matchesFuelOption(e.fuel_type, sel)));
+    const filtered = !fuelFilter || fuelFilter.length === 0
+      ? all
+      : all.filter((e) => fuelFilter.some((sel) => matchesFuelOption(e.fuel_type, sel)));
+    return [...filtered].sort((a, b) => {
+      const fuelDiff = (FUEL_SORT_ORDER[a.fuel_type] ?? 99) - (FUEL_SORT_ORDER[b.fuel_type] ?? 99);
+      if (fuelDiff !== 0) return fuelDiff;
+      const dispA = a.displacement_cc ?? Infinity;
+      const dispB = b.displacement_cc ?? Infinity;
+      if (dispA !== dispB) return dispA - dispB;
+      return a.power_kw - b.power_kw;
+    });
   }, [detail, fuelFilter]);
 
   const gearboxGroups = detail?.g ?? [];
@@ -569,7 +582,14 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         {activeTab === "engines" && (
           <div className="mp-section">
             {filteredEngines.map((e, i) => (
-              <EngineAccordion key={i} engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i] || i === focusEngineIdx} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
+              <div key={i}>
+                {e.fuel_type !== filteredEngines[i - 1]?.fuel_type && (
+                  <div className="cfg-group-header" style={i === 0 ? { marginTop: 0 } : undefined}>
+                    {fuelGroupLabel(e.fuel_type)}
+                  </div>
+                )}
+                <EngineAccordion engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i] || i === focusEngineIdx} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
+              </div>
             ))}
           </div>
         )}
