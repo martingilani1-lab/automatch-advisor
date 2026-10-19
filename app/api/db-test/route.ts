@@ -90,12 +90,6 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
   const hasAWD = configs.some((c) => c.drivetrain_systems != null);
   const hasFWD = configs.some((c) => c.drivetrain_systems == null);
   const drivetrains = [...(hasAWD ? ["AWD"] : []), ...(hasFWD ? ["FWD"] : [])];
-  // Named AWD system per config (quattro, Haldex gen, xDrive...) -- CarRow.tsx tags these by
-  // name when present, distinct from the plain AWD/FWD flags above. generation is preferred
-  // over code, same fallback order as configDisplay.ts's drivetrainLabel.
-  const drivetrainSystemNames = [...new Set(
-    configs.map((c) => c.drivetrain_systems?.generation ?? c.drivetrain_systems?.code).filter(Boolean)
-  )];
 
   // fuel_consumption_combined is confirmed 0%-filled across all 1550 catalog_vehicle_
   // configurations rows (see app/catalog/lib/configDisplay.ts's own comment) -- a dead column
@@ -190,7 +184,6 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
     weight: bodyDims[0]?.curb_weight_kg ?? null,
     hasAWD,
     drivetrains,
-    drivetrainSystemNames,
     avgConsumption,
     minConsumption,
     maxConsumption,
@@ -271,7 +264,7 @@ export async function GET() {
         id, phase_id, fuel_consumption_l100km, energy_consumption_kwh100km,
         catalog_engines(id, power_kw, fuel_type, reliability_rating),
         transmission_units(id, family),
-        drivetrain_systems(id, code, generation, maker, type)
+        drivetrain_systems(id)
       `),
       fetchAllRows<any>("catalog_trims", "id, phase_id, name, catalog_trim_features(feature)"),
       fetchAllRows<any>("catalog_media", "phase_id, body_type_id, image_url, view_angle, is_main"),

@@ -72,9 +72,11 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
   // server-side (app/api/db-test/route.ts).
   const isElectricOnly = (car.fuel || []).length === 1 && car.fuel[0] === "electric";
   const consumptionRange = rangeLabel(car.minConsumption, car.maxConsumption, isElectricOnly ? "kWh/100 km" : "l/100 km", 1);
-  // "AWD"/"FWD" capability (whichever this model offers, possibly both) -- distinct from the
-  // drivetrainSystemNames tags above, which name the specific AWD system (Haldex gen, quattro)
-  // rather than just the capability.
+  // "AWD"/"FWD" capability (whichever this model offers, possibly both) -- shown via the
+  // IconCar4wd row-spec item below. Used to show the named AWD system (Haldex gen, quattro)
+  // as its own cfuel-tag-styled chip alongside the fuel tags too, dropped now that the icon
+  // row covers drivetrain -- a second, differently-styled drivetrain indicator next to the
+  // fuel tags was redundant.
   const drivetrainCapability = (car.drivetrains || []).join(", ") || null;
   // Same "track the URL that failed" rationale as CarHero -- a different car's row reusing
   // this component instance (list re-render, not remount) must not stay stuck on a stale
@@ -131,12 +133,6 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
             const isMatch = selectedFuel.length > 0 && selectedFuel.some((sel) => matchesFuelOption(f, sel));
             return <span key={f} className={`cfuel-tag${isMatch ? " match" : ""}`}>{f}</span>;
           })}
-          {/* Named AWD system only (quattro, Haldex gen, xDrive...) -- a car with no
-              drivetrain_systems config (plain FWD, the vast majority) gets no tag here at
-              all, matching what was asked ("if model have quattro or Haldex... option"). */}
-          {(car.drivetrainSystemNames || []).map((d) => (
-            <span key={d} className="cfuel-tag" title="Drivetrain system">{d}</span>
-          ))}
         </div>
         {(powerRange || consumptionRange || drivetrainCapability) && (
           <div className="row-specs">
