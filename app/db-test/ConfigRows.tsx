@@ -1,10 +1,30 @@
+import { IconManualGearbox, IconAutomaticGearbox, IconCar, IconCar4wd, IconGasStation } from "@tabler/icons-react";
+
 import type { CatalogConfig } from "@/app/catalog/lib/types";
-import { consumptionLabel, drivetrainLabel, transmissionLabel } from "@/app/catalog/lib/configDisplay";
+import { consumptionLabel, drivetrainLabel } from "@/app/catalog/lib/configDisplay";
+import { gearboxTypeLabel } from "@/app/catalog/lib/gearboxLabel";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 
 interface ConfigRowsProps {
   configs: CatalogConfig[];
   onNavigate: (target: ConfigNavTarget) => void;
+}
+
+// One color per field, reusing the exact drivetrain/consumption hues the car-list widget's
+// icon row already established (CarRow.tsx's SPEC_ICON_COLORS) so the same stat reads as the
+// same color everywhere in the app -- transmission/body are new here, picked to stay
+// distinct from those two and from REL_COLORS' tier palette.
+const CONFIG_ICON_COLORS = { transmission: "#60a5fa", body: "#34d399", drivetrain: "#a78bfa", consumption: "#4dd0e1" };
+
+// A catalog_engines.display_name sometimes already embeds power ("1.9 TDI 66kW (Wastegate)",
+// "1.0 TSI 85kW"), sometimes doesn't ("1.6 MPI") -- confirmed across several seed migrations.
+// Appending `${powerKw} kW` unconditionally (the original bug here) doubled it on every
+// engine whose name already carries it. Same check duplicated in app/api/db-test/route.ts's
+// detail-POST engine-label construction (Engines tab), which has the identical bug from the
+// identical cause -- small enough, and display-spot-specific enough, to duplicate rather than
+// share.
+function hasEmbeddedPower(name: string): boolean {
+  return /\d+\s*kw\b/i.test(name);
 }
 
 // db-test-only forks of configDisplay.ts's engineLabel/sortConfigs -- that file's own header
@@ -15,7 +35,18 @@ interface ConfigRowsProps {
 // still imports the originals, untouched.
 function dbTestEngineLabel(c: CatalogConfig): string {
   const name = c.engine.displayName ?? c.engine.code;
-  return `${name} ${c.engine.powerKw} kW`;
+  return hasEmbeddedPower(name) ? name : `${name} ${c.engine.powerKw} kW`;
+}
+
+// "5-speed manual" / "6-speed automatic" -- speed + type only, no transmission_units.code
+// prefix (gearboxHeaderLabel in app/catalog/lib/gearboxLabel.ts, used elsewhere for the
+// Gearboxes tab's own header, returns "<code> · <descriptor>"; this reuses that file's
+// already-exported gearboxTypeLabel to build just the descriptor half, not a copy of its
+// logic under a new name).
+function dbTestTransmissionLabel(c: CatalogConfig): string {
+  const typeLabel = gearboxTypeLabel(c.gearbox.family);
+  if (c.gearbox.family === "single_speed" || !typeLabel) return typeLabel;
+  return c.gearbox.speeds != null ? `${c.gearbox.speeds}-speed ${typeLabel}` : typeLabel;
 }
 
 // Same fuel-group order as configDisplay.ts's sortConfigs (petrol < lpg < diesel < hybrid <
@@ -41,7 +72,7 @@ function dbTestSortConfigs(configs: CatalogConfig[]): CatalogConfig[] {
     if (powerDiff !== 0) return powerDiff;
     const bodyDiff = a.bodyName.localeCompare(b.bodyName);
     if (bodyDiff !== 0) return bodyDiff;
-    return transmissionLabel(a).localeCompare(transmissionLabel(b));
+    return dbTestTransmissionLabel(a).localeCompare(dbTestTransmissionLabel(b));
   });
 }
 
@@ -94,11 +125,19 @@ export default function ConfigRows({ configs, onNavigate }: ConfigRowsProps) {
                 className="cgrid-item cgrid-item-btn"
                 onClick={() => onNavigate({ kind: "unit", id: c.gearbox.id })}
               >
-                <div className="cgrid-label">Transmission</div>
-                <div className="cgrid-val cfg-link">{transmissionLabel(c)}</div>
+                <div className="cgrid-icon-cell">
+                  {c.gearbox.family === "manual" ? (
+                    <IconManualGearbox size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.transmission }} />
+                  ) : (
+                    <IconAutomaticGearbox size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.transmission }} />
+                  )}
+                </div>
+                <div className="cgrid-val cfg-link">{dbTestTransmissionLabel(c)}</div>
               </div>
               <div className="cgrid-item">
-                <div className="cgrid-label">Body</div>
+                <div className="cgrid-icon-cell">
+                  <IconCar size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.body }} />
+                </div>
                 <div className="cgrid-val">{c.bodyName}</div>
               </div>
               {c.drivetrain ? (
@@ -106,17 +145,23 @@ export default function ConfigRows({ configs, onNavigate }: ConfigRowsProps) {
                   className="cgrid-item cgrid-item-btn"
                   onClick={() => onNavigate({ kind: "drivetrain", id: c.drivetrain!.id })}
                 >
-                  <div className="cgrid-label">Drivetrain</div>
+                  <div className="cgrid-icon-cell">
+                    <IconCar4wd size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.drivetrain }} />
+                  </div>
                   <div className="cgrid-val cfg-link">{drivetrainLabel(c)}</div>
                 </div>
               ) : (
                 <div className="cgrid-item">
-                  <div className="cgrid-label">Drivetrain</div>
+                  <div className="cgrid-icon-cell">
+                    <IconCar4wd size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.drivetrain }} />
+                  </div>
                   <div className="cgrid-val">FWD</div>
                 </div>
               )}
               <div className="cgrid-item">
-                <div className="cgrid-label">Consumption</div>
+                <div className="cgrid-icon-cell">
+                  <IconGasStation size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
+                </div>
                 <div className="cgrid-val">{consumptionLabel(c)}</div>
               </div>
             </div>

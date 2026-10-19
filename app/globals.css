@@ -82,6 +82,13 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .cgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px}
 .cgrid-item{background:#1c1c1e;border-radius:6px;padding:8px;text-align:center}
 .cgrid-label{font-size:.6rem;color:#6b6b72;text-transform:uppercase;letter-spacing:.06em}
+/* /db-test's Configurations tab (ConfigRows.tsx) only -- replaces the uppercase .cgrid-label
+   word ("TRANSMISSION"/"BODY"/"DRIVETRAIN"/"CONSUMPTION") with a colored tabler icon
+   (CONFIG_ICON_COLORS in ConfigRows.tsx), centered the same way .cgrid-item's own
+   text-align:center already centers plain text. New classname, not a redefinition of
+   .cgrid-label, so .cgrid-label's other live uses (page.tsx, CarDetail.tsx in both
+   /db-test and /prehlad) are untouched. */
+.cgrid-icon-cell{display:flex;justify-content:center}
 .cgrid-val{font-size:.82rem;font-weight:600;margin-top:2px}
 /* Maintenance tile — the only clickable cgrid-item (a toggle, not a plain
    stat), so it needs to visibly read as tappable unlike its neighbours. */

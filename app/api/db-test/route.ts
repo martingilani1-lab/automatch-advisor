@@ -316,12 +316,23 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       const isEv = engine.fuelType === "electric" || group.configs.some(
         (c) => c.batteryCapacityNetKwh != null || c.evRangeWltpKm != null
       );
+      // Some catalog_engines.display_name values already embed power ("1.9 TDI 66kW
+      // (Wastegate)", "1.0 TSI 85kW"), some don't ("1.6 MPI") -- confirmed across several
+      // seed migrations. Appending power_kw unconditionally doubled it on every engine whose
+      // name already carries it (e.g. "1.9 TDI 66kW (Wastegate) (AGR) 66 kW"). Same check
+      // duplicated in app/db-test/ConfigRows.tsx's own engine label (Configurations tab),
+      // which has the identical bug from the identical cause.
+      const engineHasEmbeddedPower = engine.displayName != null && /\d+\s*kw\b/i.test(engine.displayName);
       return {
         // Display-only convention: "<display_name> (<code>) <power_kw> kW", same as
         // Browse & Compare's own engine labels -- never falls back to the em-dash form,
         // and never changes display_name itself (display-only, per the request this
         // formatting was added under).
-        engine: engine.displayName ? `${engine.displayName} (${engine.code}) ${engine.powerKw} kW` : `${engine.code} ${engine.powerKw} kW`,
+        engine: engine.displayName
+          ? engineHasEmbeddedPower
+            ? `${engine.displayName} (${engine.code})`
+            : `${engine.displayName} (${engine.code}) ${engine.powerKw} kW`
+          : `${engine.code} ${engine.powerKw} kW`,
         fuel_type: engine.fuelType,
         power_kw: engine.powerKw,
         displacement_cc: engine.displacementCc,
