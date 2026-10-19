@@ -29,6 +29,13 @@ const ORIGIN_FLAGS: Record<string, string> = {
   chinese: "\u{1F1E8}\u{1F1F3}", romanian: "\u{1F1F7}\u{1F1F4}", spanish: "\u{1F1EA}\u{1F1F8}",
 };
 
+// Same scale/words as scripts/fill/engine-import-resolve.mjs's RELIABILITY_MAP, reversed --
+// transmission_units/catalog_engines/drivetrain_systems.reliability_rating is a smallint 1-5,
+// display and import agree on what "4" means. Moved up here (was declared further down, right
+// by the detail-POST code that originated this map) so buildCarFromCatalog's own reliability
+// computation below can use the same word scale rather than inventing a second one.
+const RELIABILITY_LABELS: Record<number, string> = { 5: "Excellent", 4: "Good", 3: "Average", 2: "Below Average", 1: "Poor" };
+
 function yearsLabel(yearFrom: number | null, yearTo: number | null): string {
   if (!yearFrom) return "";
   return yearTo ? `${yearFrom} - ${yearTo}` : `${yearFrom} - Present`;
@@ -65,6 +72,11 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
   const years = yearsLabel(phase.year_from, phase.year_to);
 
   const primaryBody = bodyDims[0]?.catalog_body_types?.name || "";
+  // Every distinct body type this phase is offered in (not just the first/primary one) --
+  // CarRow.tsx's car-list widget shows all of them now, `body`/primaryBody above stays as the
+  // single value other call sites (the vehicle-page hero, pickMainImageUrl's body matching)
+  // already depend on.
+  const bodyNames = [...new Set(bodyDims.map((d) => d.catalog_body_types?.name).filter(Boolean))];
   const categories = [...new Set(
     bodyDims
       .map((d) => resolveBodyTile(d.catalog_body_types?.name || ""))
@@ -78,15 +90,42 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
   const hasAWD = configs.some((c) => c.drivetrain_systems != null);
   const hasFWD = configs.some((c) => c.drivetrain_systems == null);
   const drivetrains = [...(hasAWD ? ["AWD"] : []), ...(hasFWD ? ["FWD"] : [])];
+  // Named AWD system per config (quattro, Haldex gen, xDrive...) -- CarRow.tsx tags these by
+  // name when present, distinct from the plain AWD/FWD flags above. generation is preferred
+  // over code, same fallback order as configDisplay.ts's drivetrainLabel.
+  const drivetrainSystemNames = [...new Set(
+    configs.map((c) => c.drivetrain_systems?.generation ?? c.drivetrain_systems?.code).filter(Boolean)
+  )];
 
-  const consumptions = configs.map((c) => Number(c.fuel_consumption_combined)).filter((n) => !Number.isNaN(n) && n > 0);
+  // fuel_consumption_combined is confirmed 0%-filled across all 1550 catalog_vehicle_
+  // configurations rows (see app/catalog/lib/configDisplay.ts's own comment) -- a dead column
+  // from an earlier, unfinished pass. fuel_consumption_l100km is the one that's actually
+  // filled; energy_consumption_kwh100km covers the PHEV/electric rows, same priority order
+  // configDisplay.ts's consumptionLabel already uses. avgConsumption/consumptionByFuel below
+  // read the dead column before this fix -- silently always null, never caught because
+  // CarRow.tsx never displayed either one.
+  function configConsumptionValue(c: any): number | null {
+    const ft = (c.catalog_engines?.fuel_type || "").toLowerCase();
+    if (ft === "electric") {
+      return c.energy_consumption_kwh100km != null ? Number(c.energy_consumption_kwh100km) : null;
+    }
+    if (c.fuel_consumption_l100km != null) return Number(c.fuel_consumption_l100km);
+    if (c.energy_consumption_kwh100km != null) return Number(c.energy_consumption_kwh100km);
+    return null;
+  }
+
+  const consumptions = configs.map(configConsumptionValue).filter((n): n is number => n != null && n > 0);
   const avgConsumption = consumptions.length ? Math.round((consumptions.reduce((a, b) => a + b, 0) / consumptions.length) * 10) / 10 : null;
+  // Min/max across every config, not split by fuel type (unlike consumptionByFuel below) --
+  // CarRow.tsx's car-list widget shows one overall range per model, e.g. "4.5 - 10.5 l/100 km".
+  const minConsumption = consumptions.length ? Math.min(...consumptions) : null;
+  const maxConsumption = consumptions.length ? Math.max(...consumptions) : null;
 
   const consumptionByFuel = (() => {
     const m: Record<string, { sum: number; n: number }> = {};
     configs.forEach((c) => {
       const ft = (c.catalog_engines?.fuel_type || "").toLowerCase();
-      const val = Number(c.fuel_consumption_combined);
+      const val = configConsumptionValue(c);
       if (!ft || !val) return;
       if (!m[ft]) m[ft] = { sum: 0, n: 0 };
       m[ft].sum += val; m[ft].n += 1;
@@ -95,6 +134,17 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
     Object.keys(m).forEach((k) => { out[k] = Math.round((m[k].sum / m[k].n) * 10) / 10; });
     return Object.keys(out).length ? out : null;
   })();
+
+  // Best engine reliability tier among this phase's configs -- same "optimistic for multi-
+  // engine models" convention as the legacy schema's bestRel (CLAUDE.md's own Known Issues
+  // entry), chosen for consistency with how the rest of the app already summarizes a multi-
+  // engine model's reliability into one word, not a new methodology. "—" (never a guessed
+  // tier) when no config's engine has a reliability_rating at all.
+  const bestEngineReliabilityRating = configs.reduce((best: number | null, c) => {
+    const r = c.catalog_engines?.reliability_rating;
+    return r != null && (best == null || r > best) ? r : best;
+  }, null);
+  const overallReliability = bestEngineReliabilityRating != null ? RELIABILITY_LABELS[bestEngineReliabilityRating] ?? "—" : "—";
 
   const powerByFuel = (() => {
     const m: Record<string, number> = {};
@@ -124,6 +174,7 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
     engineCount: engineIds.size,
     transmissionCount: unitIds.size,
     body: primaryBody,
+    bodyNames,
     segment: model.segment || "",
     fuel: fuelTypes.length > 0 ? fuelTypes : [],
     seats: bodyDims[0]?.seats_count ?? undefined,
@@ -139,7 +190,10 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
     weight: bodyDims[0]?.curb_weight_kg ?? null,
     hasAWD,
     drivetrains,
+    drivetrainSystemNames,
     avgConsumption,
+    minConsumption,
+    maxConsumption,
     fuelTankLiters,
     resaleValue: phase.resale_value_rating ?? null,
     bodyVariants: null,
@@ -157,9 +211,7 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
       euPriceMax: phase.price_range_max_eur,
       mileageAtMidBudget: phase.typical_mileage_range || "",
     },
-    // No reliability-tier column exists anywhere in catalog_engines/transmission_units --
-    // "—" literally, never a guessed tier (CLAUDE.md "NULL over invention").
-    reliability: { overall: "—", repairCost: "—" },
+    reliability: { overall: overallReliability, repairCost: "—" },
     safety: {
       stars: phase.safety_rating,
       adultOccupant: phase.ncap_adult_pct,
@@ -216,10 +268,10 @@ export async function GET() {
       `),
       fetchAllRows<any>("phase_body_dimensions", "*, catalog_body_types(id, name)"),
       fetchAllRows<any>("catalog_vehicle_configurations", `
-        id, phase_id, fuel_consumption_combined,
-        catalog_engines(id, power_kw, fuel_type),
+        id, phase_id, fuel_consumption_l100km, energy_consumption_kwh100km,
+        catalog_engines(id, power_kw, fuel_type, reliability_rating),
         transmission_units(id, family),
-        drivetrain_systems(id)
+        drivetrain_systems(id, code, generation, maker, type)
       `),
       fetchAllRows<any>("catalog_trims", "id, phase_id, name, catalog_trim_features(feature)"),
       fetchAllRows<any>("catalog_media", "phase_id, body_type_id, image_url, view_angle, is_main"),
@@ -254,11 +306,6 @@ export async function GET() {
 // ════════════════════════════════════════════════════════════
 
 const SEVERITY_LABELS: Record<string, string> = { critical: "Critical", moderate: "Moderate", minor: "Minor" };
-
-// Same scale/words as scripts/fill/engine-import-resolve.mjs's RELIABILITY_MAP, reversed --
-// transmission_units.reliability_rating is a smallint 1-5, display and import agree on
-// what "4" means.
-const RELIABILITY_LABELS: Record<number, string> = { 5: "Excellent", 4: "Good", 3: "Average", 2: "Below Average", 1: "Poor" };
 
 // Builds one phase's full DetailData from its PhaseBundle -- the exact same transform the
 // single-phase POST used to run inline, now reused once per sibling phase (vehicle page

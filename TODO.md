@@ -48,16 +48,22 @@ move on. A task tagged `owner:martin` or `needs:martin` is a stop point — do t
 ## Code — UI — Car-list widget (`/db-test`, `CarRow.tsx`)
 Requested 2026-10-19. All seven are pure display/computation work off data that's already
 live (no missing content, no migration) -- classified `type:code` `owner:claude` throughout.
-- [ ] Show every body type a model has, not just the primary one (e.g. "Liftback, Estate") -- `phase_body_dimensions` already has one row per body type, just needs a `bodyNames: string[]` field instead of the current single `body` string `prio:normal`
-- [ ] Shorten the mileage range display: "280000 - 450000 km" → "280k - 450k km" `prio:normal`
-- [ ] Remove fuel tank capacity from the car-list widget (stays on the vehicle page, untouched) `prio:low`
-- [ ] Show engine power range per model, e.g. "55 kW – 165 kW" -- `minPowerKw`/`maxPowerKw` are already computed server-side in `app/api/db-test/route.ts`, this is display-only `prio:normal`
-- [ ] Show consumption range per model, e.g. "4.5 – 10.5 l/100 km" (min to max across all configs) -- needs new `minConsumption`/`maxConsumption` fields `prio:normal`
-- [ ] Add a tag for a named AWD drivetrain system (quattro, Haldex, xDrive, ...) when the model has one -- plain FWD stays untagged `prio:normal`
-- [ ] Show reliability as a small transparent tag, top-right corner, above the make/model row (best engine tier among the phase's configs, same convention as the legacy schema's `bestRel`) `prio:normal`
+- [x] Show every body type a model has, not just the primary one (e.g. "Liftback, Estate") -- `phase_body_dimensions` already has one row per body type, just needs a `bodyNames: string[]` field instead of the current single `body` string `prio:normal`
+- [x] Shorten the mileage range display: "280000 - 450000 km" → "280k - 450k km" `prio:normal`
+- [x] Remove fuel tank capacity from the car-list widget (stays on the vehicle page, untouched) `prio:low`
+- [x] Show engine power range per model, e.g. "55 kW – 165 kW" -- `minPowerKw`/`maxPowerKw` are already computed server-side in `app/api/db-test/route.ts`, this is display-only `prio:normal`
+- [x] Show consumption range per model, e.g. "4.5 – 10.5 l/100 km" (min to max across all configs) -- needs new `minConsumption`/`maxConsumption` fields `prio:normal`
+- [x] Add a tag for a named AWD drivetrain system (quattro, Haldex, xDrive, ...) when the model has one -- plain FWD stays untagged `prio:normal`
+- [x] Show reliability as a small transparent tag, top-right corner, above the make/model row (best engine tier among the phase's configs, same convention as the legacy schema's `bestRel`) `prio:normal`
 
 Found while scoping the consumption-range item above, fixed alongside it:
-- [ ] `/api/db-test`'s `avgConsumption`/`consumptionByFuel` read `fuel_consumption_combined`, a column confirmed 0%-filled across all 1550 `catalog_vehicle_configurations` rows (see `app/catalog/lib/configDisplay.ts`'s own comment) -- both fields have been silently always-null since this route was written, never caught because `CarRow.tsx` never displayed either one. Should read `fuel_consumption_l100km` instead, same column the Configurations tab already uses correctly. `type:code` `owner:claude` `prio:normal`
+- [x] `/api/db-test`'s `avgConsumption`/`consumptionByFuel` read `fuel_consumption_combined`, a column confirmed 0%-filled across all 1550 `catalog_vehicle_configurations` rows (see `app/catalog/lib/configDisplay.ts`'s own comment) -- both fields have been silently always-null since this route was written, never caught because `CarRow.tsx` never displayed either one. Should read `fuel_consumption_l100km` instead, same column the Configurations tab already uses correctly. `type:code` `owner:claude` `prio:normal`
+
+All eight done 2026-10-19 -- verified typecheck/lint/test/build clean, live API response spot-
+checked for Octavia (1U) Pre-facelift (bodyNames, power/consumption range, drivetrain tag,
+computed reliability all correct), Playwright screenshots at 1440px and 390px. Side effect
+worth knowing: the reliability fix also fixed the vehicle-page detail header's own reliability
+badge, which read the same always-"—" field and is now showing real values too.
 
 ## Process
 - [ ] Decide whether agents may run additive `INSERT` migrations themselves (e.g. photo rows) instead of Martin pasting SQL `type:decision` `owner:martin` `prio:low`

@@ -51,6 +51,17 @@ export interface CarData {
   // above. Null/undefined means no catalog_media row exists yet for this phase; the car-list
   // row renders a placeholder silhouette, never a broken image.
   mainImageUrl?: string | null;
+  // catalog_/db-test only, same reasoning as phaseLabel above -- undefined on /prehlad/quiz
+  // cars. bodyNames: every distinct phase_body_dimensions body type (not just the primary
+  // `body` string other call sites depend on). drivetrainSystemNames: named AWD systems
+  // (quattro, Haldex gen, xDrive...) actually configured on this phase, distinct from the
+  // plain `drivetrains` AWD/FWD flags. minConsumption/maxConsumption: l/100km (or kWh/100km
+  // for a pure-electric config) across every config, not split by fuel like
+  // `consumptionByFuel` is.
+  bodyNames?: string[];
+  drivetrainSystemNames?: string[];
+  minConsumption?: number | null;
+  maxConsumption?: number | null;
 }
 
 export const REL_RANK: Record<string, number> = { Excellent: 3, Good: 2, Average: 1, Poor: 0 };

@@ -22,22 +22,48 @@ const glueLastWord = (s: string) => {
   return i === -1 ? s : s.slice(0, i) + " " + s.slice(i + 1);
 };
 
+// "280000 - 450000 km" / "280000-450000 km" (14 rows use the no-space variant, see TODO.md)
+// -> "280k - 450k km" / "280k-450k km" -- replaces each run of digits in place with fmtK's
+// shortened form, so it works on both separator styles without needing to parse the string's
+// structure at all, and leaves "km" and any punctuation exactly where they already were.
+function shortenMileageRange(raw: string): string {
+  return raw.replace(/\d{4,}/g, (m) => fmtK(Number(m)));
+}
+
+// min===max (a single-engine model) collapses to one value ("66 kW") instead of a
+// zero-width range ("66-66 kW"), which would read as a typo rather than "only one engine."
+function rangeLabel(min: number | null | undefined, max: number | null | undefined, unit: string, decimals = 0): string | null {
+  if (min == null || max == null) return null;
+  const fmt = (n: number) => decimals > 0 ? n.toFixed(decimals) : String(Math.round(n));
+  return min === max ? `${fmt(min)} ${unit}` : `${fmt(min)}–${fmt(max)} ${unit}`;
+}
+
 interface CarRowProps {
   car: CarData;
   onOpen: () => void;
   selectedFuel: string[];
 }
 
-// Copied from app/prehlad/CarRow.tsx, same layout/classes -- drops the lifestyle-tag-chips
-// block (carTags) entirely, since catalog_ has no tags vocabulary to source it from. The
-// reliability pill still renders (rel = "—", REL_COLORS falls back to gray automatically for
-// an unknown key) rather than being cut, since catalog_ cards do carry other real content
+// Started as a copy of app/prehlad/CarRow.tsx (same layout/classes), drops the lifestyle-
+// tag-chips block (carTags) entirely since catalog_ has no tags vocabulary to source it from.
+// The reliability tag still renders (rel = "—", REL_COLORS falls back to gray automatically
+// for an unknown key) rather than being cut, since catalog_ cards do carry other real content
 // around it (price/mileage/fuel) worth keeping in the same row shape.
 export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
   const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
   const mileage = carMileage(car);
   const rel = carRel(car);
   const relColor = REL_COLORS[rel] || "#888";
+  // Falls back to the single primaryBody `car.body` for a car whose bodyNames hasn't been
+  // populated (e.g. a stale cached response) rather than rendering nothing.
+  const bodyNames = car.bodyNames && car.bodyNames.length > 0 ? car.bodyNames : [car.body];
+  const powerRange = rangeLabel(car.minPowerKw, car.maxPowerKw, "kW");
+  // kWh/100 km only for a model that's electric-only (every config shares the EV unit) --
+  // anything that mixes electric with petrol/diesel configs keeps the l/100km label, same
+  // simplification minConsumption/maxConsumption's own blended-unit pool already makes
+  // server-side (app/api/db-test/route.ts).
+  const isElectricOnly = (car.fuel || []).length === 1 && car.fuel[0] === "electric";
+  const consumptionRange = rangeLabel(car.minConsumption, car.maxConsumption, isElectricOnly ? "kWh/100 km" : "l/100 km", 1);
   // Same "track the URL that failed" rationale as CarHero -- a different car's row reusing
   // this component instance (list re-render, not remount) must not stay stuck on a stale
   // broken-image fallback.
@@ -52,6 +78,12 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
     >
+      {/* Transparent reliability tag, top-right corner, above the photo and the make/model
+          row below it -- best engine tier (app/api/db-test/route.ts), "—" when no engine in
+          this phase has a reliability_rating recorded yet. Reuses the same per-tier REL_COLORS
+          the detail page's badges use, just at a lower background/border alpha than a solid
+          pill so it reads as a quiet corner label, not a loud badge. */}
+      <span className="row-rel-tag" style={{ background: relColor + "14", color: relColor, border: `1px solid ${relColor}33` }}>{rel}</span>
       <div className="row-photo">
         {showPhoto ? (
           <Image
@@ -74,24 +106,35 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
         {car.phaseLabel && <div className="cphase">{car.phaseLabel}</div>}
         <div className="cgen">{originLine(car)}</div>
         <div className="row-tags">
-          <span className="row-body-label">{bodyLabel(car.body)}</span>
+          {bodyNames.map((b, i) => (
+            <span key={b}>
+              {i > 0 && <span className="row-tags-sep">{"·"}</span>}
+              <span className="row-body-label">{bodyLabel(b)}</span>
+            </span>
+          ))}
           {(car.fuel || []).length > 0 && <span className="row-tags-sep">{"·"}</span>}
           {(car.fuel || []).map((f) => {
             const isMatch = selectedFuel.length > 0 && selectedFuel.some((sel) => matchesFuelOption(f, sel));
             return <span key={f} className={`cfuel-tag${isMatch ? " match" : ""}`}>{f}</span>;
           })}
-          {car.fuelTankLiters != null && (
-            <>
-              <span className="row-tags-sep">{"·"}</span>
-              <span className="cfuel-tag" title="Fuel tank capacity (phase_body_dimensions)">{car.fuelTankLiters}L tank</span>
-            </>
-          )}
+          {/* Named AWD system only (quattro, Haldex gen, xDrive...) -- a car with no
+              drivetrain_systems config (plain FWD, the vast majority) gets no tag here at
+              all, matching what was asked ("if model have quattro or Haldex... option"). */}
+          {(car.drivetrainSystemNames || []).map((d) => (
+            <span key={d} className="cfuel-tag" title="Drivetrain system">{d}</span>
+          ))}
         </div>
+        {(powerRange || consumptionRange) && (
+          <div className="row-specs">
+            {powerRange}
+            {powerRange && consumptionRange && " · "}
+            {consumptionRange}
+          </div>
+        )}
       </div>
-      <span className="rel-pill row-rel-pill" style={{ background: relColor + "22", color: relColor, border: `1px solid ${relColor}44` }}>{rel}</span>
       <div className="row-side">
         <div className="row-price" title={price}>{price}</div>
-        {mileage && <div className="row-mileage" title={mileage}>{glueLastWord(mileage)}</div>}
+        {mileage && <div className="row-mileage" title={mileage}>{glueLastWord(shortenMileageRange(mileage))}</div>}
       </div>
     </div>
   );
