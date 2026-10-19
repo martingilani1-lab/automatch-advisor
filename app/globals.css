@@ -372,23 +372,24 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    top-right corner instead -- requested for this route specifically; /prehlad's CarRow keeps
    the original left-middle layout untouched (same shared .row-photo/.car-row classes, no
    change there). position:absolute pulls it out of the flex flow entirely (so .car-row's
-   remaining flex item, .row-main, naturally reclaims the width), landing it in the same
-   12px-inset corner .row-rel-tag (below) now sits above. Sized up from the base 96x54 to
-   128x72 (same 16:9) for more presence now that it's a corner feature rather than a small
-   left thumbnail -- min-height on .car-row guarantees room for tag + photo + both paddings
-   even when row-main's own text content is short (e.g. no mileage/phase line), so the stack
-   never gets clipped by a card that would otherwise size to fit only the text. */
-.db-test-page .row-photo{position:absolute;top:36px;right:12px;width:128px;height:72px}
+   remaining flex item, .row-main, naturally reclaims the width), landing it in the card's
+   12px-inset corner. Sized up from the base 96x54 to 128x72 (same 16:9) for more presence now
+   that it's a corner feature rather than a small left thumbnail -- min-height on .car-row
+   guarantees room for the photo + both paddings even when row-main's own text content is
+   short (e.g. no mileage/phase line), so the stack never gets clipped by a card that would
+   otherwise size to fit only the text. */
+.db-test-page .row-photo{position:absolute;top:12px;right:12px;width:128px;height:72px}
 .db-test-page .car-row{min-height:150px}
 .db-test-page .row-main{padding-right:170px}
-/* Reliability tag -- top-right corner, above the photo (above) and the make/model row
-   (row-main's .model-row) -- CarRow.tsx computes the color inline per REL_COLORS tier, this
-   just sets the quiet, low-alpha "transparent tag" shape and position. Only /db-test's
-   CarRow.tsx renders this class (the .db-test-page scope here is a formality, not a real
-   override of shared behaviour, since nothing else uses .row-rel-tag) -- distinct from the
-   plain .rel-pill still used elsewhere (CarDetail.tsx's trust row, /prehlad's own CarRow),
-   which stays a solid, non-absolutely-positioned pill. */
-.db-test-page .row-rel-tag{position:absolute;top:12px;right:12px;font-size:.62rem;font-weight:600;padding:3px 7px;border-radius:4px}
+/* Reliability tag -- inline in the .cgen line, replacing country of origin, right before the
+   year range (CarRow.tsx no longer calls originLine() at all). CarRow.tsx computes the color
+   inline per REL_COLORS tier, this just sets the quiet, low-alpha "transparent tag" shape --
+   no position/placement rules needed now that it sits in normal text flow rather than a
+   card corner. Only /db-test's CarRow.tsx renders this class (the .db-test-page scope here is
+   a formality, not a real override of shared behaviour, since nothing else uses
+   .row-rel-tag) -- distinct from the plain .rel-pill still used elsewhere (CarDetail.tsx's
+   trust row, /prehlad's own CarRow), which stays its own solid pill shape. */
+.db-test-page .row-rel-tag{display:inline-block;font-size:.62rem;font-weight:600;padding:2px 6px;border-radius:4px;vertical-align:middle}
 /* Power/consumption range line under the body/fuel/drivetrain tags -- same quiet styling as
    .cgen (the origin/years line), its own class only so .cgen's own margin-bottom doesn't
    apply here (this sits mid-card, not right under the title). */

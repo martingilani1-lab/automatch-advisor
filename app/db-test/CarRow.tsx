@@ -2,7 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, carRel, carMileage, carModelBase, REL_COLORS, originLine, bodyLabel } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carRel, carMileage, carModelBase, REL_COLORS, bodyLabel } from "@/app/lib/carFields";
 import { matchesFuelOption } from "@/app/db-test/lib/filters";
 
 // Neutral car-silhouette placeholder (zinc-700 fill) for a phase with no catalog_media row
@@ -78,12 +78,6 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
     >
-      {/* Transparent reliability tag, top-right corner, above the photo and the make/model
-          row below it -- best engine tier (app/api/db-test/route.ts), "—" when no engine in
-          this phase has a reliability_rating recorded yet. Reuses the same per-tier REL_COLORS
-          the detail page's badges use, just at a lower background/border alpha than a solid
-          pill so it reads as a quiet corner label, not a loud badge. */}
-      <span className="row-rel-tag" style={{ background: relColor + "14", color: relColor, border: `1px solid ${relColor}33` }}>{rel}</span>
       <div className="row-photo">
         {showPhoto ? (
           <Image
@@ -104,7 +98,15 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
           <span className="cmodel">{carModelBase(car)}</span>
         </div>
         {car.phaseLabel && <div className="cphase">{car.phaseLabel}</div>}
-        <div className="cgen">{originLine(car)}</div>
+        {/* Country of origin dropped from this line -- replaced with the reliability tag,
+            placed right before the year range. Best engine tier (app/api/db-test/route.ts),
+            "—" when no engine in this phase has a reliability_rating recorded yet. Same
+            per-tier REL_COLORS the detail page's badges use, at a lower background/border
+            alpha than a solid pill so it reads as a quiet inline label, not a loud badge. */}
+        <div className="cgen">
+          <span className="row-rel-tag" style={{ background: relColor + "14", color: relColor, border: `1px solid ${relColor}33` }}>{rel}</span>
+          {" "}{car.years}
+        </div>
         <div className="row-tags">
           {bodyNames.map((b, i) => (
             <span key={b}>
