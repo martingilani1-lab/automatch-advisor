@@ -399,6 +399,12 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .db-test-page .row-spec-item{display:inline-flex;align-items:center;gap:5px;font-size:.78rem}
 .db-test-page .row-spec-item svg{flex-shrink:0}
 .db-test-page .row-spec-item span{color:#d4d4d8}
+/* .row-tags-sep's base #3a3a3e (shared with /prehlad) reads as essentially invisible against
+   this card's #181818 background -- confirmed live, the dot between two body types was
+   already in the DOM but impossible to actually see. Brightened to the same muted-label gray
+   .row-body-label/.cgen already use elsewhere on this page, scoped to /db-test only so
+   /prehlad's own (lower-contrast, unchanged) separator isn't affected. */
+.db-test-page .row-tags-sep{color:#6b6b72}
 .db-test-page .filter-badge{background:rgba(255,254,252,.1)}
 .db-test-page .btn-back:hover,
 .db-test-page .restart:hover{border-color:#fffefc;color:#fffefc}
