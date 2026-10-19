@@ -30,6 +30,16 @@ const SEVERITY_COLORS: Record<string, string> = { Critical: "#f44336", Moderate:
 const FAULT_ITEM_SEVERITY_COLORS: Record<string, string> = { critical: "#f44336", moderate: "#ff9800", minor: "#4a9eff" };
 const FAULT_ITEM_SEVERITY_ORDER: Record<string, number> = { critical: 0, moderate: 1, minor: 2 };
 
+// Gearboxes tab grouping -- same "small .cfg-group-header per group, not per row" treatment
+// as the Engines tab's fuel groups (which itself reuses ConfigRows.tsx's FUEL_SORT_ORDER/
+// fuelGroupLabel). Only two groups here, matching what was asked ("automatic / manual"), not
+// a header per transmission_units.family value (dct_dry/dct_wet/cvt/etc. all fold into
+// "Automatic" -- manual is the only family value that gets its own group).
+function gearboxTypeGroup(family: string): "manual" | "automatic" {
+  return family === "manual" ? "manual" : "automatic";
+}
+const GEARBOX_GROUP_LABELS: Record<string, string> = { manual: "Manual variants", automatic: "Automatic variants" };
+
 // Shared by EngineAccordion and TransmissionAccordion so both "Known faults" lists look
 // identical: sorted critical -> moderate -> minor -> (no severity recorded), each item
 // carrying its own colored severity badge.
@@ -448,7 +458,22 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
     });
   }, [detail, fuelFilter]);
 
-  const gearboxGroups = detail?.g ?? [];
+  // Grouped manual/automatic (manual first, matching GEARBOX_TYPES' own ordering in
+  // app/db-test/lib/filters.ts), ranked within a group by speeds ascending (5-speed before
+  // 6-speed before 7-speed...). A null speeds value (ungraded/unknown gear count) sorts
+  // after every known count in its group, same null-handling pattern as the Configurations/
+  // Engines tabs' displacement sort.
+  const gearboxGroups = useMemo(() => {
+    const all = detail?.g ?? [];
+    return [...all].sort((a, b) => {
+      const groupDiff = (gearboxTypeGroup(a.family) === "manual" ? 0 : 1) - (gearboxTypeGroup(b.family) === "manual" ? 0 : 1);
+      if (groupDiff !== 0) return groupDiff;
+      const speedsA = a.speeds ?? Infinity;
+      const speedsB = b.speeds ?? Infinity;
+      if (speedsA !== speedsB) return speedsA - speedsB;
+      return a.code.localeCompare(b.code);
+    });
+  }, [detail]);
   const drivetrainGroups = detail?.dt ?? [];
 
   const configs = detail?.configs ?? [];
@@ -603,7 +628,14 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         {activeTab === "gearboxes" && (
           <div className="mp-section">
             {gearboxGroups.map((g, i) => (
-              <GearboxAccordion key={g.code} gearbox={g} gapsMode={gapsMode} isOpen={!!openGearboxes[i] || i === focusUnitIdx} onToggle={() => setOpenGearboxes((p) => ({ ...p, [i]: !p[i] }))} />
+              <div key={g.code}>
+                {gearboxTypeGroup(g.family) !== (i > 0 ? gearboxTypeGroup(gearboxGroups[i - 1].family) : null) && (
+                  <div className="cfg-group-header" style={i === 0 ? { marginTop: 0 } : undefined}>
+                    {GEARBOX_GROUP_LABELS[gearboxTypeGroup(g.family)]}
+                  </div>
+                )}
+                <GearboxAccordion gearbox={g} gapsMode={gapsMode} isOpen={!!openGearboxes[i] || i === focusUnitIdx} onToggle={() => setOpenGearboxes((p) => ({ ...p, [i]: !p[i] }))} />
+              </div>
             ))}
           </div>
         )}
