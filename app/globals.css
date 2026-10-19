@@ -390,10 +390,15 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    .row-rel-tag) -- distinct from the plain .rel-pill still used elsewhere (CarDetail.tsx's
    trust row, /prehlad's own CarRow), which stays its own solid pill shape. */
 .db-test-page .row-rel-tag{display:inline-block;font-size:.62rem;font-weight:600;padding:2px 6px;border-radius:4px;vertical-align:middle}
-/* Power/consumption range line under the body/fuel/drivetrain tags -- same quiet styling as
-   .cgen (the origin/years line), its own class only so .cgen's own margin-bottom doesn't
-   apply here (this sits mid-card, not right under the title). */
-.db-test-page .row-specs{font-size:.72rem;color:#6b6b72;margin-top:4px}
+/* Power/consumption/drivetrain line under the body/fuel/drivetrain tags -- three icon+value
+   pairs (@tabler/icons-react) instead of the plain "·"-joined text this replaced. Text stays
+   neutral/light (.row-spec-item span); only the icon itself carries SPEC_ICON_COLORS'
+   per-stat color (CarRow.tsx inline style), so three different hues don't turn the line into
+   a traffic light -- the icon alone is enough to tell the three stats apart at a glance. */
+.db-test-page .row-specs{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.db-test-page .row-spec-item{display:inline-flex;align-items:center;gap:5px;font-size:.78rem}
+.db-test-page .row-spec-item svg{flex-shrink:0}
+.db-test-page .row-spec-item span{color:#d4d4d8}
 .db-test-page .filter-badge{background:rgba(255,254,252,.1)}
 .db-test-page .btn-back:hover,
 .db-test-page .restart:hover{border-color:#fffefc;color:#fffefc}

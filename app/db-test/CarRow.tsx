@@ -1,9 +1,17 @@
 import { useState } from "react";
 import Image from "next/image";
+import { IconGauge, IconGasStation, IconCar4wd } from "@tabler/icons-react";
 
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carMileage, carModelBase, REL_COLORS, bodyLabel } from "@/app/lib/carFields";
 import { matchesFuelOption } from "@/app/db-test/lib/filters";
+
+// One color per stat so the three read apart from each other at a glance, distinct from
+// REL_COLORS' tier palette (this isn't a rating scale) -- amber for power, teal for
+// consumption, violet for drivetrain. The icon alone carries the color; the value text stays
+// neutral/light so three differently-colored lines don't fight for attention against the
+// make/model text above them.
+const SPEC_ICON_COLORS = { power: "#ffa94d", consumption: "#4dd0e1", drivetrain: "#a78bfa" };
 
 // Neutral car-silhouette placeholder (zinc-700 fill) for a phase with no catalog_media row
 // yet -- never a broken image, same fixed 16:9 box as a real photo so the row never reflows.
@@ -64,6 +72,10 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
   // server-side (app/api/db-test/route.ts).
   const isElectricOnly = (car.fuel || []).length === 1 && car.fuel[0] === "electric";
   const consumptionRange = rangeLabel(car.minConsumption, car.maxConsumption, isElectricOnly ? "kWh/100 km" : "l/100 km", 1);
+  // "AWD"/"FWD" capability (whichever this model offers, possibly both) -- distinct from the
+  // drivetrainSystemNames tags above, which name the specific AWD system (Haldex gen, quattro)
+  // rather than just the capability.
+  const drivetrainCapability = (car.drivetrains || []).join(", ") || null;
   // Same "track the URL that failed" rationale as CarHero -- a different car's row reusing
   // this component instance (list re-render, not remount) must not stay stuck on a stale
   // broken-image fallback.
@@ -126,11 +138,26 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
             <span key={d} className="cfuel-tag" title="Drivetrain system">{d}</span>
           ))}
         </div>
-        {(powerRange || consumptionRange) && (
+        {(powerRange || consumptionRange || drivetrainCapability) && (
           <div className="row-specs">
-            {powerRange}
-            {powerRange && consumptionRange && " · "}
-            {consumptionRange}
+            {powerRange && (
+              <span className="row-spec-item">
+                <IconGauge size={16} stroke={1.5} style={{ color: SPEC_ICON_COLORS.power }} />
+                <span>{powerRange}</span>
+              </span>
+            )}
+            {consumptionRange && (
+              <span className="row-spec-item">
+                <IconGasStation size={16} stroke={1.5} style={{ color: SPEC_ICON_COLORS.consumption }} />
+                <span>{consumptionRange}</span>
+              </span>
+            )}
+            {drivetrainCapability && (
+              <span className="row-spec-item">
+                <IconCar4wd size={16} stroke={1.5} style={{ color: SPEC_ICON_COLORS.drivetrain }} />
+                <span>{drivetrainCapability}</span>
+              </span>
+            )}
           </div>
         )}
       </div>
