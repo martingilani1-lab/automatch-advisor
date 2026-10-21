@@ -1,0 +1,99 @@
+Škoda Fabia NJ | Pre-facelift 2014–2018
+electrical | minor | Front Assist radar false alarms in heavy rain or snow interior | minor | Creaking dashboard plastics and door panels climate | moderate | AC compressor failure or noisy operation
+Škoda Fabia NJ | Facelift 2018–2021
+electrical | minor | Front Assist radar false alarms in heavy rain or snow interior | minor | Creaking dashboard plastics and door panels climate | moderate | AC compressor failure or noisy operation
+Škoda Fabia PJ | Pre-facelift 2021–2024
+electrical | moderate | MIB3 Infotainment system lagging and randomly rebooting interior | minor | Rattle from the B-pillar seatbelt height adjuster trim electrical | minor | Lane Assist overly aggressive steering intervention
+Škoda Fabia PJ | Facelift 2024–now
+electrical | moderate | MIB3 Infotainment system lagging and randomly rebooting interior | minor | Rattle from the B-pillar trim
+Škoda Kamiq NW4 | Pre-facelift 2019–2023
+electrical | moderate | Infotainment system (Bolero/Amundsen) freezing and restarting suspension | minor | Creaking from the rear torsion beam axle over speed bumps electrical | moderate | Front assist and Lane assist sensors throwing random errors
+Škoda Kamiq NW4 | Facelift 2024–now
+electrical | moderate | Infotainment system freezing and restarting suspension | minor | Creaking from the rear torsion beam axle electrical | moderate | Front assist and Lane assist sensors throwing random errors
+Škoda Karoq NU7 | Pre-facelift 2017–2021
+electrical | minor | KESSY door handle sensors failing to unlock in wet conditions interior | minor | VarioFlex rear seats rattling when unoccupied suspension | minor | Creaking front anti-roll bar bushes
+Škoda Karoq NU7 | Facelift 2021–now
+electrical | minor | MIB3 Infotainment freezes and slow startup interior | minor | VarioFlex rear seats rattling when unoccupied suspension | minor | Creaking front anti-roll bar bushes
+Škoda Kodiaq NS7 | Pre-facelift 2017–2021
+electrical | moderate | Infotainment screen freezes and SOS module errors interior | minor | Door edge protector mechanisms breaking and scratching the door paint body_rust | moderate | Water ingress into the cabin from blocked panoramic roof drains suspension | minor | DCC adaptive dampers leaking fluid or knocking
+Škoda Kodiaq NS7 | Facelift 2021–2024
+electrical | moderate | Infotainment screen freezes and SOS module errors interior | minor | Door edge protector mechanisms breaking and scratching the door paint body_rust | moderate | Water ingress from blocked panoramic roof drains Škoda Kodiaq PS | Pre-facelift 2024–now
+electrical | moderate | Early software glitches with infotainment and Smart Dials
+Škoda Octavia 1U | Pre-facelift 1996–2000
+body_rust | moderate | Rust on the front fenders, door sills, and tailgate around the license plate lights interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door electrical | moderate | Door lock microswitches failing, causing alarm and interior light issues suspension | minor | Worn front anti-roll bar bushes causing knocking
+Škoda Octavia 1U | Facelift 2000–2010
+body_rust | moderate | Rust on the front fenders, door sills, and tailgate around the license plate lights interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door electrical | moderate | Door lock microswitches failing, causing alarm and interior light issues suspension | minor | Worn front anti-roll bar bushes causing knocking
+Škoda Octavia 1Z | Pre-facelift 2004–2008
+body_rust | moderate | Rust on door sills, tailgate lower edge, and rear wheel arches climate | critical | AC compressor catastrophic failure (especially Sanden units) electrical | moderate | Wiring harness breaking in the driver's door hinge bellow interior | minor | Peeling chrome coating on interior door handles
+Škoda Octavia 1Z | Facelift 2009–2013
+body_rust | moderate | Rust on door sills, tailgate lower edge, and rear wheel arches climate | critical | AC compressor catastrophic failure (especially Sanden units) electrical | moderate | Wiring harness breaking in the driver's door hinge bellow interior | minor | Peeling chrome coating on interior door handles
+Škoda Octavia 5E | Pre-facelift 2013–2016
+suspension | moderate | Creaking front lower control arm bushings (MacPherson strut) over speed bumps electrical | critical | Infotainment screen touch digitizer failing (Columbus/Amundsen ghost touches) interior | minor | Rattling from the dashboard and door panels climate | moderate | Heater matrix clogging if the silica bag in the coolant expansion tank ruptures
+Škoda Octavia 5E | Facelift 2017–2020
+suspension | moderate | Creaking front lower control arm bushings over speed bumps electrical | critical | Infotainment screen touch digitizer failing (ghost touches and dead zones) climate | moderate | Heater matrix clogging if the silica bag in the coolant expansion tank ruptures Škoda Octavia NX | Pre-facelift 2019–2024
+electrical | critical | MIB3 infotainment system crashing, rebooting, and losing all audio output electrical | moderate | Travel Assist error due to faulty capacitive steering wheel sensors electrical | moderate | SOS emergency call (eCall) module failure climate | minor | Central air vents difficult to adjust manually
+Škoda Scala NW1 | Pre-facelift 2019–2023
+electrical | moderate | Infotainment system freezing and restarting suspension | minor | Creaking from the rear torsion beam axle over bumps electrical | moderate | Front assist and Lane assist random errors
+Škoda Scala NW1 | Facelift 2024–now
+electrical | moderate | Infotainment system freezing and restarting suspension | minor | Creaking from the rear torsion beam axle electrical | moderate | Front assist and Lane assist random errors
+Škoda Superb 3V | Pre-facelift 2015–2019
+suspension | moderate | Rear suspension squeaking (trailing arm bushings) electrical | minor | Keyless entry (KESSY) sensor failure in door handles body_rust | minor | Chrome exterior window trims tarnishing or peeling interior | minor | Rattle from the panoramic sunroof frame
+Škoda Superb 3V | Facelift 2019–2024
+suspension | moderate | Rear suspension squeaking (trailing arm bushings) electrical | minor | Keyless entry (KESSY) sensor failure in door handles interior | minor | Rattle from the panoramic sunroof frame
+Škoda Superb PY | Pre-facelift 2024–now
+electrical | moderate | Early software glitches with infotainment and Smart Dials
+Volkswagen Arteon 3H7 | Pre-facelift 2017–2020
+interior | moderate | Frameless door windows squeaking and freezing shut in winter conditions suspension | minor | DCC adaptive dampers leaking fluid or knocking electrical | moderate | Infotainment screen freezes and reboots
+Volkswagen Arteon 3H7 | Facelift 2020–2024
+interior | moderate | Frameless door windows squeaking and freezing shut in winter conditions electrical | moderate | MIB3 Infotainment screen freezes suspension | minor | DCC adaptive dampers leaking fluid or knocking Volkswagen Bora 1J | Pre-facelift 1998–2001
+body_rust | moderate | Rust on front fenders and trunk lid around the handle interior | critical | Window regulator plastic clips breaking, causing glass to drop into the door interior | moderate | Soft-touch plastic coating turning sticky and peeling off heavily electrical | moderate | Door lock microswitches failing, causing interior light and alarm issues
+Volkswagen Bora 1J | Facelift 2001–2005
+body_rust | moderate | Rust on front fenders and trunk lid around the handle interior | critical | Window regulator plastic clips breaking, causing glass to drop into the door interior | moderate | Soft-touch plastic coating turning sticky and peeling off heavily electrical | moderate | Door lock microswitches failing, causing interior light and alarm issues
+Volkswagen Caddy SB | Pre-facelift 2020–now
+electrical | moderate | MIB3 infotainment freezing and randomly rebooting interior | minor | Sliding door mechanism rattling or sticking electrical | minor | Front Assist false interventions
+Volkswagen Golf 1J | Pre-facelift 1997–2000
+body_rust | moderate | Rust on front fenders, side sills, and tailgate handle interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door interior | moderate | Soft-touch plastic coating turning sticky and peeling off heavily electrical | moderate | Door lock microswitches failing, causing interior light and alarm issues
+Volkswagen Golf 1J | Facelift 2000–2006
+body_rust | moderate | Rust on front fenders, side sills, and tailgate handle interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door interior | moderate | Soft-touch plastic coating turning sticky and peeling off heavily electrical | moderate | Door lock microswitches failing, causing interior light and alarm issues
+Volkswagen Golf 5G | Pre-facelift 2012–2016
+suspension | moderate | Creaking front strut mounts and control arm bushings over speed bumps climate | moderate | Heater matrix clogging if the silica bag in the coolant expansion tank ruptures body_rust | moderate | Water ingress into the cabin through deteriorated rear speaker seals in the doors interior | minor | Rattling from the dashboard area and door panels
+Volkswagen Golf 5G | Facelift 2017–2020
+suspension | moderate | Creaking front strut mounts and control arm bushings over speed bumps climate | moderate | Heater matrix clogging if the silica bag in the coolant expansion tank ruptures body_rust | minor | Water ingress through rear door seals electrical | moderate | Infotainment screen digitizer dead zones (Discover Pro)
+Volkswagen Golf CD1 | Pre-facelift 2019–2024
+electrical | critical | MIB3 infotainment system randomly rebooting, freezing, and losing audio electrical | moderate | Travel Assist unavailable due to faulty capacitive steering wheel sensors electrical | moderate | Capacitive touch sliders on dashboard unresponsive and unlit at night electrical | moderate | SOS eCall module errors and dashboard warnings Volkswagen Golf CD1 | Facelift 2024–now
+electrical | moderate | Minor MIB4 software bugs and screen lag
+Volkswagen Multivan T7 | Pre-facelift 2021–now
+electrical | moderate | MIB3 infotainment freezing and glitching interior | minor | Heavy individual rear seats difficult to move smoothly on floor rails body_rust | minor | Paint chipping easily on the front bumper and hood
+Volkswagen New Beetle 9C | Pre-facelift 1998–2005
+interior | critical | Window regulator failure causing glass to drop into the door interior | moderate | Dashboard and door panel plastics cracking due to sun exposure electrical | moderate | Headlight bulbs extremely difficult to replace (requires removing the entire housing) interior | moderate | Soft-touch plastics turning sticky and peeling heavily
+Volkswagen New Beetle 9C | Facelift 2005–2010
+interior | critical | Window regulator failure causing glass to drop into the door interior | moderate | Dashboard and door panel plastics cracking due to sun exposure electrical | moderate | Headlight bulbs extremely difficult to replace (requires removing the entire housing)
+Volkswagen Passat 3G | Pre-facelift 2014–2019
+suspension | moderate | Creaking front suspension lower control arm bushings electrical | minor | LED headlights failing or internal lenses yellowing body_rust | moderate | Panoramic sunroof leaking into the headliner due to blocked drains interior | minor | Dashboard analog clock failing
+Volkswagen Passat 3G | Facelift 2019–2023
+suspension | moderate | Creaking front suspension lower control arm bushings electrical | moderate | Infotainment MIB3 freezes and wireless Apple CarPlay disconnects body_rust | moderate | Panoramic sunroof leaking into the headliner due to blocked drains
+Volkswagen Passat CJ | Pre-facelift 2024–now
+electrical | moderate | MIB4 software glitches and screen freezing
+Volkswagen Polo AW | Pre-facelift 2017–2021
+interior | minor | Seatbelt buckle rattling against the center console electrical | moderate | Infotainment screen freezes and Apple CarPlay disconnects brakes | minor | Handbrake lever travel becomes excessively long, requiring regular adjustment
+Volkswagen Polo AW | Facelift 2021–now
+electrical | moderate | Infotainment screen freezes and Apple CarPlay disconnects interior | minor | Capacitive steering wheel buttons easily pressed by accident during maneuvers
+Volkswagen T-Cross C11 | Pre-facelift 2019–2023
+electrical | moderate | Infotainment freezing and rebooting interior | minor | Hard plastics on dashboard prone to rattling and scratching suspension | minor | Rear shock absorbers failing or weeping fluid prematurely
+Volkswagen T-Cross C11 | Facelift 2024–now
+electrical | moderate | Infotainment freezing and rebooting suspension | minor | Rear shock absorbers weeping fluid prematurely
+Volkswagen T-Roc A11 | Pre-facelift 2017–2021
+interior | moderate | Pre-facelift model suffers from cheap, hard, and rattling dashboard plastics electrical | minor | KESSY keyless door handle issues in wet weather suspension | minor | Front suspension knocking over bumps Volkswagen T-Roc A11 | Facelift 2022–now
+electrical | moderate | Infotainment system glitches and freezing electrical | minor | KESSY door handle issues in wet weather
+Volkswagen Taigo CS | Pre-facelift 2021–now
+electrical | moderate | MIB3 Infotainment system freezing and rebooting interior | minor | Hard dashboard plastics prone to creaking and scratching
+Volkswagen Tiguan AD1 | Pre-facelift 2016–2020
+body_rust | critical | Water ingress from blocked panoramic sunroof drains, flooding the footwells suspension | moderate | Creaking front suspension lower control arm bushings over speed bumps electrical | minor | Active Info Display (digital dash) software glitches electrical | minor | Power tailgate strut failure
+Volkswagen Tiguan AD1 | Facelift 2020–2023
+body_rust | critical | Water ingress from blocked panoramic sunroof drains, flooding the footwells electrical | moderate | MIB3 Infotainment freezes and wireless connection drops climate | moderate | Capacitive touch climate controls unresponsive or difficult to use while driving
+Volkswagen Tiguan CT | Pre-facelift 2024–now
+electrical | moderate | Early MIB4 software issues, system lag, and screen freezing
+Volkswagen Touran 5T | Pre-facelift 2015–2020
+body_rust | critical | Panoramic sunroof leaking heavily due to blocked or disconnected drain tubes interior | minor | Rear individual seats rattling when unoccupied suspension | minor | Creaking front anti-roll bar and control arm bushings
+Volkswagen Touran 5T | Facelift 2020–now
+body_rust | critical | Panoramic sunroof leaking heavily due to blocked or disconnected drain tubes electrical | moderate | MIB3 Infotainment freezes interior | minor | Rear individual seats rattling when unoccupied
