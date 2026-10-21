@@ -46,7 +46,9 @@ export interface CatalogDrivetrain {
   // table's Drivetrain column shows this, not the internal `code`.
   generation: string | null;
   maker: string | null;
+  description: string | null;
   reliabilityNote: string | null;
+  maintenanceNote: string | null;
   reliabilityRating: number | null;
   pros: string[];
   cons: string[];

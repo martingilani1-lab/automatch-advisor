@@ -141,6 +141,11 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .con-item{font-size:.78rem;color:#ef9a9a;margin-bottom:3px;line-height:1.5}
 .tx-card{background:#1c1c1e;border:1px solid #2a2a2e;border-radius:8px;padding:11px 13px;margin-bottom:6px;cursor:pointer;transition:all .12s}
 .tx-card:hover{border-color:#3a3a3e}.tx-card.open{border-color:rgba(232,255,71,.2)}
+/* The sole-card case (DrivetrainAccordion's alwaysOpen) has no click handler at all, so the
+   hover/pointer affordance from the base rule above -- which exists to signal "click me to
+   toggle" -- needs to go with it, not just the handler. */
+.tx-card-static{cursor:default}
+.tx-card-static:hover{border-color:#2a2a2e}
 /* Transmission maintenance section — a bordered card distinct from the plain
    Reliability prose above it, deliberately NOT the yellow-tinted .buy-tip
    treatment (that reads as "buying tip" elsewhere; this is neutral reference

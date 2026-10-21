@@ -333,15 +333,33 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: Detai
   );
 }
 
-function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle }: { group: DetailDrivetrainGroup; showVariants: boolean; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
+// Haldex is the one family in this table where `generation` alone ("Gen 1", "Gen 5", ...)
+// reads as a bare version number with no indication of what it's a generation OF -- every
+// other system's generation string already names itself (e.g. "Torsen permanent", "HTRAC").
+// Prefixing the maker name here (not reusing system.maker verbatim -- that's "BorgWarner
+// (Haldex)"/"Haldex Traction" depending on which migration added the row) keeps every Haldex
+// generation's displayed name consistent regardless of which maker string it was seeded with.
+function drivetrainDisplayName(system: DetailDrivetrainGroup["system"]): string {
+  if (system.type === "haldex" && system.generation) return `Haldex ${system.generation}`;
+  return system.generation || system.code;
+}
+
+// alwaysOpen (set by the caller when this is the only card in the tab) locks the card open
+// and drops the click-to-toggle entirely -- with a single unit there's nothing to collapse
+// TO (no sibling card to scan instead), so a toggle would just be a way to hide the only
+// content on the tab for no benefit.
+function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle, alwaysOpen }: { group: DetailDrivetrainGroup; showVariants: boolean; gapsMode: boolean; isOpen: boolean; onToggle: () => void; alwaysOpen?: boolean }) {
   const { system, variants } = group;
   const typeLabel = DRIVETRAIN_TYPE_LABELS[system.type] || cap(system.type);
   const rc = system.reliability !== "—" ? REL_COLORS[system.reliability] || "#888" : null;
+  const [descOpen, setDescOpen] = useState(false);
+  const [maintOpen, setMaintOpen] = useState(false);
+  const open = alwaysOpen || isOpen;
   return (
-    <div id={`drivetrain-${system.id}`} className={`tx-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+    <div id={`drivetrain-${system.id}`} className={`tx-card${open ? " open" : ""}${alwaysOpen ? " tx-card-static" : ""}`} onClick={alwaysOpen ? undefined : onToggle}>
       <div className="eng-hdr">
         <div className="eng-left">
-          <span className="eng-name">{system.generation || system.code}</span>
+          <span className="eng-name">{drivetrainDisplayName(system)}</span>
           <div className="eng-tags">
             <span className="eng-badge" style={{ background: DT_TYPE_COLOR + "22", color: DT_TYPE_COLOR, border: `1px solid ${DT_TYPE_COLOR}44` }}>{typeLabel}</span>
             {rc ? (
@@ -353,13 +371,52 @@ function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle }
             <span className="cfuel-tag" style={{ fontFamily: "monospace" }}>{system.code}</span>
           </div>
         </div>
-        <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+        {!alwaysOpen && <span className="chevron">{open ? "▲" : "▼"}</span>}
       </div>
-      {isOpen && (
+      {open && (
         <div className="eng-body">
-          {system.description && <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 4 }}>{system.description}</div>}
           {showVariants && variants.length > 0 && (
             <div style={{ fontSize: ".72rem", color: "#6b6b72", marginBottom: 8 }}>Applies to: {variants.join(", ")}</div>
+          )}
+          {/* Description and maintenance note: same click-to-reveal tile GearboxAccordion
+              uses for its own maintenance note, side by side in one .cgrid row rather than
+              always-visible text -- both are often a full paragraph, and this tab already
+              shows a lot per card before you open either. */}
+          <div className="cgrid">
+            {system.description ? (
+              <div
+                className="cgrid-item cgrid-item-btn"
+                onClick={(e) => { e.stopPropagation(); setDescOpen((v) => !v); }}
+              >
+                <div className="cgrid-val">{"📄"} Description {descOpen ? "▴" : "▾"}</div>
+              </div>
+            ) : (
+              <MissingMarker gapsMode={gapsMode} label="description" />
+            )}
+            {system.maintenance_note ? (
+              <div
+                className="cgrid-item cgrid-item-btn"
+                onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
+              >
+                <div className="cgrid-val">{"🔧"} Maintenance {maintOpen ? "▴" : "▾"}</div>
+              </div>
+            ) : (
+              <MissingMarker gapsMode={gapsMode} label="maintenance note" />
+            )}
+          </div>
+          {descOpen && system.description && (
+            <div className="maint-card">
+              {splitSentences(system.description).map((s, si) => (
+                <div key={si} className="maint-item">{s}</div>
+              ))}
+            </div>
+          )}
+          {maintOpen && system.maintenance_note && (
+            <div className="maint-card">
+              {splitSentences(system.maintenance_note).map((s, si) => (
+                <div key={si} className="maint-item">{s}</div>
+              ))}
+            </div>
           )}
           {system.reliability_note && (<>
             <div className="sub-label">{"⚠️"} Reliability</div>
@@ -650,6 +707,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                 gapsMode={gapsMode}
                 isOpen={!!openDrivetrain[i] || i === focusDrivetrainIdx}
                 onToggle={() => setOpenDrivetrain((p) => ({ ...p, [i]: !p[i] }))}
+                alwaysOpen={drivetrainGroups.length === 1}
               />
             ))}
           </div>

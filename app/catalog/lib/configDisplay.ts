@@ -49,8 +49,15 @@ export function transmissionLabel(c: CatalogConfig): string {
 // actually provides (NULL over invention, CLAUDE.md rule 7). Falls back to `code` if a
 // future row has no generation filled in yet; "FWD" for configs with no drivetrain system at
 // all (the vast majority -- front-wheel-drive needs no reference-table row).
+//
+// Haldex is the one family where `generation` alone ("Gen 1", "Gen 5", ...) is just a bare
+// version number -- every other system's generation string already names itself. Prefixing
+// "Haldex" here (rather than reusing the row's own `maker`, which is "BorgWarner (Haldex)" on
+// some rows and "Haldex Traction" on others depending on which migration added it) keeps
+// every Haldex generation reading the same way everywhere this label is shown.
 export function drivetrainLabel(c: CatalogConfig): string {
   if (!c.drivetrain) return "FWD";
+  if (c.drivetrain.type === "haldex" && c.drivetrain.generation) return `Haldex ${c.drivetrain.generation}`;
   return c.drivetrain.generation ?? c.drivetrain.code;
 }
 

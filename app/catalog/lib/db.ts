@@ -196,7 +196,7 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
         catalog_body_types(id, name),
         catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type, reliability_rating, pros, cons),
         transmission_units(id, code, family, maker, speeds, reliability_note, maintenance_note, reliability_rating, pros, cons),
-        drivetrain_systems(id, code, type, generation, maker, reliability_note, reliability_rating, pros, cons)
+        drivetrain_systems(id, code, type, generation, maker, description, reliability_note, maintenance_note, reliability_rating, pros, cons)
         `
       )
       .eq("phase_id", phaseId),
@@ -346,7 +346,9 @@ function transformBundle(
           type: c.drivetrain_systems.type,
           generation: c.drivetrain_systems.generation,
           maker: c.drivetrain_systems.maker,
+          description: c.drivetrain_systems.description,
           reliabilityNote: c.drivetrain_systems.reliability_note,
+          maintenanceNote: c.drivetrain_systems.maintenance_note,
           reliabilityRating: c.drivetrain_systems.reliability_rating,
           pros: c.drivetrain_systems.pros ?? [],
           cons: c.drivetrain_systems.cons ?? [],
