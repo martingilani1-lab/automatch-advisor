@@ -1,0 +1,39 @@
+Cupra Formentor KM7 | Pre-facelift 2020–2024
+electrical | critical | MIB3 infotainment system freezing, lagging, and randomly rebooting electrical | moderate | Travel Assist unavailable warnings due to faulty capacitive steering wheel sensors electrical | moderate | SOS emergency call (eCall) module hardware failure climate | moderate | Unilluminated and unresponsive climate control touch sliders interior | minor | Cheap plastics in the lower cabin easily scratching
+Cupra Formentor KM7 | Facelift 2024–now
+electrical | moderate | Early software glitches and connectivity drops in the new infotainment screen interior | minor | Minor interior rattles from the dashboard area
+Cupra León KL | Pre-facelift 2020–2024
+electrical | critical | MIB3 software freezing, rebooting, and complete loss of audio output electrical | moderate | Travel Assist error due to faulty capacitive steering wheel electrical | moderate | SOS eCall module failure and backup battery drain climate | moderate | Unilluminated and unresponsive climate touch sliders
+Cupra León KL | Facelift 2024–now
+electrical | moderate | Early software glitches in the new MIB4 infotainment system interior | minor | Minor interior rattles from the dashboard area
+Cupra Terramar KP | Pre-facelift 2024–now
+electrical | moderate | Early software glitches in the infotainment and digital dashboard system
+SEAT Arona KJ7 | Pre-facelift 2017–2021
+electrical | moderate | Infotainment screen freezing or restarting randomly interior | minor | Seatbelt buckle height adjuster rattling against the B-pillar interior | minor | Scratch-prone hard dashboard plastics suspension | minor | Rear shock absorbers weeping fluid prematurely
+SEAT Arona KJ7 | Facelift 2021–now
+electrical | minor | Wireless Apple CarPlay/Android Auto dropping connection frequently electrical | minor | Infotainment screen lagging during startup interior | minor | Seatbelt buckle height adjuster rattling SEAT Ateca KH7 | Pre-facelift 2016–2020
+body_rust | moderate | Water ingress into the cabin from blocked AC drains or panoramic sunroof drains electrical | minor | Keyless entry (KESSY) door handles failing in wet weather suspension | minor | Creaking front anti-roll bar bushes over speed bumps interior | minor | Rattle from the rear parcel shelf
+SEAT Ateca KH7 | Facelift 2020–now
+electrical | moderate | MIB3 Infotainment system lagging and freezing electrical | minor | KESSY door handle sensors failing suspension | minor | Creaking front anti-roll bar bushes over speed bumps
+SEAT Ibiza KJ | Pre-facelift 2017–2021
+electrical | moderate | Infotainment screen freezing or rebooting randomly interior | minor | Seatbelt buckle height adjuster rattling against the B-pillar suspension | minor | Rear shock absorbers weeping fluid prematurely interior | minor | Hard plastics on the lower dashboard scratching easily
+SEAT Ibiza KJ | Facelift 2021–now
+electrical | minor | Infotainment connectivity drops with Apple CarPlay/Android Auto interior | minor | Seatbelt buckle height adjuster rattling suspension | minor | Rear shock absorbers weeping fluid prematurely
+SEAT León 1M | Pre-facelift 1999–2003
+body_rust | critical | Severe water ingress into footwells through deteriorating inner door carrier seals interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door electrical | moderate | Door lock microswitches failing, causing interior lights/alarm issues interior | moderate | Soft-touch plastic coating turning sticky and peeling off interior trims suspension | minor | Premature wear of front anti-roll bar bushes
+SEAT León 1M | Facelift 2003–2006
+body_rust | critical | Severe water ingress into footwells through deteriorating inner door carrier seals interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door electrical | moderate | Door lock microswitches failing, causing interior lights/alarm issues interior | moderate | Soft-touch plastic coating turning sticky and peeling off interior trims suspension | minor | Premature wear of front anti-roll bar bushes
+SEAT León 5F | Pre-facelift 2012–2016 SEAT León 5F | Pre-facelift 2012–2016
+suspension | moderate | Creaking front suspension over speed bumps (strut mounts/bushings) electrical | moderate | LED daytime running lights failing or yellowing due to heat body_rust | moderate | Water ingress into the cabin through deteriorated rear speaker seals in the doors interior | minor | Rattling from the door panels, especially with upgraded Seat Sound audio climate | minor | Heater matrix clogging if silica bag in coolant tank ruptures
+SEAT León 5F | Facelift 2017–2020
+electrical | moderate | Infotainment touch screen digitizer dead zones (ghost touches) suspension | minor | Creaking front suspension over speed bumps (strut mounts/bushings) interior | minor | Rattling from the door panels climate | minor | Heater matrix clogging if silica bag in coolant tank ruptures
+SEAT León KL | Pre-facelift 2020–2024
+electrical | critical | MIB3 software freezing, rebooting, and complete loss of audio output electrical | moderate | Travel Assist error due to faulty capacitive steering wheel electrical | moderate | SOS eCall module failure and backup battery drain climate | moderate | Unilluminated and unresponsive climate touch sliders interior | minor | Rattle from the LED ambient lighting strip on the dashboard
+SEAT León KL | Facelift 2024–now
+electrical | moderate | Early software glitches in the new infotainment screen interior | minor | Rattle from the LED ambient lighting strip on the dashboard
+SEAT Tarraco KN2 | Pre-facelift 2018–2024
+electrical | moderate | MIB3 Infotainment system freezes and lagging interior | minor | Creaking and rattling from the third-row seats when unoccupied suspension | minor | DCC adaptive suspension knocking noise over uneven roads body_rust | minor | Water ingress from blocked panoramic sunroof drains
+SEAT Toledo 1M2 | Pre-facelift 1998–2003
+body_rust | critical | Severe water ingress into footwells through deteriorating inner door carrier seals interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door electrical | moderate | Door lock microswitches failing, causing interior lights/alarm issues interior | moderate | Soft-touch plastic coating turning sticky and peeling off interior trims suspension | minor | Premature wear of front anti-roll bar bushes
+SEAT Toledo 1M2 | Facelift 2003–2004
+body_rust | critical | Severe water ingress into footwells through deteriorating inner door carrier seals interior | critical | Window regulator plastic clips snapping, causing glass to drop into the door electrical | moderate | Door lock microswitches failing, causing interior lights/alarm issues interior | moderate | Soft-touch plastic coating turning sticky and peeling off interior trims suspension | minor | Premature wear of front anti-roll bar bushes
