@@ -3,15 +3,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { IconCheck } from "@tabler/icons-react";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
+import { tierLabel, sortTrimsByTier } from "@/app/catalog/lib/trimsDisplay";
+import type { CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 import CarHero from "@/app/catalog/components/CarHero";
-import TrimCards from "@/app/catalog/components/TrimCards";
 import { pickMainMedia } from "@/app/catalog/lib/media";
 import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
@@ -439,6 +441,151 @@ function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle, 
   );
 }
 
+// Trims tab -- same card/icon/color language as Engines (.eng-card, .eng-badge, .chevron,
+// .sub-label) and Configurations (colored tabler icons) instead of the Tailwind Garage-panel
+// grid /catalog's TrimsList.tsx uses (that shared TrimCards component is still what /catalog
+// renders; this is a separate, native-styled implementation for this page only -- feedback
+// was that the Garage panel looked out of place dropped into this page's own dark theme).
+// tierLabel/sortTrimsByTier are the only things reused from app/catalog/lib/trimsDisplay.ts
+// (pure data helpers, no visual coupling), same as gearboxTypeLabel/drivetrainLabel elsewhere
+// in this file.
+function TrimAccordion({ trim, previousTrimName, showEmptyNote, isOpen, onToggle }: {
+  trim: CatalogTrim;
+  previousTrimName: string | null;
+  showEmptyNote: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const hasFeatures = trim.features.length > 0;
+  const label = tierLabel(trim.tier);
+  return (
+    <div
+      className={`eng-card${isOpen && hasFeatures ? " open" : ""}`}
+      onClick={hasFeatures ? onToggle : undefined}
+      style={hasFeatures ? undefined : { cursor: "default" }}
+    >
+      <div className="eng-hdr">
+        <div className="eng-left">
+          <span className="eng-name">{trim.name}</span>
+          <div className="eng-tags">
+            {label && <span className="eng-badge" style={{ background: "#60a5fa22", color: "#60a5fa", border: "1px solid #60a5fa44" }}>{label}</span>}
+          </div>
+        </div>
+        {hasFeatures ? (
+          <span className="chevron">{trim.features.length} extra{trim.features.length === 1 ? "" : "s"} {isOpen ? "▲" : "▼"}</span>
+        ) : (
+          showEmptyNote && <span className="tg">Not available yet</span>
+        )}
+      </div>
+      {hasFeatures && isOpen && (
+        <div className="eng-body">
+          {previousTrimName && <div className="sub-label">Everything in {previousTrimName}, plus</div>}
+          {trim.features.map((f, i) => (
+            <div key={i} className="pro-item" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />
+                {f.feature}
+              </span>
+              {f.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function trimTierNumber(tier: string | null): number {
+  return tier != null && /^\d+$/.test(tier) ? Number(tier) : Infinity;
+}
+
+// Rows = every distinct feature across the comparable trims, each attributed to the lowest
+// tier that introduces it (features are additive-only -- once a feature appears at tier N,
+// every trim >= N has it too). Same reconstruction configDisplay-adjacent code elsewhere in
+// this app uses for the same "incremental list -> cumulative table" shape.
+function TrimCompareTable({ trims }: { trims: CatalogTrim[] }) {
+  const rows: { feature: string; introTier: number; isOptional: boolean }[] = [];
+  const seen = new Set<string>();
+  for (const trim of trims) {
+    const introTier = trimTierNumber(trim.tier);
+    for (const f of trim.features) {
+      if (seen.has(f.feature)) continue;
+      seen.add(f.feature);
+      rows.push({ feature: f.feature, introTier, isOptional: f.isOptional });
+    }
+  }
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table className="trim-compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            {trims.map((t) => <th key={t.id}>{t.name}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.feature}>
+              <td style={{ textAlign: "left", color: "#f0f0f0" }}>{row.feature}</td>
+              {trims.map((t) => {
+                const included = trimTierNumber(t.tier) >= row.introTier;
+                return (
+                  <td key={t.id}>
+                    {!included ? (
+                      <span style={{ color: "#6b6b72" }}>{"–"}</span>
+                    ) : row.isOptional ? (
+                      <span style={{ color: "#9999aa" }}>opt</span>
+                    ) : (
+                      <IconCheck size={13} stroke={2.5} style={{ color: "#a5d6a7" }} />
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+interface TrimsPanelProps {
+  trims: CatalogTrim[];
+  openTrims: Record<number, boolean>;
+  setOpenTrims: (updater: (p: Record<number, boolean>) => Record<number, boolean>) => void;
+  showCompare: boolean;
+  setShowCompare: (updater: (v: boolean) => boolean) => void;
+}
+
+function TrimsPanel({ trims, openTrims, setOpenTrims, showCompare, setShowCompare }: TrimsPanelProps) {
+  const sorted = sortTrimsByTier(trims);
+  const allEmpty = sorted.every((t) => t.features.length === 0);
+  const comparable = sorted.filter((t) => t.features.length > 0);
+  const canCompare = comparable.length >= 2;
+
+  return (
+    <div>
+      {allEmpty && <div className="mp-hint" style={{ marginBottom: 10 }}>Equipment details not available yet for this phase.</div>}
+      {canCompare && (
+        <button type="button" className="trim-compare-toggle" onClick={() => setShowCompare((v) => !v)}>
+          {showCompare ? "Hide comparison" : "Compare trims"}
+        </button>
+      )}
+      {showCompare && canCompare && <TrimCompareTable trims={comparable} />}
+      {sorted.map((trim, i) => (
+        <TrimAccordion
+          key={trim.id}
+          trim={trim}
+          previousTrimName={i > 0 ? sorted[i - 1].name : null}
+          showEmptyNote={!allEmpty}
+          isOpen={!!openTrims[i]}
+          onToggle={() => setOpenTrims((p) => ({ ...p, [i]: !p[i] }))}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack, siblingPhases, onSwitchPhase }: CarDetailProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -448,6 +595,12 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
   const [openGearboxes, setOpenGearboxes] = useState<Record<number, boolean>>({});
   const [openDrivetrain, setOpenDrivetrain] = useState<Record<number, boolean>>({});
+  // {0: true} so the lowest-tier trim starts open (spec: "first card open by default") without
+  // making it permanently un-collapsible -- an `isOpen={... || i === 0}` OR-condition instead
+  // of this seeded initial state would re-force index 0 open on every render even after the
+  // user explicitly collapses it, since toggling it to false can never beat a hardcoded `true`.
+  const [openTrims, setOpenTrims] = useState<Record<number, boolean>>({ 0: true });
+  const [showTrimCompare, setShowTrimCompare] = useState(false);
 
   const focusEngine = searchParams.get("engine");
   const focusUnit = searchParams.get("unit");
@@ -746,7 +899,13 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
             {(detail?.trims ?? []).length === 0 ? (
               <div className="mp-hint">No data available.</div>
             ) : (
-              <TrimCards trims={detail!.trims} gapsMode={gapsMode} />
+              <TrimsPanel
+                trims={detail!.trims}
+                openTrims={openTrims}
+                setOpenTrims={setOpenTrims}
+                showCompare={showTrimCompare}
+                setShowCompare={setShowTrimCompare}
+              />
             )}
           </div>
         )}
