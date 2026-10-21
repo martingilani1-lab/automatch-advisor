@@ -413,11 +413,6 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       detail: f.fault,
     }));
 
-    const q = bundle.trims.map((trim) => ({
-      trim: trim.name,
-      features: trim.features.map((f) => f.feature).join(" · "),
-    }));
-
     const firstBody = bundle.bodyDimensions[0];
     const specs = firstBody
       ? {
@@ -449,7 +444,7 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
     }));
 
     return {
-      e, g, dt, c, pros: [], cons: [], q,
+      e, g, dt, c, pros: [], cons: [], trims: bundle.trims,
       b: "Check full service history and verify mileage.",
       specs, dims,
       // Passed through unchanged -- see DetailData.configs/.media's own comments in

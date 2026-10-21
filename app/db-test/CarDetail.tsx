@@ -11,6 +11,7 @@ import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 import CarHero from "@/app/catalog/components/CarHero";
+import TrimCards from "@/app/catalog/components/TrimCards";
 import { pickMainMedia } from "@/app/catalog/lib/media";
 import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
@@ -541,7 +542,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   if (gearboxGroups.length > 0) tabs.push({ id: "gearboxes", label: "Gearboxes", count: gearboxGroups.length });
   if (drivetrainGroups.length > 0) tabs.push({ id: "drivetrain", label: "Drivetrain System", count: drivetrainGroups.length });
   if ((detail?.dims.length ?? 0) > 0) tabs.push({ id: "dimensions", label: "Dimensions", count: detail!.dims.length });
-  if ((detail?.q.length ?? 0) > 0) tabs.push({ id: "equipment", label: "Trims", count: detail!.q.length });
+  if ((detail?.trims.length ?? 0) > 0) tabs.push({ id: "equipment", label: "Trims", count: detail!.trims.length });
   if ((detail?.c.length ?? 0) > 0) tabs.push({ id: "faults", label: "Common faults", count: detail!.c.length });
   tabs.push({ id: "safety", label: "NCAP" });
 
@@ -742,15 +743,10 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
         {activeTab === "equipment" && (
           <div className="mp-section">
-            {(detail?.q ?? []).length === 0 ? (
+            {(detail?.trims ?? []).length === 0 ? (
               <div className="mp-hint">No data available.</div>
             ) : (
-              detail!.q.map((eq, i) => (
-                <div key={i} className="eq-item">
-                  <div className="eq-trim">{eq.trim}</div>
-                  <div className="eq-feats">{eq.features}</div>
-                </div>
-              ))
+              <TrimCards trims={detail!.trims} gapsMode={gapsMode} />
             )}
           </div>
         )}

@@ -3,7 +3,7 @@
 // in the Prehľad version) has no catalog_ equivalent at all (no vehicle_safety_features-style
 // table), so it's dropped here rather than carried over empty — see CarDetail.tsx's Safety tab.
 
-import type { CatalogConfig, CatalogMediaItem } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogMediaItem, CatalogTrim } from "@/app/catalog/lib/types";
 
 // A fault carries its own severity (catalog_component_faults.severity: 'critical' | 'moderate'
 // | 'minor' | null) through to display, so the engine/gearbox fault lists can sort by it and
@@ -95,11 +95,6 @@ export interface DetailFault {
   detail: string;
 }
 
-export interface DetailEquipment {
-  trim: string;
-  features: string;
-}
-
 export interface DetailSpecs {
   towingCapacity: number | null;
   groundClearance: number | null;
@@ -138,7 +133,10 @@ export interface DetailData {
   c: DetailFault[];
   pros: string[];
   cons: string[];
-  q: DetailEquipment[];
+  // Full per-trim feature list (not flattened to a joined string) -- CatalogTrim already
+  // carries tier + each feature's isOptional flag, both needed by the shared TrimCards
+  // component (app/catalog/components/TrimCards.tsx) /catalog's own Trims tab also renders.
+  trims: CatalogTrim[];
   b: string;
   specs: DetailSpecs;
   dims: DimensionsByBody[];
