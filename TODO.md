@@ -26,7 +26,7 @@ move on. A task tagged `owner:martin` or `needs:martin` is a stop point — do t
 
 ## Data — reference content
 - [ ] Drivetrain content for the 18 unused `drivetrain_systems` (xDrive, 4MATIC, HTRAC, Subaru, …): rating, pros, cons, faults with severity `type:content` `needs:martin` `prio:low`
-- [ ] Vehicle faults (rust, electrics, body) — `catalog_component_faults` with `component_type='vehicle'`, currently 0 rows `type:content` `needs:martin` `prio:normal`
+- [x] Vehicle faults (rust, electrics, body) — `catalog_component_faults` with `component_type='vehicle'`: 316 rows, all 88 phases (2026-10-21). Display still needs the Common faults tab fix `type:content` `needs:martin` `prio:normal`
 - [ ] 0–100 km/h and top speed — empty on all configurations; decide the data source first `type:data` `needs:martin` `prio:low`
 - [ ] Missing "In this car" gearbox notes (`catalog_phase_unit_notes`) for phase + gearbox pairs without one `type:content` `needs:martin` `prio:low`
 
