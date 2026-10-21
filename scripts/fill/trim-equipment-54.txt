@@ -1,0 +1,54 @@
+Audi A3 8L | Pre-facelift 1996–2000 | Attraction (tier 1) | 15-inch steel wheels, fabric seats, 4-spoke steering wheel, front power windows, central locking, ABS, dual front airbags
+Audi A3 8L | Pre-facelift 1996–2000 | Ambition (tier 2) | 15-inch alloy wheels, sport suspension (-16mm), sport seats, 3-spoke leather steering wheel, front fog lights (optional)
+Audi A3 8L | Pre-facelift 1996–2000 | Ambiente (tier 3) | 15-inch elegant alloy wheels, velour upholstery (replaces sport seats), front center armrest, remote central locking, 4-spoke leather steering wheel, wood interior trim (optional), cruise control (optional)
+Audi A3 8L | Facelift 2000–2003 | Attraction (tier 1) | 15-inch alloy wheels, projector headlights, updated center console, ESP, dual front and side airbags, manual AC
+Audi A3 8L | Facelift 2000–2003 | Ambition (tier 2) | 16-inch alloy wheels, sport suspension (-16mm), sport seats, 3-spoke leather steering wheel, front fog lights
+Audi A3 8L | Facelift 2000–2003 | Ambiente (tier 3) | Alcantara/leather upholstery (replaces sport seats), front center armrest, auto-dimming rearview mirror, interior lighting package, cruise control (optional)
+Audi A3 8L | Facelift 2000–2003 | S line (tier 4) | 17-inch 9-spoke alloy wheels, S line sport suspension (-20mm), half-leather sport seats, black headliner, S line perforated leather steering wheel, Xenon headlights (optional)
+Audi TT 8N | Pre-facelift 1998–2003 | Base (tier 1) | 16-inch alloy wheels, Alcantara/leather sport seats, 3-spoke leather sports steering wheel, automatic climate control, driver information system (FIS), rear spoiler, ESP
+Audi TT 8N | Facelift 2003–2006 | Base (tier 1) | 16-inch or 17-inch alloy wheels, revised suspension geometry, updated front grille, standard projector headlights
+Audi TT 8N | Facelift 2003–2006 | S line (tier 2) | 18-inch 9-spoke alloy wheels, S line sport suspension (-20mm), Titanium headlight bezels, perforated leather steering wheel, S line exterior badges, Xenon headlights
+SEAT León 1M | Pre-facelift 1999–2003 | Stella (tier 1) | 15-inch steel wheels, ABS, front power windows, central locking, driver and passenger airbags, cassette radio
+SEAT León 1M | Pre-facelift 1999–2003 | Signo (tier 2) | 15-inch alloy wheels, Climatronic automatic climate control, 4x power windows, electrically adjustable/heated mirrors, remote central locking, front fog lights
+SEAT León 1M | Pre-facelift 1999–2003 | Sport (tier 3) | 15-inch or 16-inch alloy wheels, sport suspension, sport seats, leather steering wheel, white instrument dials
+SEAT León 1M | Pre-facelift 1999–2003 | Top Sport (tier 4) | 17-inch alloy wheels, aggressive Top Sport bumpers and side skirts, dual exhaust tip, specific sport seats, 6-speed manual gearbox (optional based on engine)
+SEAT León 1M | Facelift 2003–2006 | Stella (tier 1) | 15-inch steel wheels, teardrop mirrors, ABS, front power windows, CD player, manual AC (optional)
+SEAT León 1M | Facelift 2003–2006 | Signo (tier 2) | 15-inch alloy wheels, Climatronic automatic climate control, 4x power windows, body-colored door handles and mirrors, cruise control, trip computer
+SEAT León 1M | Facelift 2003–2006 | Sport (tier 3) | 16-inch alloy wheels, sport suspension, sport seats, 3-spoke leather steering wheel, white instrument dials
+SEAT León 1M | Facelift 2003–2006 | FR (tier 4) | 17-inch specific FR alloy wheels, FR bumpers, silver mirror caps, FR sport seats, sport exhaust, ESP
+SEAT Toledo 1M2 | Pre-facelift 1998–2003 | Stella (tier 1) | 15-inch steel wheels, ABS, front power windows, central locking, dual front airbags
+SEAT Toledo 1M2 | Pre-facelift 1998–2003 | Signo (tier 2) | 15-inch alloy wheels, Climatronic automatic climate control, 4x power windows, remote central locking, front fog lights, trip computer
+SEAT Toledo 1M2 | Pre-facelift 1998–2003 | Executive (tier 3) | 15-inch or 16-inch alloy wheels, full leather upholstery, power-adjustable front seats, wood interior trim, CD changer
+SEAT Toledo 1M2 | Pre-facelift 1998–2003 | Sport (tier 4) | 16-inch alloy wheels, sport seats (replaces leather), sport suspension, 3-spoke leather steering wheel
+SEAT Toledo 1M2 | Facelift 2003–2004 | Stella (tier 1) | 15-inch steel wheels, teardrop mirrors, front power windows, CD player
+SEAT Toledo 1M2 | Facelift 2003–2004 | Signo (tier 2) | 15-inch alloy wheels, Climatronic automatic climate control, 4x power windows, body-colored exterior trim, cruise control
+SEAT Toledo 1M2 | Facelift 2003–2004 | Executive (tier 3) | 16-inch alloy wheels, Alcantara/leather upholstery, auto-dimming rearview mirror, rain sensor, power-adjustable front seats
+SEAT Toledo 1M2 | Facelift 2003–2004 | FR (tier 4) | 17-inch alloy wheels, FR specific bumpers, silver mirror caps, FR sport seats, sport suspension, white instrument dials
+Škoda Octavia 1U | Pre-facelift 1996–2000 | LX (tier 1) | 14-inch steel wheels, driver airbag, manual windows, power steering, manual mirrors
+Škoda Octavia 1U | Pre-facelift 1996–2000 | GLX (tier 2) | 15-inch steel wheels, ABS, passenger airbag, front power windows, central locking, front fog lights (optional)
+Škoda Octavia 1U | Pre-facelift 1996–2000 | SLX (tier 3) | 15-inch alloy wheels, manual AC, 4x power windows, remote central locking, electrically adjustable and heated mirrors, trip computer (MFA), front armrest
+Škoda Octavia 1U | Facelift 2000–2010 | Classic (tier 1) | 15-inch steel wheels, ABS, dual airbags, power steering, manual front windows, central locking
+Škoda Octavia 1U | Facelift 2000–2010 | Tour (tier 1) | Manual AC, front power windows, body-colored bumpers and mirrors, specific Tour badging
+Škoda Octavia 1U | Facelift 2000–2010 | Ambiente (tier 2) | Front power windows, remote central locking, electrically adjustable and heated mirrors, trip computer, front fog lights, manual AC
+Škoda Octavia 1U | Facelift 2000–2010 | Elegance (tier 3) | 15-inch or 16-inch alloy wheels, Climatronic automatic climate control, 4x power windows, front center armrest, cruise control, leather-wrapped steering wheel
+VW Bora 1J | Pre-facelift 1998–2001 | Basis (tier 1) | 15-inch steel wheels, ABS, 4x airbags, central locking, power steering, manual windows, manual AC (optional)
+VW Bora 1J | Pre-facelift 1998–2001 | Trendline (tier 2) | 15-inch alloy wheels, sport seats, 3-spoke leather steering wheel, multi-function display (MFA)
+VW Bora 1J | Pre-facelift 1998–2001 | Comfortline (tier 3) | Velour upholstery (replaces sport seats), 4x power windows, electrically adjustable mirrors, remote central locking, front and rear armrests
+VW Bora 1J | Pre-facelift 1998–2001 | Highline (tier 4) | 16-inch alloy wheels, sport seats, Climatronic automatic climate control, wood interior trim, rain sensor, auto-dimming mirror
+VW Bora 1J | Facelift 2001–2005 | Basis (tier 1) | 15-inch steel wheels, updated instrument cluster, ESP, 4x power windows
+VW Bora 1J | Facelift 2001–2005 | Trendline (tier 2) | 15-inch alloy wheels, sport seats, 3-spoke leather steering wheel, aluminum interior trim, trip computer
+VW Bora 1J | Facelift 2001–2005 | Comfortline (tier 3) | 15-inch alloy wheels, velour comfort seats, front and rear armrests, cruise control
+VW Bora 1J | Facelift 2001–2005 | Highline (tier 4) | 16-inch alloy wheels, sport seats, Climatronic automatic climate control, wood or aluminum trim, rain sensor, auto-dimming rearview mirror
+VW Golf 1J | Pre-facelift 1997–2000 | Basis (tier 1) | 14-inch or 15-inch steel wheels, ABS, dual airbags, power steering, manual windows
+VW Golf 1J | Pre-facelift 1997–2000 | Trendline (tier 2) | 15-inch steel or alloy wheels, sport seats, 3-spoke steering wheel, darkened taillights, multi-function display (MFA)
+VW Golf 1J | Pre-facelift 1997–2000 | Comfortline (tier 3) | Velour upholstery (replaces sport seats), front power windows, remote central locking, electrically adjustable/heated mirrors, front and rear armrests
+VW Golf 1J | Pre-facelift 1997–2000 | Highline (tier 4) | 15-inch alloy wheels, sport seats, 3-spoke leather steering wheel, wood interior trim, front fog lights integrated into headlights, manual AC
+VW Golf 1J | Facelift 2000–2006 | Basis (tier 1) | 15-inch steel wheels, ESP, dual front and side airbags, updated center console with cup holders, manual AC (optional)
+VW Golf 1J | Facelift 2000–2006 | Trendline (tier 2) | 15-inch alloy wheels, sport seats, 3-spoke leather steering wheel, aluminum or titanium interior trim
+VW Golf 1J | Facelift 2000–2006 | Comfortline (tier 3) | 15-inch alloy wheels, velour comfort seats, cruise control, front and rear armrests, remote central locking, 4x power windows
+VW Golf 1J | Facelift 2000–2006 | Highline (tier 4) | 16-inch alloy wheels, sport seats, Climatronic automatic climate control, leather-wrapped handbrake and shifter, rain sensor, auto-dimming rearview mirror
+VW New Beetle 9C | Pre-facelift 1998–2005 | Basis (tier 1) | 16-inch steel wheels, ABS, ESP, dual front and side airbags, power windows, central locking, dashboard flower vase
+VW New Beetle 9C | Pre-facelift 1998–2005 | Highline (tier 4) | 16-inch alloy wheels, front fog lights, manual AC, leather-wrapped steering wheel, heated front seats, remote central locking
+VW New Beetle 9C | Facelift 2005–2010 | Basis (tier 1) | 16-inch steel wheels, redesigned bumpers and headlights, updated instrument cluster, manual AC
+VW New Beetle 9C | Facelift 2005–2010 | Design Edition (tier 3) | 16-inch alloy wheels, specific two-tone interior fabrics, leather steering wheel, front fog lights, body-colored interior panels
+VW New Beetle 9C | Facelift 2005–2010 | Highline (tier 4) | 17-inch alloy wheels, sport seats, heated front seats, cruise control, premium audio system (optional)
