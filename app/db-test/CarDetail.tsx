@@ -9,7 +9,7 @@ import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
-import { tierLabel, sortTrimsByTier } from "@/app/catalog/lib/trimsDisplay";
+import { tierLabel, buildTrimLayout, trimComparisonLabel, buildCompareRows, type CompareRow } from "@/app/catalog/lib/trimsDisplay";
 import type { CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
@@ -446,18 +446,41 @@ function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle, 
 // grid /catalog's TrimsList.tsx uses (that shared TrimCards component is still what /catalog
 // renders; this is a separate, native-styled implementation for this page only -- feedback
 // was that the Garage panel looked out of place dropped into this page's own dark theme).
-// tierLabel/sortTrimsByTier are the only things reused from app/catalog/lib/trimsDisplay.ts
-// (pure data helpers, no visual coupling), same as gearboxTypeLabel/drivetrainLabel elsewhere
-// in this file.
-function TrimAccordion({ trim, previousTrimName, showEmptyNote, isOpen, onToggle }: {
+// buildTrimLayout/trimComparisonLabel/buildCompareRows/tierLabel are reused from
+// app/catalog/lib/trimsDisplay.ts (pure data helpers, no visual coupling) so the base-trim
+// pick, tier grouping, "+N over X" naming, and compare-table inclusion rule can't drift from
+// /catalog's own copy -- same precedent as gearboxTypeLabel/drivetrainLabel elsewhere here.
+function TrimFeatureList({ features }: { features: CatalogTrim["features"] }) {
+  return (
+    <>
+      {features.map((f, i) => (
+        <div key={i} className="pro-item" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />
+            {f.feature}
+          </span>
+          {f.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function TrimTierBadge({ tier }: { tier: string | null }) {
+  const label = tierLabel(tier);
+  if (!label) return null;
+  return <span className="eng-badge" style={{ background: "#60a5fa22", color: "#60a5fa", border: "1px solid #60a5fa44" }}>{label}</span>;
+}
+
+// One non-base trim: header right side is trimComparisonLabel's "+N over X" (or "Alternative
+// to <base>") in place of the old flat "N extras" count -- it already carries the count.
+function TrimAccordion({ trim, comparisonLabel, isOpen, onToggle }: {
   trim: CatalogTrim;
-  previousTrimName: string | null;
-  showEmptyNote: boolean;
+  comparisonLabel: string;
   isOpen: boolean;
   onToggle: () => void;
 }) {
   const hasFeatures = trim.features.length > 0;
-  const label = tierLabel(trim.tier);
   return (
     <div
       className={`eng-card${isOpen && hasFeatures ? " open" : ""}`}
@@ -468,52 +491,28 @@ function TrimAccordion({ trim, previousTrimName, showEmptyNote, isOpen, onToggle
         <div className="eng-left">
           <span className="eng-name">{trim.name}</span>
           <div className="eng-tags">
-            {label && <span className="eng-badge" style={{ background: "#60a5fa22", color: "#60a5fa", border: "1px solid #60a5fa44" }}>{label}</span>}
+            <TrimTierBadge tier={trim.tier} />
           </div>
         </div>
         {hasFeatures ? (
-          <span className="chevron">{trim.features.length} extra{trim.features.length === 1 ? "" : "s"} {isOpen ? "▲" : "▼"}</span>
+          <span className="chevron">{comparisonLabel} {isOpen ? "▲" : "▼"}</span>
         ) : (
-          showEmptyNote && <span className="tg">Not available yet</span>
+          <span className="tg">Not available yet</span>
         )}
       </div>
       {hasFeatures && isOpen && (
         <div className="eng-body">
-          {previousTrimName && <div className="sub-label">Everything in {previousTrimName}, plus</div>}
-          {trim.features.map((f, i) => (
-            <div key={i} className="pro-item" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />
-                {f.feature}
-              </span>
-              {f.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
-            </div>
-          ))}
+          <TrimFeatureList features={trim.features} />
         </div>
       )}
     </div>
   );
 }
 
-function trimTierNumber(tier: string | null): number {
-  return tier != null && /^\d+$/.test(tier) ? Number(tier) : Infinity;
-}
-
-// Rows = every distinct feature across the comparable trims, each attributed to the lowest
-// tier that introduces it (features are additive-only -- once a feature appears at tier N,
-// every trim >= N has it too). Same reconstruction configDisplay-adjacent code elsewhere in
-// this app uses for the same "incremental list -> cumulative table" shape.
-function TrimCompareTable({ trims }: { trims: CatalogTrim[] }) {
-  const rows: { feature: string; introTier: number; isOptional: boolean }[] = [];
-  const seen = new Set<string>();
-  for (const trim of trims) {
-    const introTier = trimTierNumber(trim.tier);
-    for (const f of trim.features) {
-      if (seen.has(f.feature)) continue;
-      seen.add(f.feature);
-      rows.push({ feature: f.feature, introTier, isOptional: f.isOptional });
-    }
-  }
+// Columns = the comparable trims in the same order buildCompareRows(comparable) built its
+// cells in -- row.cells[i] corresponds to trims[i], so the two arrays must stay in lockstep
+// (both come from the same `comparable` list one level up, never re-sorted independently).
+function TrimCompareTable({ trims, rows }: { trims: CatalogTrim[]; rows: CompareRow[] }) {
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="trim-compare-table">
@@ -527,20 +526,17 @@ function TrimCompareTable({ trims }: { trims: CatalogTrim[] }) {
           {rows.map((row) => (
             <tr key={row.feature}>
               <td style={{ textAlign: "left", color: "#f0f0f0" }}>{row.feature}</td>
-              {trims.map((t) => {
-                const included = trimTierNumber(t.tier) >= row.introTier;
-                return (
-                  <td key={t.id}>
-                    {!included ? (
-                      <span style={{ color: "#6b6b72" }}>{"–"}</span>
-                    ) : row.isOptional ? (
-                      <span style={{ color: "#9999aa" }}>opt</span>
-                    ) : (
-                      <IconCheck size={13} stroke={2.5} style={{ color: "#a5d6a7" }} />
-                    )}
-                  </td>
-                );
-              })}
+              {row.cells.map((cell) => (
+                <td key={cell.trimId}>
+                  {cell.status === "none" ? (
+                    <span style={{ color: "#6b6b72" }}>{"–"}</span>
+                  ) : cell.status === "optional" ? (
+                    <span style={{ color: "#9999aa" }}>opt</span>
+                  ) : (
+                    <IconCheck size={13} stroke={2.5} style={{ color: "#a5d6a7" }} />
+                  )}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
@@ -551,17 +547,37 @@ function TrimCompareTable({ trims }: { trims: CatalogTrim[] }) {
 
 interface TrimsPanelProps {
   trims: CatalogTrim[];
-  openTrims: Record<number, boolean>;
-  setOpenTrims: (updater: (p: Record<number, boolean>) => Record<number, boolean>) => void;
-  showCompare: boolean;
-  setShowCompare: (updater: (v: boolean) => boolean) => void;
 }
 
-function TrimsPanel({ trims, openTrims, setOpenTrims, showCompare, setShowCompare }: TrimsPanelProps) {
-  const sorted = sortTrimsByTier(trims);
-  const allEmpty = sorted.every((t) => t.features.length === 0);
-  const comparable = sorted.filter((t) => t.features.length > 0);
+// openTrims/showCompare live here, not lifted to the parent CarDetail like openEngines/
+// openGearboxes/openDrivetrain are -- those need parent-level coordination because they also
+// combine with a URL-driven focus*Idx for deep-linking/scroll-to behaviour; trims have no
+// such deep link, so there's no reason to lift this. Keeping it local also sidesteps a real
+// bug the lifted version had: CarDetail mounts (and its useState lazy initializers run)
+// before the async `detail` prop has arrived, so an initializer reading `detail?.trims` at
+// that point always sees `[]` and permanently locks in "nothing open," no matter how many
+// trims load in afterward. TrimsPanel itself is never rendered until the parent's own
+// `(detail?.trims ?? []).length === 0` guard has already passed, so `trims` here is
+// guaranteed to be the real, non-empty array by the time this component's own first render
+// (and its own lazy initializer) runs.
+function TrimsPanel({ trims }: TrimsPanelProps) {
+  // Every non-base trim starts open when this phase has <=4 trims total, otherwise only the
+  // always-expanded "Standard equipment" block starts open.
+  const [openTrims, setOpenTrims] = useState<Record<string, boolean>>(() => {
+    const openByDefault = trims.length <= 4;
+    const initial: Record<string, boolean> = {};
+    for (const t of trims) initial[t.id] = openByDefault;
+    return initial;
+  });
+  const [showCompare, setShowCompare] = useState(false);
+  const layout = buildTrimLayout(trims);
+  if (!layout) return null;
+  const { base, groups } = layout;
+
+  const allEmpty = trims.every((t) => t.features.length === 0);
+  const comparable = trims.filter((t) => t.features.length > 0);
   const canCompare = comparable.length >= 2;
+  const compareRows = canCompare ? buildCompareRows(comparable) : [];
 
   return (
     <div>
@@ -571,16 +587,56 @@ function TrimsPanel({ trims, openTrims, setOpenTrims, showCompare, setShowCompar
           {showCompare ? "Hide comparison" : "Compare trims"}
         </button>
       )}
-      {showCompare && canCompare && <TrimCompareTable trims={comparable} />}
-      {sorted.map((trim, i) => (
-        <TrimAccordion
-          key={trim.id}
-          trim={trim}
-          previousTrimName={i > 0 ? sorted[i - 1].name : null}
-          showEmptyNote={!allEmpty}
-          isOpen={!!openTrims[i]}
-          onToggle={() => setOpenTrims((p) => ({ ...p, [i]: !p[i] }))}
-        />
+      {showCompare && canCompare && <TrimCompareTable trims={comparable} rows={compareRows} />}
+
+      {/* Standard equipment -- always expanded, not an accordion: this is the floor every
+          other trim builds on, not one option among several to toggle open. */}
+      <div className="eng-card" style={{ cursor: "default" }}>
+        <div className="eng-hdr">
+          <div className="eng-left">
+            <span className="eng-name">{base.name}</span>
+            <div className="eng-tags">
+              <TrimTierBadge tier={base.tier} />
+            </div>
+          </div>
+        </div>
+        <div className="tg" style={{ marginBottom: 8 }}>Included in every trim below.</div>
+        {base.features.length > 0 ? (
+          <TrimFeatureList features={base.features} />
+        ) : (
+          <div className="tg">Equipment details not available yet</div>
+        )}
+      </div>
+
+      {groups.map((group) => (
+        <div key={`${group.tier ?? "null"}-${group.trims[0].id}`} style={{ marginTop: 14 }}>
+          {group.trims.length > 1 && (
+            <div className="sub-label" style={{ marginTop: 0 }}>Alternative versions, same level</div>
+          )}
+          {group.trims.length > 1 ? (
+            <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
+              {group.trims.map((trim) => (
+                <TrimAccordion
+                  key={trim.id}
+                  trim={trim}
+                  comparisonLabel={trimComparisonLabel(trim, base, trims)}
+                  isOpen={!!openTrims[trim.id]}
+                  onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}
+                />
+              ))}
+            </div>
+          ) : (
+            group.trims.map((trim) => (
+              <TrimAccordion
+                key={trim.id}
+                trim={trim}
+                comparisonLabel={trimComparisonLabel(trim, base, trims)}
+                isOpen={!!openTrims[trim.id]}
+                onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}
+              />
+            ))
+          )}
+        </div>
       ))}
     </div>
   );
@@ -595,12 +651,6 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
   const [openGearboxes, setOpenGearboxes] = useState<Record<number, boolean>>({});
   const [openDrivetrain, setOpenDrivetrain] = useState<Record<number, boolean>>({});
-  // {0: true} so the lowest-tier trim starts open (spec: "first card open by default") without
-  // making it permanently un-collapsible -- an `isOpen={... || i === 0}` OR-condition instead
-  // of this seeded initial state would re-force index 0 open on every render even after the
-  // user explicitly collapses it, since toggling it to false can never beat a hardcoded `true`.
-  const [openTrims, setOpenTrims] = useState<Record<number, boolean>>({ 0: true });
-  const [showTrimCompare, setShowTrimCompare] = useState(false);
 
   const focusEngine = searchParams.get("engine");
   const focusUnit = searchParams.get("unit");
@@ -899,13 +949,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
             {(detail?.trims ?? []).length === 0 ? (
               <div className="mp-hint">No data available.</div>
             ) : (
-              <TrimsPanel
-                trims={detail!.trims}
-                openTrims={openTrims}
-                setOpenTrims={setOpenTrims}
-                showCompare={showTrimCompare}
-                setShowCompare={setShowTrimCompare}
-              />
+              <TrimsPanel trims={detail!.trims} />
             )}
           </div>
         )}
