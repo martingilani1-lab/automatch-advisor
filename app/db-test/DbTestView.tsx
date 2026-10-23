@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carStars } from "@/app/lib/carFields";
+import type { SafetyFeature } from "@/app/prehlad/types";
 import {
   BODY_OPTIONS,
   FUEL_OPTIONS,
@@ -80,6 +81,20 @@ export default function DbTestView() {
         setLoaded(true);
       })
       .catch((e) => console.error("DB test fetch failed:", e));
+    return () => { cancelled = true; };
+  }, []);
+
+  // Safety-feature reference vocabulary -- same 17-row, page-agnostic table /prehlad's
+  // PrehladView fetches once on mount, no per-car linkage either page can rely on for
+  // catalog_ cars (see CarDetail.tsx's Safety tab for how that's handled).
+  const [safetyFeatures, setSafetyFeatures] = useState<SafetyFeature[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/safety-features")
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setSafetyFeatures(data); })
+      .catch((e) => console.error("Safety-features fetch failed:", e));
     return () => { cancelled = true; };
   }, []);
 
@@ -240,6 +255,7 @@ export default function DbTestView() {
           onBack={closeCar}
           siblingPhases={phaseSiblings[openCarData.id] ?? []}
           onSwitchPhase={openCar}
+          safetyFeatures={safetyFeatures}
         />
       ) : (<>
         <div className="results-hdr">

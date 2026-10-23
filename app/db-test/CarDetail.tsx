@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { IconCheck } from "@tabler/icons-react";
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel, isGsr2Era } from "@/app/lib/carFields";
+import type { SafetyFeature } from "@/app/prehlad/types";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
@@ -119,6 +120,13 @@ interface CarDetailProps {
   // one fetch, switch is pure client state" shape as /catalog's VehiclePageClient.
   siblingPhases: PhaseSwitcherOption[];
   onSwitchPhase: (phaseId: string) => void;
+  // The safety_features reference vocabulary (17 rows: 9 gsr2_mandated + 8 beyond_baseline) --
+  // same page-agnostic shape /prehlad's SafetyFeature already uses, fetched once by
+  // DbTestView.tsx the same way PrehladView.tsx does (GET /api/safety-features, no per-car
+  // linkage). catalog_ has no equivalent of vehicle_safety_features (the legacy per-car
+  // junction table), so unlike /prehlad's Safety tab, the "Optional assists" section below
+  // can only say what each feature IS, never whether this specific car has it.
+  safetyFeatures: SafetyFeature[];
 }
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -441,6 +449,49 @@ function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle, 
   );
 }
 
+// Mirrors /prehlad's own SafetyFeatureAccordion exactly -- same .eng-card/.eng-hdr/.eng-badge
+// classes, same expanded-body fields (marketing names, what it does, how it works, sensors,
+// how to disable), since safety_features is the same page-agnostic reference table either
+// page reads. badgeLabel/badgeColor are passed in per-row rather than hardcoded, same reason
+// as /prehlad's: a mandated row always reads "GSR2-mandated", a beyond-baseline row's badge
+// varies by what the caller knows about this specific car (here, always "Not tracked" --
+// catalog_ has no per-car safety-feature linkage to say otherwise).
+function SafetyFeatureAccordion({ feature, badgeLabel, badgeColor, isOpen, onToggle }: { feature: SafetyFeature; badgeLabel: string; badgeColor: string; isOpen: boolean; onToggle: () => void }) {
+  return (
+    <div className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+      <div className="eng-hdr">
+        <div className="eng-left">
+          <span className="eng-name">{feature.universal_name}</span>
+          <div className="eng-tags">
+            <span className="eng-badge" style={{ background: badgeColor + "22", color: badgeColor, border: `1px solid ${badgeColor}44` }}>{badgeLabel}</span>
+          </div>
+        </div>
+        <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+      </div>
+      {isOpen && (
+        <div className="eng-body">
+          {feature.marketing_names != null && feature.marketing_names.length > 0 && (
+            <div style={{ fontSize: ".78rem", color: "#9999aa", marginBottom: 8 }}>{feature.marketing_names.join(" · ")}</div>
+          )}
+          {feature.what_it_does && <div style={{ fontSize: ".82rem", marginBottom: 8 }}>{feature.what_it_does}</div>}
+          {feature.how_it_works && (<>
+            <div className="sub-label">How it works</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{feature.how_it_works}</div>
+          </>)}
+          {feature.sensors_used && (<>
+            <div className="sub-label">Sensors used</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5, marginBottom: 8 }}>{feature.sensors_used}</div>
+          </>)}
+          {feature.how_to_disable && (<>
+            <div className="sub-label">How to disable</div>
+            <div style={{ fontSize: ".78rem", color: "#9999aa", lineHeight: 1.5 }}>{feature.how_to_disable}</div>
+          </>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Trims tab -- same card/icon/color language as Engines (.eng-card, .eng-badge, .chevron,
 // .sub-label) and Configurations (colored tabler icons) instead of the Tailwind Garage-panel
 // grid /catalog's TrimsList.tsx uses (that shared TrimCards component is still what /catalog
@@ -660,7 +711,7 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
   );
 }
 
-export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack, siblingPhases, onSwitchPhase }: CarDetailProps) {
+export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack, siblingPhases, onSwitchPhase, safetyFeatures }: CarDetailProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -669,6 +720,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
   const [openGearboxes, setOpenGearboxes] = useState<Record<number, boolean>>({});
   const [openDrivetrain, setOpenDrivetrain] = useState<Record<number, boolean>>({});
+  const [openSafety, setOpenSafety] = useState<Record<string, boolean>>({});
 
   const focusEngine = searchParams.get("engine");
   const focusUnit = searchParams.get("unit");
@@ -700,6 +752,14 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const ped = car.safety?.pedestrian;
   const assist = car.safety?.safetyAssist;
   const ncapYear = car.safety?.ncapYear;
+
+  // Same GSR2-era split as /prehlad's Safety tab: eligibility derived purely from car.years
+  // (isGsr2Era), never stored per-car. Unlike /prehlad, there's no vehicle_safety_features
+  // equivalent in catalog_ at all, so beyondBaselineFeatures below can only describe what
+  // each feature IS (what_it_does/how_it_works/...), never whether THIS car has it.
+  const gsr2Era = isGsr2Era(car);
+  const mandatedFeatures = safetyFeatures.filter((f) => f.category === "gsr2_mandated");
+  const beyondBaselineFeatures = safetyFeatures.filter((f) => f.category === "beyond_baseline");
 
   const carGearboxTypes = useMemo(() => classifyGearboxTypes(car), [car]);
   const matchedFuels = (fuelFilter || []).filter((sel) => (car.fuel || []).some((f) => matchesFuelOption(f, sel)));
@@ -1010,6 +1070,63 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                 <div className="ncap-verdict" style={{ color: (stars || 0) >= 5 ? "#4caf50" : (stars || 0) >= 4 ? "#e8ff47" : "#ff9800" }}>{(stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}</div>
               </div>
             ) : <div className="ncap-na">{"⚠️"} Not tested by Euro NCAP</div>}
+
+            {/* GSR2-mandated safety assists -- ported from /prehlad's Safety tab, same
+                additive-on-top-of-NCAP structure. Eligibility is derived from car.years
+                (isGsr2Era) -- never stored per-car, never touches scoring/filters/tags.
+                Title/content pairing fixed relative to /prehlad's own version: that page's
+                ternary has the two title strings swapped (says "Safety assists this model
+                can have" for a GSR2-era car, which is backwards -- a GSR2-era car's mandated
+                features are guaranteed, not just "can have"; flagged separately, not changed
+                there since it wasn't asked for). */}
+            <div className="mp-title" style={{ marginTop: 18 }}>{"\u{1F6E1}️"} {gsr2Era ? "Guaranteed safety assists" : "Safety assists this model can have"}</div>
+            {gsr2Era ? (
+              mandatedFeatures.length > 0 ? (
+                mandatedFeatures.map((f) => (
+                  <SafetyFeatureAccordion
+                    key={f.slug}
+                    feature={f}
+                    badgeLabel="GSR2-mandated"
+                    badgeColor="#4caf50"
+                    isOpen={!!openSafety[f.slug]}
+                    onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                  />
+                ))
+              ) : (
+                <div className="mp-hint">Safety-feature reference data isn&apos;t loaded yet.</div>
+              )
+            ) : (
+              <div className="mp-hint">This model&apos;s production ended before the EU&apos;s 2022 GSR2 safety mandate took effect, so the guaranteed-baseline list above doesn&apos;t apply here.</div>
+            )}
+
+            {gsr2Era && (
+              <>
+                <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
+                {/* Unlike /prehlad (which looks up detail.sf, vehicle_safety_features, for a
+                    real Standard/Optional/Not available badge per car), catalog_ has no
+                    per-car safety-feature linkage at all -- not "not filled in yet", there is
+                    no table. Every row below is badged "Not tracked" rather than defaulting
+                    to "Not available", since that would assert a confirmed absence this data
+                    genuinely can't back up (NULL over invention). The expanded body (what it
+                    does / how it works / sensors / how to disable) is still real, universal
+                    content from the safety_features reference table, independent of any
+                    per-car data. */}
+                {beyondBaselineFeatures.length > 0 ? (
+                  beyondBaselineFeatures.map((f) => (
+                    <SafetyFeatureAccordion
+                      key={f.slug}
+                      feature={f}
+                      badgeLabel="Not tracked"
+                      badgeColor="#6b6b72"
+                      isOpen={!!openSafety[f.slug]}
+                      onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                    />
+                  ))
+                ) : (
+                  <div className="mp-hint">Safety-feature reference data isn&apos;t loaded yet.</div>
+                )}
+              </>
+            )}
           </div>
         )}
       </>)}
