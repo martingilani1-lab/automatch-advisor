@@ -8,5 +8,6 @@
   "catalog_component_faults.severity": ["critical", "moderate", "minor"],
   "catalog_models.segment": ["A", "B", "C", "D", "E", "F", "J", "M", "S"],
   "catalog_phases.resale_value_rating": ["holds_well", "average", "depreciates_fast"],
-  "catalog_component_faults.category": ["electrical", "body_rust", "suspension", "steering", "brakes", "climate", "interior"]
+  "catalog_component_faults.category": ["electrical", "body_rust", "suspension", "steering", "brakes", "climate", "interior"],
+  "catalog_trim_features.feature_group": ["airbags", "ambient_lighting", "armrests", "bumpers", "climate", "cruise", "fog_lights", "headlights", "infotainment", "instruments", "interior_trim", "light_rain_sensors", "locking", "mirrors", "parking", "rear_spoiler", "roof_rails", "seat_adjustment", "seat_comfort", "seats", "sliding_doors", "smartphone", "sound", "steering_wheel", "suspension", "wheels", "windows"]
 }
