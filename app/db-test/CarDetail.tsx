@@ -1099,33 +1099,35 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
               <div className="mp-hint">This model&apos;s production ended before the EU&apos;s 2022 GSR2 safety mandate took effect, so the guaranteed-baseline list above doesn&apos;t apply here.</div>
             )}
 
-            {gsr2Era && (
-              <>
-                <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
-                {/* Unlike /prehlad (which looks up detail.sf, vehicle_safety_features, for a
-                    real Standard/Optional/Not available badge per car), catalog_ has no
-                    per-car safety-feature linkage at all -- not "not filled in yet", there is
-                    no table. Every row below is badged "Not tracked" rather than defaulting
-                    to "Not available", since that would assert a confirmed absence this data
-                    genuinely can't back up (NULL over invention). The expanded body (what it
-                    does / how it works / sensors / how to disable) is still real, universal
-                    content from the safety_features reference table, independent of any
-                    per-car data. */}
-                {beyondBaselineFeatures.length > 0 ? (
-                  beyondBaselineFeatures.map((f) => (
-                    <SafetyFeatureAccordion
-                      key={f.slug}
-                      feature={f}
-                      badgeLabel="Not tracked"
-                      badgeColor="#6b6b72"
-                      isOpen={!!openSafety[f.slug]}
-                      onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
-                    />
-                  ))
-                ) : (
-                  <div className="mp-hint">Safety-feature reference data isn&apos;t loaded yet.</div>
-                )}
-              </>
+            {/* Optional assists -- NOT gated on gsr2Era: unlike the "Guaranteed" section
+                above, these 8 beyond_baseline features aren't GSR2-specific at all, so a
+                pre-2022 car can equally well have had them as factory options -- hiding this
+                whole section for older cars (the bug /prehlad's own version had too, fixed
+                there in the same pass as this) would hide real, useful content for no reason.
+                Unlike /prehlad (which looks up detail.sf, vehicle_safety_features, for a real
+                Standard/Optional/Not available badge per car), catalog_ has no per-car
+                safety-feature linkage at all -- not "not filled in yet", there is no table.
+                Every row below is badged "Not tracked" rather than defaulting to "Not
+                available", since that would assert a confirmed absence this data genuinely
+                can't back up (NULL over invention) -- true for every catalog_ car regardless
+                of era, unlike /prehlad where only the untagged pre-2022 cars need that
+                fallback. The expanded body (what it does / how it works / sensors / how to
+                disable) is still real, universal content from the safety_features reference
+                table, independent of any per-car data. */}
+            <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
+            {beyondBaselineFeatures.length > 0 ? (
+              beyondBaselineFeatures.map((f) => (
+                <SafetyFeatureAccordion
+                  key={f.slug}
+                  feature={f}
+                  badgeLabel="Not tracked"
+                  badgeColor="#6b6b72"
+                  isOpen={!!openSafety[f.slug]}
+                  onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                />
+              ))
+            ) : (
+              <div className="mp-hint">Safety-feature reference data isn&apos;t loaded yet.</div>
             )}
           </div>
         )}

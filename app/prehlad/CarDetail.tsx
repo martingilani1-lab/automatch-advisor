@@ -644,8 +644,12 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
                 already covers crash-test ratings; extending it here keeps one
                 coherent Safety tab rather than a second, confusingly-similar
                 one). Eligibility is derived from car.years (isGsr2Era) — never
-                stored per-car, never touches scoring/filters/tags. */}
-            <div className="mp-title" style={{ marginTop: 18 }}>{"\u{1F6E1}️"} {gsr2Era ? "Safety assists this model can have" : "Guaranteed safety assists"}</div>
+                stored per-car, never touches scoring/filters/tags.
+                Title/content pairing fixed: a GSR2-era car's mandated features
+                are genuinely guaranteed (that's the whole point of the
+                mandate), so that's the "Guaranteed..." case — the previous
+                version had the two title strings swapped. */}
+            <div className="mp-title" style={{ marginTop: 18 }}>{"\u{1F6E1}️"} {gsr2Era ? "Guaranteed safety assists" : "Safety assists this model can have"}</div>
             {gsr2Era ? (
               mandatedFeatures.length > 0 ? (
                 mandatedFeatures.map((f) => (
@@ -665,33 +669,35 @@ export default function CarDetail({ car, detail, loading, fuelFilter, transmissi
               <div className="mp-hint">This model's production ended before the EU's 2022 GSR2 safety mandate took effect, so the guaranteed-baseline list above doesn't apply here — check the individual listing for what safety equipment it actually has.</div>
             )}
 
-            {gsr2Era && (
-              <>
-                <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
-                {/* TEMP DEBUG — bug trace, remove after diagnosis */}
-                {console.log("[safety debug] (a) car.id:", car.id, "| detail === null:", detail === null, "| detail?.sf:", detail?.sf)}
-                {console.log("[safety debug] (b) beyondBaselineFeatures slugs:", beyondBaselineFeatures.map((f) => f.slug))}
-                {console.log("[safety debug] (c) per-slug lookup:", beyondBaselineFeatures.map((f) => ({ slug: f.slug, availability: availabilityBySlug[f.slug] ?? "(no entry -> Not available)" })))}
-                {beyondBaselineFeatures.length > 0 ? (
-                  beyondBaselineFeatures.map((f) => {
-                    const availability = availabilityBySlug[f.slug];
-                    const badgeLabel = availability === "standard" ? "Standard" : availability === "optional" ? "Optional" : "Not available";
-                    const badgeColor = availability === "standard" ? "#4caf50" : availability === "optional" ? "#e8ff47" : "#6b6b72";
-                    return (
-                      <SafetyFeatureAccordion
-                        key={f.slug}
-                        feature={f}
-                        badgeLabel={badgeLabel}
-                        badgeColor={badgeColor}
-                        isOpen={!!openSafety[f.slug]}
-                        onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
-                      />
-                    );
-                  })
-                ) : (
-                  <div className="mp-hint">Safety-feature reference data isn't loaded yet — run the safety_features migration to populate this list.</div>
-                )}
-              </>
+            {/* Optional assists — NOT gated on gsr2Era: these 8 beyond_baseline features
+                (blind spot monitoring, adaptive cruise control, ...) aren't GSR2-specific,
+                a car from well before 2022 can still have them as factory options, so hiding
+                this whole section for older cars was hiding real, useful content for no
+                reason. What DOES depend on era is whether per-car tagging was ever attempted:
+                scripts/safety-tags-template.csv only tags GSR2-era cars, so a pre-2022 car's
+                availabilityBySlug is always empty -- defaulting that to "Not available" would
+                assert a confirmed absence nobody actually checked. Badged "Not tracked"
+                instead for exactly that case; a GSR2-era car's real tagged Standard/Optional/
+                Not available status is unchanged. */}
+            <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
+            {beyondBaselineFeatures.length > 0 ? (
+              beyondBaselineFeatures.map((f) => {
+                const availability = availabilityBySlug[f.slug];
+                const badgeLabel = !gsr2Era ? "Not tracked" : availability === "standard" ? "Standard" : availability === "optional" ? "Optional" : "Not available";
+                const badgeColor = !gsr2Era ? "#6b6b72" : availability === "standard" ? "#4caf50" : availability === "optional" ? "#e8ff47" : "#6b6b72";
+                return (
+                  <SafetyFeatureAccordion
+                    key={f.slug}
+                    feature={f}
+                    badgeLabel={badgeLabel}
+                    badgeColor={badgeColor}
+                    isOpen={!!openSafety[f.slug]}
+                    onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                  />
+                );
+              })
+            ) : (
+              <div className="mp-hint">Safety-feature reference data isn't loaded yet — run the safety_features migration to populate this list.</div>
             )}
           </div>
         )}
