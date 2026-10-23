@@ -122,9 +122,9 @@ interface CarDetailProps {
   onSwitchPhase: (phaseId: string) => void;
   // The safety_features reference vocabulary -- same page-agnostic shape /prehlad's
   // SafetyFeature already uses, fetched once by DbTestView.tsx the same way PrehladView.tsx
-  // does (GET /api/safety-features, no per-car linkage). Only the 9 gsr2_mandated rows are
-  // used here (the "Guaranteed safety assists" list below) -- see that list's own comment for
-  // why the beyond_baseline half doesn't get a section on this page.
+  // does (GET /api/safety-features, no per-car linkage). Feeds both the "Guaranteed safety
+  // assists" (gsr2_mandated) and "Optional assists" (beyond_baseline) lists below -- the
+  // latter only rendered for GSR2-era cars, see its own comment for why.
   safetyFeatures: SafetyFeature[];
 }
 
@@ -753,13 +753,14 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const ncapYear = car.safety?.ncapYear;
 
   // Same GSR2-era split as /prehlad's Safety tab: eligibility derived purely from car.years
-  // (isGsr2Era), never stored per-car. No "Optional assists" section here (unlike /prehlad) --
-  // catalog_ has no vehicle_safety_features equivalent, no per-car signal at all for the
-  // beyond_baseline features, so every row would read "Not tracked" with zero informational
-  // value; not worth the section here the way it is on /prehlad, where GSR2-era cars can have
-  // real tagged Standard/Optional/Not available data.
+  // (isGsr2Era), never stored per-car. catalog_ has no vehicle_safety_features equivalent, so
+  // there's no real per-car Standard/Optional/Not-available signal for beyondBaselineFeatures
+  // either way -- every row reads "Not tracked" regardless of era. Showing that section only
+  // for GSR2-era cars is purely a which-cars-see-it-at-all choice, not a reflection of data
+  // that becomes available for newer ones (there isn't any, here or there).
   const gsr2Era = isGsr2Era(car);
   const mandatedFeatures = safetyFeatures.filter((f) => f.category === "gsr2_mandated");
+  const beyondBaselineFeatures = safetyFeatures.filter((f) => f.category === "beyond_baseline");
 
   const carGearboxTypes = useMemo(() => classifyGearboxTypes(car), [car]);
   const matchedFuels = (fuelFilter || []).filter((sel) => (car.fuel || []).some((f) => matchesFuelOption(f, sel)));
@@ -1097,6 +1098,36 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
               )
             ) : (
               <div className="mp-hint">This model&apos;s production ended before the EU&apos;s 2022 GSR2 safety mandate took effect, so the guaranteed-baseline list above doesn&apos;t apply here.</div>
+            )}
+
+            {/* Optional assists -- shown only for GSR2-mandated (gsr2Era) vehicles, by
+                request (confirmed live: 45 of 88 catalog_ phases qualify). This doesn't
+                change WHY every row reads "Not tracked" -- catalog_ still has no per-car
+                equivalent of vehicle_safety_features (confirmed live: no
+                catalog_vehicle_safety_features table exists), so there's no real
+                Standard/Optional/Not-available signal for ANY catalog_ car, GSR2-era or not --
+                this is purely about which cars show the section at all, not about data that
+                suddenly becomes available for newer ones. /prehlad is untouched: its own
+                Optional assists stays un-gated (see the earlier fix), since GSR2-era cars
+                there CAN have real tagged data. */}
+            {gsr2Era && (
+              <>
+                <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
+                {beyondBaselineFeatures.length > 0 ? (
+                  beyondBaselineFeatures.map((f) => (
+                    <SafetyFeatureAccordion
+                      key={f.slug}
+                      feature={f}
+                      badgeLabel="Not tracked"
+                      badgeColor="#6b6b72"
+                      isOpen={!!openSafety[f.slug]}
+                      onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                    />
+                  ))
+                ) : (
+                  <div className="mp-hint">Safety-feature reference data isn&apos;t loaded yet.</div>
+                )}
+              </>
             )}
           </div>
         )}
