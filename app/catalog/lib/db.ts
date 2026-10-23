@@ -234,23 +234,24 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
   const tireSizeRows = tireSizesRes.data || [];
 
   // Step 3: faults for every engine/gearbox this phase's configs actually use, fetched once
-  // for the whole phase rather than per-config. catalog_component_faults keys a fault to
-  // EITHER engine_id OR unit_id, never a vehicle -- the .or() mirrors that union.
+  // for the whole phase rather than per-config, PLUS this phase's own vehicle-level faults
+  // (component_type = 'vehicle', keyed by phase_id, category set -- see
+  // 20261009101500_extend_catalog_component_faults_to_4_levels.sql). component_type is no
+  // longer just engine/transmission (drivetrain_id and phase_id/vehicle were added later) --
+  // this .or() still only fetches engine/unit/vehicle rows, never drivetrain_id ones, since
+  // nothing in this bundle currently consumes drivetrain-level faults.
   const engineIds = [...new Set(configRows.map((c: any) => c.catalog_engines?.id).filter(Boolean))];
   const unitIds = [...new Set(configRows.map((c: any) => c.transmission_units?.id).filter(Boolean))];
 
-  let faultRows: any[] = [];
-  if (engineIds.length || unitIds.length) {
-    const orParts: string[] = [];
-    if (engineIds.length) orParts.push(`engine_id.in.(${engineIds.join(",")})`);
-    if (unitIds.length) orParts.push(`unit_id.in.(${unitIds.join(",")})`);
-    const faultsRes = await supabase
-      .from("catalog_component_faults")
-      .select("*")
-      .or(orParts.join(","));
-    if (faultsRes.error) throw faultsRes.error;
-    faultRows = faultsRes.data || [];
-  }
+  const orParts: string[] = [`phase_id.eq.${phaseId}`];
+  if (engineIds.length) orParts.push(`engine_id.in.(${engineIds.join(",")})`);
+  if (unitIds.length) orParts.push(`unit_id.in.(${unitIds.join(",")})`);
+  const faultsRes = await supabase
+    .from("catalog_component_faults")
+    .select("*")
+    .or(orParts.join(","));
+  if (faultsRes.error) throw faultsRes.error;
+  const faultRows = faultsRes.data || [];
 
   return transformBundle(
     phaseRow,
@@ -366,10 +367,10 @@ function transformBundle(
     tireSizes: tireSizesByConfig.get(c.id) ?? [],
   }));
 
-  const featuresByTrim = new Map<string, { feature: string; isOptional: boolean }[]>();
+  const featuresByTrim = new Map<string, { feature: string; isOptional: boolean; featureGroup: string | null }[]>();
   for (const f of trimFeatureRows) {
     const list = featuresByTrim.get(f.trim_id) ?? [];
-    list.push({ feature: f.feature, isOptional: f.is_optional });
+    list.push({ feature: f.feature, isOptional: f.is_optional, featureGroup: f.feature_group ?? null });
     featuresByTrim.set(f.trim_id, list);
   }
   const trims: CatalogTrim[] = trimRows.map((t) => ({
@@ -384,6 +385,9 @@ function transformBundle(
     componentType: f.component_type,
     engineId: f.engine_id,
     unitId: f.unit_id,
+    drivetrainId: f.drivetrain_id,
+    phaseId: f.phase_id,
+    category: f.category,
     fault: f.fault,
     severity: f.severity,
   }));

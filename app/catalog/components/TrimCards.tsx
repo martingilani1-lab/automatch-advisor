@@ -6,6 +6,7 @@ import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import type { CatalogTrim } from "../lib/types";
 import {
   buildCompareRows,
+  resolveTrimFeatures,
   buildTrimLayout,
   tierLabel,
   trimComparisonLabel,
@@ -18,16 +19,41 @@ interface TrimCardsProps {
   gapsMode: boolean;
 }
 
-function FeatureList({ features }: { features: CatalogTrim["features"] }) {
+// Inherited rows render muted and faded -- already covered by base or an earlier tier, not
+// what makes this one worth picking. New rows render green with a "+" -- this trim's own
+// feature, nothing before it to replace. Upgraded rows render amber with a "↑" -- this trim's
+// own feature replaced a DIFFERENT inherited item in the same feature_group; a small muted
+// "was: ..." line names what it replaced (an optional upgrade never actually replaces
+// anything -- see resolveTrimFeatures -- so it gets the amber "↑" but no "was:" line, since
+// the standard item it sits beside is still listed in its own grey row).
+function FeatureList({ trim, base, allTrims }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[] }) {
+  const rows = resolveTrimFeatures(trim, base, allTrims);
   return (
     <ul className="flex flex-col gap-1.5">
-      {features.map((f, i) => (
+      {rows.map((r, i) => (
         <li key={i} className="flex items-center justify-between gap-3 text-sm">
-          <span className="flex items-center gap-2 text-primary">
-            <IconCheck size={14} stroke={2} className="shrink-0 text-emerald-400" />
-            {f.feature}
+          <span className="flex flex-col">
+            {r.status === "new" && (
+              <span className="flex items-center gap-2 text-emerald-400">
+                <span className="shrink-0 font-semibold">+</span>
+                {r.feature}
+              </span>
+            )}
+            {r.status === "upgraded" && (
+              <span className="flex items-center gap-2 text-amber-400">
+                <span className="shrink-0 font-semibold">↑</span>
+                {r.feature}
+              </span>
+            )}
+            {r.status === "inherited" && (
+              <span className="flex items-center gap-2 text-muted opacity-60">
+                <IconCheck size={14} stroke={2} className="shrink-0" />
+                {r.feature}
+              </span>
+            )}
+            {r.replacedFeature && <span className="pl-5 text-xs text-muted">was: {r.replacedFeature}</span>}
           </span>
-          {f.isOptional && <Badge variant="default">optional</Badge>}
+          {r.isOptional && <Badge variant="default">optional</Badge>}
         </li>
       ))}
     </ul>
@@ -42,6 +68,8 @@ function TierBadge({ tier, gapsMode }: { tier: string | null; gapsMode: boolean 
 
 interface TrimCardProps {
   trim: CatalogTrim;
+  base: CatalogTrim;
+  allTrims: CatalogTrim[];
   comparisonLabel: string;
   isOpen: boolean;
   onToggle: () => void;
@@ -50,10 +78,12 @@ interface TrimCardProps {
 
 // One non-base trim: header shows the name/tier on the left, trimComparisonLabel's "+N over
 // X" (or "Alternative to <base>") on the right in place of the old flat "N extras" count --
-// it already carries the count. A trim with no features (not expected live -- all 297 trims
-// have at least one feature as of 2026-10-21 -- but the column allows it) isn't expandable.
-function TrimCard({ trim, comparisonLabel, isOpen, onToggle, gapsMode }: TrimCardProps) {
-  const hasFeatures = trim.features.length > 0;
+// it already carries the count. hasFeatures checks base's features too, not just this trim's
+// own rows: FeatureList below always shows the merged inherited+extra list, so a trim with
+// zero of its own rows (no extras, just the inherited set) still has something to expand
+// into, same as a trim that does have its own rows.
+function TrimCard({ trim, base, allTrims, comparisonLabel, isOpen, onToggle, gapsMode }: TrimCardProps) {
+  const hasFeatures = trim.features.length > 0 || base.features.length > 0;
   return (
     <div className="rounded-xl border border-white/5 bg-panel p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset]">
       <button
@@ -77,7 +107,7 @@ function TrimCard({ trim, comparisonLabel, isOpen, onToggle, gapsMode }: TrimCar
       </button>
       {hasFeatures && isOpen && (
         <div className="mt-3 border-t border-white/5 pt-3">
-          <FeatureList features={trim.features} />
+          <FeatureList trim={trim} base={base} allTrims={allTrims} />
         </div>
       )}
     </div>
@@ -104,17 +134,11 @@ function TrimCompareTable({ trims, rows }: { trims: CatalogTrim[]; rows: Compare
         </thead>
         <tbody className="divide-y divide-white/5">
           {rows.map((row) => (
-            <tr key={row.feature}>
-              <td className="px-3 py-2 text-primary">{row.feature}</td>
+            <tr key={row.label}>
+              <td className="px-3 py-2 text-primary">{row.label}</td>
               {row.cells.map((cell) => (
-                <td key={cell.trimId} className="px-3 py-2 text-center">
-                  {cell.status === "none" ? (
-                    <span className="text-secondary">–</span>
-                  ) : cell.status === "optional" ? (
-                    <span className="text-secondary">opt</span>
-                  ) : (
-                    <IconCheck size={14} stroke={2} className="inline text-emerald-400" />
-                  )}
+                <td key={cell.trimId} className={`px-3 py-2 text-center ${cell.changed ? "text-amber-400" : cell.text === "–" ? "text-secondary" : "text-primary"}`}>
+                  {cell.text}
                 </td>
               ))}
             </tr>
@@ -151,7 +175,7 @@ export default function TrimCards({ trims, gapsMode }: TrimCardsProps) {
   const allEmpty = trims.every((t) => t.features.length === 0);
   const comparable = trims.filter((t) => t.features.length > 0);
   const canCompare = comparable.length >= 2;
-  const compareRows = canCompare ? buildCompareRows(comparable) : [];
+  const compareRows = canCompare ? buildCompareRows(comparable, base, trims) : [];
 
   return (
     <div>
@@ -179,7 +203,7 @@ export default function TrimCards({ trims, gapsMode }: TrimCardsProps) {
         <p className="mt-1 text-xs text-secondary">Included in every trim below.</p>
         {base.features.length > 0 ? (
           <div className="mt-3">
-            <FeatureList features={base.features} />
+            <FeatureList trim={base} base={base} allTrims={trims} />
           </div>
         ) : (
           <p className="mt-2 text-xs text-secondary">Equipment details not available yet</p>
@@ -196,6 +220,8 @@ export default function TrimCards({ trims, gapsMode }: TrimCardsProps) {
               <TrimCard
                 key={trim.id}
                 trim={trim}
+                base={base}
+                allTrims={trims}
                 comparisonLabel={trimComparisonLabel(trim, base, trims)}
                 isOpen={!!openTrims[trim.id]}
                 onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}

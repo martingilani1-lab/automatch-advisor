@@ -51,7 +51,9 @@ export default function EnginePanel({ group, faults, gapsMode }: EnginePanelProp
     { label: "Hybrid system", value: hybridSystemValue },
   ];
 
-  // catalog_component_faults keys a fault to EITHER an engine OR a unit, never a vehicle.
+  // catalog_component_faults now also carries drivetrain_id- and phase_id-keyed rows (the
+  // latter is "vehicle" -- see fetchBundleForPhase's own comment), but exact-id equality here
+  // means only this engine's own rows ever match; a vehicle-level row's engineId is null.
   const engineFaults = faults.filter((f) => f.engineId === engine.id);
   const totalGaps = countGaps(engineFields) + (engine.reliabilityRating == null ? 1 : 0);
 

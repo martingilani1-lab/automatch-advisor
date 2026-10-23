@@ -300,6 +300,19 @@ export async function GET() {
 
 const SEVERITY_LABELS: Record<string, string> = { critical: "Critical", moderate: "Moderate", minor: "Minor" };
 
+// catalog_component_faults.category's frozen vocabulary (vehicle-level rows only) -- display
+// label for the Common faults tab's "area" column, same word-mapping convention as
+// SEVERITY_LABELS above.
+const CATEGORY_LABELS: Record<string, string> = {
+  electrical: "Electrical",
+  body_rust: "Body & rust",
+  suspension: "Suspension",
+  steering: "Steering",
+  brakes: "Brakes",
+  climate: "Climate",
+  interior: "Interior",
+};
+
 // Builds one phase's full DetailData from its PhaseBundle -- the exact same transform the
 // single-phase POST used to run inline, now reused once per sibling phase (vehicle page
 // redesign step 1: every phase of the generation is transformed and returned in one
@@ -402,16 +415,20 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
     }
     const dt: DetailDrivetrainGroup[] = [...drivetrainGroupsByCode.values()];
 
-    // Common faults tab: the same catalog_component_faults rows shown inline above,
-    // consolidated with a readable "area" label resolved back to the engine/gearbox they
-    // belong to (component_faults itself has no area column).
-    const engineLabelById = new Map(bundle.configs.map((c) => [c.engine.id, c.engine.displayName || c.engine.code]));
-    const gearboxLabelById = new Map(bundle.configs.map((c) => [c.gearbox.id, c.gearbox.code]));
-    const c = bundle.faults.map((f) => ({
-      area: f.engineId ? (engineLabelById.get(f.engineId) ?? "Engine") : (gearboxLabelById.get(f.unitId!) ?? "Gearbox"),
-      severity: SEVERITY_LABELS[f.severity || ""] || f.severity || "Moderate",
-      detail: f.fault,
-    }));
+    // Common faults tab: vehicle-level faults ONLY (component_type === 'vehicle', phase_id-
+    // keyed) -- the car's own body/electrical/suspension/interior faults, not any one
+    // engine/gearbox/drivetrain unit's. Those unit-level faults are shown inline on their
+    // own Engines/Gearboxes/Drivetrain System tabs instead (EngineAccordion/GearboxAccordion
+    // already render bundle.faults filtered to their own engine_id/unit_id) -- this tab would
+    // otherwise just repeat them under a confusing "Common faults" heading that's supposed to
+    // mean faults of the car itself.
+    const c = bundle.faults
+      .filter((f) => f.componentType === "vehicle")
+      .map((f) => ({
+        area: CATEGORY_LABELS[f.category || ""] || f.category || "General",
+        severity: SEVERITY_LABELS[f.severity || ""] || f.severity || "Moderate",
+        detail: f.fault,
+      }));
 
     const firstBody = bundle.bodyDimensions[0];
     const specs = firstBody

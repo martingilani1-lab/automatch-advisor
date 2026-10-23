@@ -9,7 +9,7 @@ import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
-import { tierLabel, buildTrimLayout, trimComparisonLabel, buildCompareRows, type CompareRow } from "@/app/catalog/lib/trimsDisplay";
+import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, type CompareRow } from "@/app/catalog/lib/trimsDisplay";
 import type { CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
@@ -450,16 +450,31 @@ function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle, 
 // app/catalog/lib/trimsDisplay.ts (pure data helpers, no visual coupling) so the base-trim
 // pick, tier grouping, "+N over X" naming, and compare-table inclusion rule can't drift from
 // /catalog's own copy -- same precedent as gearboxTypeLabel/drivetrainLabel elsewhere here.
-function TrimFeatureList({ features }: { features: CatalogTrim["features"] }) {
+// Inherited rows render muted and faded -- already covered by base or an earlier tier, not
+// what makes this one worth picking. New rows render green with a "+" -- this trim's own
+// feature, nothing before it to replace. Upgraded rows render amber (same hex as this file's
+// own Moderate-severity color, #ff9800) with a "↑" -- this trim's own feature replaced a
+// DIFFERENT inherited item in the same feature_group; a small muted "was: ..." line names
+// what it replaced (an optional upgrade never actually replaces anything -- see
+// resolveTrimFeatures -- so it gets the amber "↑" but no "was:" line, since the standard item
+// it sits beside is still listed in its own grey row).
+function TrimFeatureList({ trim, base, allTrims }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[] }) {
+  const rows = resolveTrimFeatures(trim, base, allTrims);
+  const color = (r: typeof rows[number]) => (r.status === "new" ? "#a5d6a7" : r.status === "upgraded" ? "#ff9800" : "#6b6b72");
   return (
     <>
-      {features.map((f, i) => (
-        <div key={i} className="pro-item" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />
-            {f.feature}
-          </span>
-          {f.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
+      {rows.map((r, i) => (
+        <div key={i} style={{ marginBottom: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: ".78rem", lineHeight: 1.5, color: color(r), opacity: r.status === "inherited" ? 0.7 : 1 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {r.status === "new" && <span style={{ flexShrink: 0, fontWeight: 700 }}>+</span>}
+              {r.status === "upgraded" && <span style={{ flexShrink: 0, fontWeight: 700 }}>↑</span>}
+              {r.status === "inherited" && <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />}
+              {r.feature}
+            </span>
+            {r.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
+          </div>
+          {r.replacedFeature && <div style={{ fontSize: ".68rem", color: "#6b6b72", paddingLeft: 19 }}>was: {r.replacedFeature}</div>}
         </div>
       ))}
     </>
@@ -474,13 +489,18 @@ function TrimTierBadge({ tier }: { tier: string | null }) {
 
 // One non-base trim: header right side is trimComparisonLabel's "+N over X" (or "Alternative
 // to <base>") in place of the old flat "N extras" count -- it already carries the count.
-function TrimAccordion({ trim, comparisonLabel, isOpen, onToggle }: {
+// hasFeatures checks base's features too, not just this trim's own rows: TrimFeatureList
+// below always shows the merged inherited+extra list, so a trim with zero of its own rows
+// (no extras, just the inherited set) still has something to expand into.
+function TrimAccordion({ trim, base, allTrims, comparisonLabel, isOpen, onToggle }: {
   trim: CatalogTrim;
+  base: CatalogTrim;
+  allTrims: CatalogTrim[];
   comparisonLabel: string;
   isOpen: boolean;
   onToggle: () => void;
 }) {
-  const hasFeatures = trim.features.length > 0;
+  const hasFeatures = trim.features.length > 0 || base.features.length > 0;
   return (
     <div
       className={`eng-card${isOpen && hasFeatures ? " open" : ""}`}
@@ -502,7 +522,7 @@ function TrimAccordion({ trim, comparisonLabel, isOpen, onToggle }: {
       </div>
       {hasFeatures && isOpen && (
         <div className="eng-body">
-          <TrimFeatureList features={trim.features} />
+          <TrimFeatureList trim={trim} base={base} allTrims={allTrims} />
         </div>
       )}
     </div>
@@ -524,17 +544,11 @@ function TrimCompareTable({ trims, rows }: { trims: CatalogTrim[]; rows: Compare
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.feature}>
-              <td style={{ textAlign: "left", color: "#f0f0f0" }}>{row.feature}</td>
+            <tr key={row.label}>
+              <td style={{ textAlign: "left", color: "#f0f0f0" }}>{row.label}</td>
               {row.cells.map((cell) => (
-                <td key={cell.trimId}>
-                  {cell.status === "none" ? (
-                    <span style={{ color: "#6b6b72" }}>{"–"}</span>
-                  ) : cell.status === "optional" ? (
-                    <span style={{ color: "#9999aa" }}>opt</span>
-                  ) : (
-                    <IconCheck size={13} stroke={2.5} style={{ color: "#a5d6a7" }} />
-                  )}
+                <td key={cell.trimId} style={{ color: cell.changed ? "#ff9800" : cell.text === "–" ? "#6b6b72" : "#f0f0f0" }}>
+                  {cell.text}
                 </td>
               ))}
             </tr>
@@ -577,7 +591,7 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
   const allEmpty = trims.every((t) => t.features.length === 0);
   const comparable = trims.filter((t) => t.features.length > 0);
   const canCompare = comparable.length >= 2;
-  const compareRows = canCompare ? buildCompareRows(comparable) : [];
+  const compareRows = canCompare ? buildCompareRows(comparable, base, trims) : [];
 
   return (
     <div>
@@ -602,7 +616,7 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
         </div>
         <div className="tg" style={{ marginBottom: 8 }}>Included in every trim below.</div>
         {base.features.length > 0 ? (
-          <TrimFeatureList features={base.features} />
+          <TrimFeatureList trim={base} base={base} allTrims={trims} />
         ) : (
           <div className="tg">Equipment details not available yet</div>
         )}
@@ -619,6 +633,8 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
                 <TrimAccordion
                   key={trim.id}
                   trim={trim}
+                  base={base}
+                  allTrims={trims}
                   comparisonLabel={trimComparisonLabel(trim, base, trims)}
                   isOpen={!!openTrims[trim.id]}
                   onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}
@@ -630,6 +646,8 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
               <TrimAccordion
                 key={trim.id}
                 trim={trim}
+                base={base}
+                allTrims={trims}
                 comparisonLabel={trimComparisonLabel(trim, base, trims)}
                 isOpen={!!openTrims[trim.id]}
                 onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}

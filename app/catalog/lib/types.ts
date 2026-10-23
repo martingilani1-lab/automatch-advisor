@@ -102,6 +102,11 @@ export interface CatalogBodyDimensions {
 export interface CatalogTrimFeature {
   feature: string;
   isOptional: boolean;
+  // Which equipment "slot" this feature fills (wheels, seats, climate, ...) -- null means a
+  // standalone feature with no replacement relationship (ABS, ESP, ...). Frozen vocabulary,
+  // see catalog_trim_features_feature_group_check; drives resolveTrimFeatures' upgrade
+  // detection in trimsDisplay.ts.
+  featureGroup: string | null;
 }
 
 export interface CatalogTrim {
@@ -113,9 +118,17 @@ export interface CatalogTrim {
 
 export interface CatalogFault {
   id: string;
-  componentType: "engine" | "transmission";
+  // 'drivetrain' included for schema accuracy (catalog_component_faults.component_type's
+  // live CHECK vocabulary) even though nothing currently fetches a drivetrain_id-keyed row --
+  // see fetchBundleForPhase's own comment on why.
+  componentType: "engine" | "transmission" | "drivetrain" | "vehicle";
   engineId: string | null;
   unitId: string | null;
+  drivetrainId: string | null;
+  phaseId: string | null;
+  // Frozen vocabulary (electrical/body_rust/suspension/steering/brakes/climate/interior),
+  // set only when componentType === 'vehicle' -- null for every engine/transmission row.
+  category: string | null;
   fault: string;
   severity: string | null;
 }
