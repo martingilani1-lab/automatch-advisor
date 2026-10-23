@@ -120,12 +120,11 @@ interface CarDetailProps {
   // one fetch, switch is pure client state" shape as /catalog's VehiclePageClient.
   siblingPhases: PhaseSwitcherOption[];
   onSwitchPhase: (phaseId: string) => void;
-  // The safety_features reference vocabulary (17 rows: 9 gsr2_mandated + 8 beyond_baseline) --
-  // same page-agnostic shape /prehlad's SafetyFeature already uses, fetched once by
-  // DbTestView.tsx the same way PrehladView.tsx does (GET /api/safety-features, no per-car
-  // linkage). catalog_ has no equivalent of vehicle_safety_features (the legacy per-car
-  // junction table), so unlike /prehlad's Safety tab, the "Optional assists" section below
-  // can only say what each feature IS, never whether this specific car has it.
+  // The safety_features reference vocabulary -- same page-agnostic shape /prehlad's
+  // SafetyFeature already uses, fetched once by DbTestView.tsx the same way PrehladView.tsx
+  // does (GET /api/safety-features, no per-car linkage). Only the 9 gsr2_mandated rows are
+  // used here (the "Guaranteed safety assists" list below) -- see that list's own comment for
+  // why the beyond_baseline half doesn't get a section on this page.
   safetyFeatures: SafetyFeature[];
 }
 
@@ -754,12 +753,13 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const ncapYear = car.safety?.ncapYear;
 
   // Same GSR2-era split as /prehlad's Safety tab: eligibility derived purely from car.years
-  // (isGsr2Era), never stored per-car. Unlike /prehlad, there's no vehicle_safety_features
-  // equivalent in catalog_ at all, so beyondBaselineFeatures below can only describe what
-  // each feature IS (what_it_does/how_it_works/...), never whether THIS car has it.
+  // (isGsr2Era), never stored per-car. No "Optional assists" section here (unlike /prehlad) --
+  // catalog_ has no vehicle_safety_features equivalent, no per-car signal at all for the
+  // beyond_baseline features, so every row would read "Not tracked" with zero informational
+  // value; not worth the section here the way it is on /prehlad, where GSR2-era cars can have
+  // real tagged Standard/Optional/Not available data.
   const gsr2Era = isGsr2Era(car);
   const mandatedFeatures = safetyFeatures.filter((f) => f.category === "gsr2_mandated");
-  const beyondBaselineFeatures = safetyFeatures.filter((f) => f.category === "beyond_baseline");
 
   const carGearboxTypes = useMemo(() => classifyGearboxTypes(car), [car]);
   const matchedFuels = (fuelFilter || []).filter((sel) => (car.fuel || []).some((f) => matchesFuelOption(f, sel)));
@@ -1097,37 +1097,6 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
               )
             ) : (
               <div className="mp-hint">This model&apos;s production ended before the EU&apos;s 2022 GSR2 safety mandate took effect, so the guaranteed-baseline list above doesn&apos;t apply here.</div>
-            )}
-
-            {/* Optional assists -- NOT gated on gsr2Era: unlike the "Guaranteed" section
-                above, these 8 beyond_baseline features aren't GSR2-specific at all, so a
-                pre-2022 car can equally well have had them as factory options -- hiding this
-                whole section for older cars (the bug /prehlad's own version had too, fixed
-                there in the same pass as this) would hide real, useful content for no reason.
-                Unlike /prehlad (which looks up detail.sf, vehicle_safety_features, for a real
-                Standard/Optional/Not available badge per car), catalog_ has no per-car
-                safety-feature linkage at all -- not "not filled in yet", there is no table.
-                Every row below is badged "Not tracked" rather than defaulting to "Not
-                available", since that would assert a confirmed absence this data genuinely
-                can't back up (NULL over invention) -- true for every catalog_ car regardless
-                of era, unlike /prehlad where only the untagged pre-2022 cars need that
-                fallback. The expanded body (what it does / how it works / sensors / how to
-                disable) is still real, universal content from the safety_features reference
-                table, independent of any per-car data. */}
-            <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
-            {beyondBaselineFeatures.length > 0 ? (
-              beyondBaselineFeatures.map((f) => (
-                <SafetyFeatureAccordion
-                  key={f.slug}
-                  feature={f}
-                  badgeLabel="Not tracked"
-                  badgeColor="#6b6b72"
-                  isOpen={!!openSafety[f.slug]}
-                  onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
-                />
-              ))
-            ) : (
-              <div className="mp-hint">Safety-feature reference data isn&apos;t loaded yet.</div>
             )}
           </div>
         )}
