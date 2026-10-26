@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
+import { IconCheck, IconChevronDown, IconChevronUp, IconShieldCheck } from "@tabler/icons-react";
 
 import type { CatalogTrim } from "../lib/types";
+import type { SafetyFeature } from "@/app/prehlad/types";
 import {
   buildCompareRows,
   resolveTrimFeatures,
@@ -17,6 +18,7 @@ import Badge from "./ui/badge";
 interface TrimCardsProps {
   trims: CatalogTrim[];
   gapsMode: boolean;
+  safetyFeatures: SafetyFeature[];
 }
 
 // Inherited rows render muted and faded -- already covered by base or an earlier tier, not
@@ -26,36 +28,52 @@ interface TrimCardsProps {
 // "was: ..." line names what it replaced (an optional upgrade never actually replaces
 // anything -- see resolveTrimFeatures -- so it gets the amber "↑" but no "was:" line, since
 // the standard item it sits beside is still listed in its own grey row).
-function FeatureList({ trim, base, allTrims }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[] }) {
+//
+// A row whose safetyFeatureSlug is set overrides all of that with safety yellow + a shield
+// icon -- same reduced-opacity-for-inherited convention, just yellow instead of green/amber/
+// grey, since "this is one of the 20 reference safety systems" is the more useful signal here.
+// /catalog has no NCAP tab to click through to (unlike /db-test's own copy of this component),
+// so this is static: a title attribute carries the feature's plain-language explanation.
+function FeatureList({ trim, base, allTrims, safetyFeatureBySlug }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[]; safetyFeatureBySlug: Map<string, SafetyFeature> }) {
   const rows = resolveTrimFeatures(trim, base, allTrims);
   return (
     <ul className="flex flex-col gap-1.5">
-      {rows.map((r, i) => (
-        <li key={i} className="flex items-center justify-between gap-3 text-sm">
-          <span className="flex flex-col">
-            {r.status === "new" && (
-              <span className="flex items-center gap-2 text-emerald-400">
-                <span className="shrink-0 font-semibold">+</span>
-                {r.feature}
-              </span>
-            )}
-            {r.status === "upgraded" && (
-              <span className="flex items-center gap-2 text-amber-400">
-                <span className="shrink-0 font-semibold">↑</span>
-                {r.feature}
-              </span>
-            )}
-            {r.status === "inherited" && (
-              <span className="flex items-center gap-2 text-muted opacity-60">
-                <IconCheck size={14} stroke={2} className="shrink-0" />
-                {r.feature}
-              </span>
-            )}
-            {r.replacedFeature && <span className="pl-5 text-xs text-muted">was: {r.replacedFeature}</span>}
-          </span>
-          {r.isOptional && <Badge variant="default">optional</Badge>}
-        </li>
-      ))}
+      {rows.map((r, i) => {
+        const safetyFeature = r.safetyFeatureSlug ? safetyFeatureBySlug.get(r.safetyFeatureSlug) : undefined;
+        return (
+          <li key={i} className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex flex-col">
+              {safetyFeature ? (
+                <span className="flex items-center gap-2 text-yellow-300" style={{ opacity: r.status === "inherited" ? 0.6 : 1 }} title={safetyFeature.what_it_does ?? undefined}>
+                  <IconShieldCheck size={14} stroke={2} className="shrink-0" />
+                  {r.feature}
+                </span>
+              ) : (<>
+                {r.status === "new" && (
+                  <span className="flex items-center gap-2 text-emerald-400">
+                    <span className="shrink-0 font-semibold">+</span>
+                    {r.feature}
+                  </span>
+                )}
+                {r.status === "upgraded" && (
+                  <span className="flex items-center gap-2 text-amber-400">
+                    <span className="shrink-0 font-semibold">↑</span>
+                    {r.feature}
+                  </span>
+                )}
+                {r.status === "inherited" && (
+                  <span className="flex items-center gap-2 text-muted opacity-60">
+                    <IconCheck size={14} stroke={2} className="shrink-0" />
+                    {r.feature}
+                  </span>
+                )}
+              </>)}
+              {r.replacedFeature && <span className="pl-5 text-xs text-muted">was: {r.replacedFeature}</span>}
+            </span>
+            {r.isOptional && <Badge variant="default">optional</Badge>}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -74,6 +92,7 @@ interface TrimCardProps {
   isOpen: boolean;
   onToggle: () => void;
   gapsMode: boolean;
+  safetyFeatureBySlug: Map<string, SafetyFeature>;
 }
 
 // One non-base trim: header shows the name/tier on the left, trimComparisonLabel's "+N over
@@ -82,7 +101,7 @@ interface TrimCardProps {
 // own rows: FeatureList below always shows the merged inherited+extra list, so a trim with
 // zero of its own rows (no extras, just the inherited set) still has something to expand
 // into, same as a trim that does have its own rows.
-function TrimCard({ trim, base, allTrims, comparisonLabel, isOpen, onToggle, gapsMode }: TrimCardProps) {
+function TrimCard({ trim, base, allTrims, comparisonLabel, isOpen, onToggle, gapsMode, safetyFeatureBySlug }: TrimCardProps) {
   const hasFeatures = trim.features.length > 0 || base.features.length > 0;
   return (
     <div className="rounded-xl border border-white/5 bg-panel p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset]">
@@ -107,7 +126,7 @@ function TrimCard({ trim, base, allTrims, comparisonLabel, isOpen, onToggle, gap
       </button>
       {hasFeatures && isOpen && (
         <div className="mt-3 border-t border-white/5 pt-3">
-          <FeatureList trim={trim} base={base} allTrims={allTrims} />
+          <FeatureList trim={trim} base={base} allTrims={allTrims} safetyFeatureBySlug={safetyFeatureBySlug} />
         </div>
       )}
     </div>
@@ -154,7 +173,8 @@ function TrimCompareTable({ trims, rows }: { trims: CatalogTrim[]; rows: Compare
 // CarDetail.tsx (whose tab bar already labels the tab "Trims (N)", no second heading inside
 // the tab content) can each wrap it however fits their own page, sharing this one
 // implementation rather than keeping two drifting copies.
-export default function TrimCards({ trims, gapsMode }: TrimCardsProps) {
+export default function TrimCards({ trims, gapsMode, safetyFeatures }: TrimCardsProps) {
+  const safetyFeatureBySlug = new Map(safetyFeatures.map((f) => [f.slug, f]));
   const layout = buildTrimLayout(trims);
   // Hook must run on every render regardless of the early-return below (rules-of-hooks) --
   // harmless when layout is null, since the component returns before this state is ever
@@ -203,7 +223,7 @@ export default function TrimCards({ trims, gapsMode }: TrimCardsProps) {
         <p className="mt-1 text-xs text-secondary">Included in every trim below.</p>
         {base.features.length > 0 ? (
           <div className="mt-3">
-            <FeatureList trim={base} base={base} allTrims={trims} />
+            <FeatureList trim={base} base={base} allTrims={trims} safetyFeatureBySlug={safetyFeatureBySlug} />
           </div>
         ) : (
           <p className="mt-2 text-xs text-secondary">Equipment details not available yet</p>
@@ -226,6 +246,7 @@ export default function TrimCards({ trims, gapsMode }: TrimCardsProps) {
                 isOpen={!!openTrims[trim.id]}
                 onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}
                 gapsMode={gapsMode}
+                safetyFeatureBySlug={safetyFeatureBySlug}
               />
             ))}
           </div>

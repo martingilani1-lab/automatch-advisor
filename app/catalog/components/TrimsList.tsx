@@ -1,4 +1,5 @@
 import type { CatalogTrim } from "../lib/types";
+import type { SafetyFeature } from "@/app/prehlad/types";
 import { countGaps, type GapField } from "../lib/gaps";
 import SectionGapsBadge from "./SectionGapsBadge";
 import TrimCards from "./TrimCards";
@@ -6,12 +7,13 @@ import TrimCards from "./TrimCards";
 interface TrimsListProps {
   trims: CatalogTrim[];
   gapsMode: boolean;
+  safetyFeatures: SafetyFeature[];
 }
 
 // Section wrapper (heading + gaps badge, matching every other /catalog tab) around the actual
 // cards, which live in TrimCards.tsx so /db-test's CarDetail.tsx can render the same component
 // without a second "Trims" heading (its tab bar already labels the tab).
-export default function TrimsList({ trims, gapsMode }: TrimsListProps) {
+export default function TrimsList({ trims, gapsMode, safetyFeatures }: TrimsListProps) {
   if (trims.length === 0) return null;
 
   const tierFields: GapField[] = trims.map((t) => ({ label: t.name, value: t.tier }));
@@ -24,7 +26,7 @@ export default function TrimsList({ trims, gapsMode }: TrimsListProps) {
         <SectionGapsBadge count={totalGaps} />
       </div>
       <div className="mt-2">
-        <TrimCards trims={trims} gapsMode={gapsMode} />
+        <TrimCards trims={trims} gapsMode={gapsMode} safetyFeatures={safetyFeatures} />
       </div>
     </section>
   );

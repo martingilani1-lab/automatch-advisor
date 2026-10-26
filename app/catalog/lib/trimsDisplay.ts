@@ -83,6 +83,7 @@ export function groupLabel(group: string): string {
 interface GroupOccupant {
   feature: string;
   isOptional: boolean;
+  safetyFeatureSlug: string | null;
 }
 
 export interface ResolvedFeatureRow {
@@ -98,6 +99,11 @@ export interface ResolvedFeatureRow {
   // "inherited"/"new", and for an optional "upgraded" row (an optional feature never actually
   // replaces the standard one -- see resolveTrimFeatures -- so there is nothing it "was").
   replacedFeature: string | null;
+  // catalog_trim_features.safety_feature_slug -- null for the ~800 ordinary equipment rows,
+  // set for the 442 rows that are actually one of the 20 safety_features (ABS/ESP/airbags +
+  // the 17 assists). For an "upgraded" row this is always the NEW item's slug, never the
+  // replaced one -- read straight off the feature being processed, same as `feature` itself.
+  safetyFeatureSlug: string | null;
 }
 
 // The full resolved equipment list for one trim: every feature it genuinely has, each tagged
@@ -133,16 +139,16 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
     for (const f of features) {
       if (!f.featureGroup) {
         const key = f.feature.toLowerCase();
-        if (!standaloneSeen.has(key)) standaloneSeen.set(key, { feature: f.feature, isOptional: f.isOptional });
+        if (!standaloneSeen.has(key)) standaloneSeen.set(key, { feature: f.feature, isOptional: f.isOptional, safetyFeatureSlug: f.safetyFeatureSlug });
         continue;
       }
       if (f.isOptional) {
         const list = optionalByGroup.get(f.featureGroup) ?? [];
-        if (!list.some((x) => x.feature.toLowerCase() === f.feature.toLowerCase())) list.push({ feature: f.feature, isOptional: true });
+        if (!list.some((x) => x.feature.toLowerCase() === f.feature.toLowerCase())) list.push({ feature: f.feature, isOptional: true, safetyFeatureSlug: f.safetyFeatureSlug });
         optionalByGroup.set(f.featureGroup, list);
         continue;
       }
-      groupState.set(f.featureGroup, { feature: f.feature, isOptional: false });
+      groupState.set(f.featureGroup, { feature: f.feature, isOptional: false, safetyFeatureSlug: f.safetyFeatureSlug });
       // A STANDARD item supersedes everything in its group, optional extras included: once a
       // trim has Climatronic as standard, a lower trim's "Manual AC (optional)" is no longer an
       // option anyone buys on top of it. Without this the old optional row kept showing grey
@@ -170,7 +176,7 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
       if (!f.featureGroup) {
         touchedStandalone.add(key);
         if (preStandalone.has(key)) continue; // identical text -- stays an inherited row
-        rows.push({ feature: f.feature, isOptional: f.isOptional, featureGroup: null, status: "new", replacedFeature: null });
+        rows.push({ feature: f.feature, isOptional: f.isOptional, featureGroup: null, status: "new", replacedFeature: null, safetyFeatureSlug: f.safetyFeatureSlug });
         continue;
       }
       if (f.isOptional) {
@@ -183,6 +189,7 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
           featureGroup: f.featureGroup,
           status: priorStandard ? "upgraded" : "new",
           replacedFeature: null, // optional never actually replaces -- no "was:" line
+          safetyFeatureSlug: f.safetyFeatureSlug,
         });
         continue;
       }
@@ -200,21 +207,22 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
         featureGroup: f.featureGroup,
         status: replaced ? "upgraded" : "new",
         replacedFeature: replaced,
+        safetyFeatureSlug: f.safetyFeatureSlug,
       });
     }
   }
 
   for (const [group, occ] of preGroupState) {
     if (touchedGroups.has(group)) continue; // replaced above -- the old item is not listed at all
-    rows.push({ feature: occ.feature, isOptional: false, featureGroup: group, status: "inherited", replacedFeature: null });
+    rows.push({ feature: occ.feature, isOptional: false, featureGroup: group, status: "inherited", replacedFeature: null, safetyFeatureSlug: occ.safetyFeatureSlug });
   }
   for (const occ of preStandalone.values()) {
     if (touchedStandalone.has(occ.feature.toLowerCase())) continue;
-    rows.push({ feature: occ.feature, isOptional: false, featureGroup: null, status: "inherited", replacedFeature: null });
+    rows.push({ feature: occ.feature, isOptional: false, featureGroup: null, status: "inherited", replacedFeature: null, safetyFeatureSlug: occ.safetyFeatureSlug });
   }
   for (const [group, list] of preOptionalByGroup) {
     if (touchedGroups.has(group)) continue; // superseded by this trim's own standard item
-    for (const occ of list) rows.push({ feature: occ.feature, isOptional: true, featureGroup: null, status: "inherited", replacedFeature: null });
+    for (const occ of list) rows.push({ feature: occ.feature, isOptional: true, featureGroup: null, status: "inherited", replacedFeature: null, safetyFeatureSlug: occ.safetyFeatureSlug });
   }
 
   const order: Record<ResolvedFeatureRow["status"], number> = { upgraded: 0, new: 1, inherited: 2 };
@@ -252,11 +260,11 @@ function resolvedByGroup(rows: ResolvedFeatureRow[]): Map<string, GroupOccupant>
   const map = new Map<string, GroupOccupant>();
   for (const r of rows) {
     if (!r.featureGroup || r.isOptional) continue;
-    map.set(r.featureGroup, { feature: r.feature, isOptional: false });
+    map.set(r.featureGroup, { feature: r.feature, isOptional: false, safetyFeatureSlug: r.safetyFeatureSlug });
   }
   for (const r of rows) {
     if (!r.featureGroup || !r.isOptional || map.has(r.featureGroup)) continue;
-    map.set(r.featureGroup, { feature: r.feature, isOptional: true });
+    map.set(r.featureGroup, { feature: r.feature, isOptional: true, safetyFeatureSlug: r.safetyFeatureSlug });
   }
   return map;
 }
@@ -326,4 +334,47 @@ export function buildCompareRows(comparableTrims: CatalogTrim[], base: CatalogTr
   });
 
   return [...groupRows, ...standaloneRows];
+}
+
+export interface SafetyEquipmentAvailability {
+  standardFrom: CatalogTrim | null;
+  optionalOn: CatalogTrim[];
+}
+
+// Where one safety_features.slug sits across every trim of this phase: the lowest-tier trim
+// that lists it as its OWN standard (non-optional) feature -- every higher trim inherits it
+// from there, per resolveTrimFeatures' cascade, so "first owner" is simply the lowest-tier
+// trim whose own row has this slug, no need to walk the cascade to find it -- plus any trim
+// STRICTLY below that tier that lists it as its own optional feature (offered before it
+// became standard, e.g. "Optional on Basis" followed later by "Standard from Life"). A slug
+// with no standard owner anywhere just returns every trim that offers it as optional, however
+// many tiers that spans.
+export function safetyEquipmentAvailability(slug: string, trims: CatalogTrim[]): SafetyEquipmentAvailability {
+  const sorted = sortTrimsByTier(trims);
+  const standardTrims = sorted.filter((t) => t.features.some((f) => f.safetyFeatureSlug === slug && !f.isOptional));
+  const standardFrom = standardTrims[0] ?? null;
+  const standardTier = standardFrom ? numericTier(standardFrom.tier) : Infinity;
+  const optionalOn = sorted.filter((t) => numericTier(t.tier) < standardTier && t.features.some((f) => f.safetyFeatureSlug === slug && f.isOptional));
+  return { standardFrom, optionalOn };
+}
+
+// "Optional on Basis · Standard from Life" / "Standard from Active" / "Optional on FR, Xcellence"
+// -- optional trims listed first (per the spec's own example order), standard-from last. Null
+// when the slug isn't on any trim at all (shouldn't happen for a slug this was called with,
+// since distinctSafetyFeatureSlugs below only yields slugs that ARE on some trim, but this
+// stays defensive rather than assuming that invariant at the call site).
+export function safetyEquipmentAvailabilityLabel(slug: string, trims: CatalogTrim[]): string | null {
+  const { standardFrom, optionalOn } = safetyEquipmentAvailability(slug, trims);
+  const parts: string[] = [];
+  if (optionalOn.length > 0) parts.push(`Optional on ${optionalOn.map((t) => t.name).join(", ")}`);
+  if (standardFrom) parts.push(`Standard from ${standardFrom.name}`);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+// Every distinct safety_features.slug present (standard or optional) on ANY trim of this
+// phase -- the row set for the NCAP tab's "Safety equipment in this car's trims" section.
+export function distinctSafetyFeatureSlugs(trims: CatalogTrim[]): string[] {
+  const slugs = new Set<string>();
+  for (const t of trims) for (const f of t.features) if (f.safetyFeatureSlug) slugs.add(f.safetyFeatureSlug);
+  return [...slugs];
 }

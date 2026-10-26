@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { IconCheck } from "@tabler/icons-react";
+import { IconCheck, IconShieldCheck } from "@tabler/icons-react";
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carMileage, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel, isGsr2Era } from "@/app/lib/carFields";
 import type { SafetyFeature } from "@/app/prehlad/types";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
-import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, type CompareRow } from "@/app/catalog/lib/trimsDisplay";
+import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, safetyEquipmentAvailability, safetyEquipmentAvailabilityLabel, distinctSafetyFeatureSlugs, type CompareRow } from "@/app/catalog/lib/trimsDisplay";
 import type { CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
@@ -459,14 +459,17 @@ function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle, 
 // how to disable), since safety_features is the same page-agnostic reference table either
 // page reads. badgeLabel/badgeColor are passed in per-row rather than hardcoded, same reason
 // as /prehlad's: a mandated row always reads "GSR2-mandated", a beyond-baseline row's badge
-// varies by what the caller knows about this specific car (here, always "Not tracked" --
-// catalog_ has no per-car safety-feature linkage to say otherwise).
-function SafetyFeatureAccordion({ feature, badgeLabel, badgeColor, isOpen, onToggle }: { feature: SafetyFeature; badgeLabel: string; badgeColor: string; isOpen: boolean; onToggle: () => void }) {
+// varies by what the caller knows about this specific car. id/availabilityLabel are additive,
+// used only by the "Safety equipment in this car's trims" section below -- id is the Trims
+// tab's click-through target (sf-<slug>), availabilityLabel is that section's own
+// "Optional on X · Standard from Y" line, shown under the name, above the tags row.
+function SafetyFeatureAccordion({ feature, badgeLabel, badgeColor, availabilityLabel, id, isOpen, onToggle }: { feature: SafetyFeature; badgeLabel: string; badgeColor: string; availabilityLabel?: string; id?: string; isOpen: boolean; onToggle: () => void }) {
   return (
-    <div className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
+    <div id={id} className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
       <div className="eng-hdr">
         <div className="eng-left">
           <span className="eng-name">{feature.universal_name}</span>
+          {availabilityLabel && <div className="tg">{availabilityLabel}</div>}
           <div className="eng-tags">
             <span className="eng-badge" style={{ background: badgeColor + "22", color: badgeColor, border: `1px solid ${badgeColor}44` }}>{badgeLabel}</span>
           </div>
@@ -514,20 +517,43 @@ function SafetyFeatureAccordion({ feature, badgeLabel, badgeColor, isOpen, onTog
 // what it replaced (an optional upgrade never actually replaces anything -- see
 // resolveTrimFeatures -- so it gets the amber "↑" but no "was:" line, since the standard item
 // it sits beside is still listed in its own grey row).
-function TrimFeatureList({ trim, base, allTrims }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[] }) {
+// Safety yellow (#facc15) overrides the normal new/upgraded/inherited colour whenever a row's
+// safetyFeatureSlug is set -- full opacity for new/upgraded, the same ~0.6 reduced opacity the
+// status system already uses for inherited rows, so the status (is this what elevates the
+// trim, or just inherited) still reads the same way it does for every other row, just in
+// yellow instead of green/amber/grey. The glyph swaps to a shield in place of +/↑/check for
+// the same reason -- "this is a safety system" is the more useful signal here than "new vs
+// inherited vs upgraded", which the colour/opacity still carries.
+function TrimFeatureList({ trim, base, allTrims, onShowInNcap }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[]; onShowInNcap: (slug: string) => void }) {
   const rows = resolveTrimFeatures(trim, base, allTrims);
-  const color = (r: typeof rows[number]) => (r.status === "new" ? "#a5d6a7" : r.status === "upgraded" ? "#ff9800" : "#6b6b72");
+  const color = (r: typeof rows[number]) => {
+    if (r.safetyFeatureSlug) return "#facc15";
+    return r.status === "new" ? "#a5d6a7" : r.status === "upgraded" ? "#ff9800" : "#6b6b72";
+  };
   return (
     <>
       {rows.map((r, i) => (
         <div key={i} style={{ marginBottom: 3 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: ".78rem", lineHeight: 1.5, color: color(r), opacity: r.status === "inherited" ? 0.7 : 1 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {r.status === "new" && <span style={{ flexShrink: 0, fontWeight: 700 }}>+</span>}
-              {r.status === "upgraded" && <span style={{ flexShrink: 0, fontWeight: 700 }}>↑</span>}
-              {r.status === "inherited" && <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />}
-              {r.feature}
-            </span>
+            {r.safetyFeatureSlug ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onShowInNcap(r.safetyFeatureSlug!); }}
+                aria-label={`Show ${r.feature} in NCAP`}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer" }}
+                className="sf-link"
+              >
+                <IconShieldCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />
+                {r.feature}
+              </button>
+            ) : (
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {r.status === "new" && <span style={{ flexShrink: 0, fontWeight: 700 }}>+</span>}
+                {r.status === "upgraded" && <span style={{ flexShrink: 0, fontWeight: 700 }}>↑</span>}
+                {r.status === "inherited" && <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />}
+                {r.feature}
+              </span>
+            )}
             {r.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
           </div>
           {r.replacedFeature && <div style={{ fontSize: ".68rem", color: "#6b6b72", paddingLeft: 19 }}>was: {r.replacedFeature}</div>}
@@ -548,13 +574,14 @@ function TrimTierBadge({ tier }: { tier: string | null }) {
 // hasFeatures checks base's features too, not just this trim's own rows: TrimFeatureList
 // below always shows the merged inherited+extra list, so a trim with zero of its own rows
 // (no extras, just the inherited set) still has something to expand into.
-function TrimAccordion({ trim, base, allTrims, comparisonLabel, isOpen, onToggle }: {
+function TrimAccordion({ trim, base, allTrims, comparisonLabel, isOpen, onToggle, onShowInNcap }: {
   trim: CatalogTrim;
   base: CatalogTrim;
   allTrims: CatalogTrim[];
   comparisonLabel: string;
   isOpen: boolean;
   onToggle: () => void;
+  onShowInNcap: (slug: string) => void;
 }) {
   const hasFeatures = trim.features.length > 0 || base.features.length > 0;
   return (
@@ -578,7 +605,7 @@ function TrimAccordion({ trim, base, allTrims, comparisonLabel, isOpen, onToggle
       </div>
       {hasFeatures && isOpen && (
         <div className="eng-body">
-          <TrimFeatureList trim={trim} base={base} allTrims={allTrims} />
+          <TrimFeatureList trim={trim} base={base} allTrims={allTrims} onShowInNcap={onShowInNcap} />
         </div>
       )}
     </div>
@@ -617,6 +644,7 @@ function TrimCompareTable({ trims, rows }: { trims: CatalogTrim[]; rows: Compare
 
 interface TrimsPanelProps {
   trims: CatalogTrim[];
+  onShowInNcap: (slug: string) => void;
 }
 
 // openTrims/showCompare live here, not lifted to the parent CarDetail like openEngines/
@@ -630,7 +658,7 @@ interface TrimsPanelProps {
 // `(detail?.trims ?? []).length === 0` guard has already passed, so `trims` here is
 // guaranteed to be the real, non-empty array by the time this component's own first render
 // (and its own lazy initializer) runs.
-function TrimsPanel({ trims }: TrimsPanelProps) {
+function TrimsPanel({ trims, onShowInNcap }: TrimsPanelProps) {
   // Every non-base trim starts open when this phase has <=4 trims total, otherwise only the
   // always-expanded "Standard equipment" block starts open.
   const [openTrims, setOpenTrims] = useState<Record<string, boolean>>(() => {
@@ -672,7 +700,7 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
         </div>
         <div className="tg" style={{ marginBottom: 8 }}>Included in every trim below.</div>
         {base.features.length > 0 ? (
-          <TrimFeatureList trim={base} base={base} allTrims={trims} />
+          <TrimFeatureList trim={base} base={base} allTrims={trims} onShowInNcap={onShowInNcap} />
         ) : (
           <div className="tg">Equipment details not available yet</div>
         )}
@@ -694,6 +722,7 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
                   comparisonLabel={trimComparisonLabel(trim, base, trims)}
                   isOpen={!!openTrims[trim.id]}
                   onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}
+                  onShowInNcap={onShowInNcap}
                 />
               ))}
             </div>
@@ -707,6 +736,7 @@ function TrimsPanel({ trims }: TrimsPanelProps) {
                 comparisonLabel={trimComparisonLabel(trim, base, trims)}
                 isOpen={!!openTrims[trim.id]}
                 onToggle={() => setOpenTrims((p) => ({ ...p, [trim.id]: !p[trim.id] }))}
+                onShowInNcap={onShowInNcap}
               />
             ))
           )}
@@ -730,6 +760,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const focusEngine = searchParams.get("engine");
   const focusUnit = searchParams.get("unit");
   const focusDrivetrain = searchParams.get("drivetrain");
+  const focusSafety = searchParams.get("safety");
 
   function updateParams(mutate: (p: URLSearchParams) => void) {
     const params = new URLSearchParams(searchParams.toString());
@@ -745,6 +776,20 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
       p.delete("unit");
       p.delete("drivetrain");
       p.set(target.kind, target.id);
+    });
+  }
+
+  // Trims tab's safety-equipment click-through (a trim feature row with a safetyFeatureSlug):
+  // same mechanism as handleConfigNavigate above, one more URL param (?safety=<slug>) the scroll
+  // effect below reacts to, landing on and expanding that slug's own row in the NCAP tab's new
+  // "Safety equipment in this car's trims" section.
+  function handleShowInNcap(slug: string) {
+    updateParams((p) => {
+      p.set("tab", "safety");
+      p.delete("engine");
+      p.delete("unit");
+      p.delete("drivetrain");
+      p.set("safety", slug);
     });
   }
 
@@ -768,6 +813,29 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const gsr2Era = isGsr2Era(car);
   const mandatedFeatures = safetyFeatures.filter((f) => f.category === "gsr2_mandated");
   const beyondBaselineFeatures = safetyFeatures.filter((f) => f.category === "beyond_baseline");
+
+  // "Safety equipment in this car's trims" (NCAP tab, above the two lists above) -- real
+  // per-car data, unlike those two: every safety_features row some trim of THIS phase actually
+  // links to via safety_feature_slug, ordered basic -> gsr2_mandated -> beyond_baseline then by
+  // name. trims is detail's own array (not a separate fetch) -- CatalogTrim["features"] already
+  // carries safetyFeatureSlug once the db.ts/types.ts transform picks it up.
+  const trims = detail?.trims ?? [];
+  // Depends on detail?.trims directly, not the `trims` const above -- that one gets a fresh []
+  // literal every render whenever detail is null, which would defeat the memo (its identity
+  // never matches the previous render's []). detail?.trims itself is a stable reference that
+  // only actually changes when detail does.
+  const trimSafetySlugs = useMemo(() => distinctSafetyFeatureSlugs(detail?.trims ?? []), [detail?.trims]);
+  const trimSafetyFeatures = useMemo(() => {
+    const categoryOrder: Record<string, number> = { basic: 0, gsr2_mandated: 1, beyond_baseline: 2 };
+    return safetyFeatures
+      .filter((f) => trimSafetySlugs.includes(f.slug))
+      .sort((a, b) => (categoryOrder[a.category] ?? 99) - (categoryOrder[b.category] ?? 99) || a.universal_name.localeCompare(b.universal_name));
+  }, [safetyFeatures, trimSafetySlugs]);
+  const SAFETY_CATEGORY_BADGE: Record<string, { label: string; color: string }> = {
+    basic: { label: "Basic", color: "#60a5fa" },
+    gsr2_mandated: { label: "GSR2", color: "#4caf50" },
+    beyond_baseline: { label: "Optional extra", color: "#facc15" },
+  };
 
   const carGearboxTypes = useMemo(() => classifyGearboxTypes(car), [car]);
   const matchedFuels = (fuelFilter || []).filter((sel) => (car.fuel || []).some((f) => matchesFuelOption(f, sel)));
@@ -862,7 +930,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   // stays in an effect (unlike the "open" state above), firing after the tab switch has
   // already committed, so the target card actually exists to scroll to.
   useEffect(() => {
-    const focusId = focusEngine ? `engine-${focusEngine}` : focusUnit ? `gearbox-${focusUnit}` : focusDrivetrain ? `drivetrain-${focusDrivetrain}` : null;
+    const focusId = focusEngine ? `engine-${focusEngine}` : focusUnit ? `gearbox-${focusUnit}` : focusDrivetrain ? `drivetrain-${focusDrivetrain}` : focusSafety ? `sf-${focusSafety}` : null;
     if (!focusId) return;
     const el = document.getElementById(focusId);
     if (!el) return;
@@ -870,7 +938,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
     el.classList.add("highlight-pulse");
     const t = setTimeout(() => el.classList.remove("highlight-pulse"), 1200);
     return () => clearTimeout(t);
-  }, [activeTab, focusEngine, focusUnit, focusDrivetrain]);
+  }, [activeTab, focusEngine, focusUnit, focusDrivetrain, focusSafety]);
 
   return (
     <div className="detail-view">
@@ -1045,7 +1113,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
             {(detail?.trims ?? []).length === 0 ? (
               <div className="mp-hint">No data available.</div>
             ) : (
-              <TrimsPanel trims={detail!.trims} />
+              <TrimsPanel trims={detail!.trims} onShowInNcap={handleShowInNcap} />
             )}
           </div>
         )}
@@ -1071,11 +1139,13 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
           </div>
         )}
 
-        {/* Safety — Euro NCAP only. The Prehľad original additionally shows GSR2-mandated
-            and beyond-baseline safety-feature sections (safety_features/
-            vehicle_safety_features) -- catalog_ has no equivalent table at all, so rather
-            than render a permanent "reference data isn't loaded" placeholder for every single
-            car, that content is left out entirely here. */}
+        {/* Safety — Euro NCAP, plus the two GSR2/optional reference lists ported from
+            /prehlad. Unlike those two (static reference content, no per-car signal for
+            catalog_ cars), the "Safety equipment in this car's trims" section right below the
+            NCAP bars IS real per-car data: catalog_trim_features.safety_feature_slug links a
+            trim's own equipment rows to safety_features, which is exactly the per-car safety
+            signal catalog_ was missing (there is no vehicle_safety_features for catalog_, only
+            for the legacy schema /prehlad reads). */}
         {activeTab === "safety" && (
           <div className="mp-section">
             <div className="mp-title">{"\u{1F6E1}️"} NCAP {"—"} Euro NCAP</div>
@@ -1088,6 +1158,33 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                 <div className="ncap-verdict" style={{ color: (stars || 0) >= 5 ? "#4caf50" : (stars || 0) >= 4 ? "#e8ff47" : "#ff9800" }}>{(stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}</div>
               </div>
             ) : <div className="ncap-na">{"⚠️"} Not tested by Euro NCAP</div>}
+
+            {/* Safety equipment in this car's trims -- the Trims tab's yellow/shield rows
+                click through here (?safety=<slug>, see handleShowInNcap), landing on and
+                expanding the matching row below via id={`sf-${slug}`}. Every distinct slug
+                ANY trim of this phase links to, not just the ones that happen to also be
+                GSR2-mandated or beyond-baseline reference rows -- a 'basic' row (ABS/ESC/
+                airbags) only ever shows up here, never in the two lists below. */}
+            {trimSafetyFeatures.length > 0 && (
+              <>
+                <div className="mp-title" style={{ marginTop: 18 }}>{"\u{1F6E1}️"} Safety equipment in this car&apos;s trims</div>
+                {trimSafetyFeatures.map((f) => {
+                  const categoryBadge = SAFETY_CATEGORY_BADGE[f.category] ?? { label: f.category, color: "#6b6b72" };
+                  return (
+                    <SafetyFeatureAccordion
+                      key={f.slug}
+                      id={`sf-${f.slug}`}
+                      feature={f}
+                      badgeLabel={categoryBadge.label}
+                      badgeColor={categoryBadge.color}
+                      availabilityLabel={safetyEquipmentAvailabilityLabel(f.slug, trims) ?? undefined}
+                      isOpen={!!openSafety[f.slug] || f.slug === focusSafety}
+                      onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                    />
+                  );
+                })}
+              </>
+            )}
 
             {/* GSR2-mandated safety assists -- ported from /prehlad's Safety tab, same
                 additive-on-top-of-NCAP structure. Eligibility is derived from car.years
@@ -1118,29 +1215,37 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
             )}
 
             {/* Optional assists -- shown only for GSR2-mandated (gsr2Era) vehicles, by
-                request (confirmed live: 45 of 88 catalog_ phases qualify). This doesn't
-                change WHY every row reads "Not tracked" -- catalog_ still has no per-car
-                equivalent of vehicle_safety_features (confirmed live: no
-                catalog_vehicle_safety_features table exists), so there's no real
-                Standard/Optional/Not-available signal for ANY catalog_ car, GSR2-era or not --
-                this is purely about which cars show the section at all, not about data that
-                suddenly becomes available for newer ones. /prehlad is untouched: its own
-                Optional assists stays un-gated (see the earlier fix), since GSR2-era cars
-                there CAN have real tagged data. */}
+                request (confirmed live: 45 of 88 catalog_ phases qualify). This is purely
+                about which cars show the section at all, unrelated to whether a given row's
+                badge below can show real data -- that now comes from the same trims/
+                safety_feature_slug link the new section above uses: a beyond_baseline feature
+                some trim of this phase actually links to shows its real "Standard from X" /
+                "Optional on X" badge instead of "Not tracked". A feature no trim links to yet
+                still reads "Not tracked" -- absence in trims is not a confirmed "not
+                available" (NULL over invention). /prehlad is untouched: its own Optional
+                assists stays un-gated (see the earlier fix) and keeps reading from
+                vehicle_safety_features, not this trims-based source. */}
             {gsr2Era && (
               <>
                 <div className="mp-title" style={{ marginTop: 18 }}>{"✨"} Optional assists</div>
                 {beyondBaselineFeatures.length > 0 ? (
-                  beyondBaselineFeatures.map((f) => (
-                    <SafetyFeatureAccordion
-                      key={f.slug}
-                      feature={f}
-                      badgeLabel="Not tracked"
-                      badgeColor="#6b6b72"
-                      isOpen={!!openSafety[f.slug]}
-                      onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
-                    />
-                  ))
+                  beyondBaselineFeatures.map((f) => {
+                    const { standardFrom, optionalOn } = safetyEquipmentAvailability(f.slug, trims);
+                    const badgeLabel = standardFrom ? `Standard from ${standardFrom.name}`
+                      : optionalOn.length > 0 ? `Optional on ${optionalOn.map((t) => t.name).join(", ")}`
+                      : "Not tracked";
+                    const badgeColor = standardFrom ? "#4caf50" : optionalOn.length > 0 ? "#facc15" : "#6b6b72";
+                    return (
+                      <SafetyFeatureAccordion
+                        key={f.slug}
+                        feature={f}
+                        badgeLabel={badgeLabel}
+                        badgeColor={badgeColor}
+                        isOpen={!!openSafety[f.slug]}
+                        onToggle={() => setOpenSafety((p) => ({ ...p, [f.slug]: !p[f.slug] }))}
+                      />
+                    );
+                  })
                 ) : (
                   <div className="mp-hint">Safety-feature reference data isn&apos;t loaded yet.</div>
                 )}

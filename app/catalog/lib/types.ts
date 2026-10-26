@@ -107,6 +107,11 @@ export interface CatalogTrimFeature {
   // see catalog_trim_features_feature_group_check; drives resolveTrimFeatures' upgrade
   // detection in trimsDisplay.ts.
   featureGroup: string | null;
+  // FK -> safety_features.slug when this trim feature IS one of the 20 reference safety
+  // systems (ABS/ESC/airbags plus the 17 GSR2/beyond-baseline assists) -- null for the ~800
+  // ordinary equipment rows this doesn't apply to. Drives the Trims tab's yellow
+  // shield-icon styling and the NCAP tab's per-car safety-equipment section.
+  safetyFeatureSlug: string | null;
 }
 
 export interface CatalogTrim {

@@ -372,6 +372,11 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .cfg-link{color:#fffefc;cursor:pointer;background:none;border:none;padding:0;margin:0;font:inherit;text-align:left}
 .cfg-link:hover{text-decoration:underline}
 
+/* Trims tab's safety-equipment rows (TrimFeatureList in CarDetail.tsx) -- clicking one jumps
+   to and expands that feature's row in the NCAP tab. Text color is set inline per-row (safety
+   yellow, full or reduced opacity by status), so this only adds the hover affordance. */
+.sf-link:hover{text-decoration:underline}
+
 /* ---- /db-test accent override ----
    This whole stylesheet is shared verbatim by the quiz (page.tsx), /prehlad, and
    /db-test (db-test was built as "Browse & Compare rebuilt on catalog_ data, same UI").

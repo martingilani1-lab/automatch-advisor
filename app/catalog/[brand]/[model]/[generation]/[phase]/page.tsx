@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { getGenerationBundles, slugify } from "@/app/catalog/lib/db";
+import { getGenerationBundles, getSafetyFeatures, slugify } from "@/app/catalog/lib/db";
+import type { SafetyFeature } from "@/app/prehlad/types";
 import VehiclePageClient from "@/app/catalog/components/VehiclePageClient";
 
 interface CatalogPageProps {
@@ -28,6 +29,18 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
   }
   if (!phases || phases.length === 0) notFound();
 
+  // Static, car-independent reference vocabulary -- a failure here isn't fatal to the page the
+  // way a missing `phases` is (TrimCards.tsx just shows every trim feature plain, same as
+  // before this existed), so its own try/catch degrades to [] rather than 404ing the whole
+  // page over a table this route doesn't strictly need.
+  let safetyFeatures: SafetyFeature[];
+  try {
+    safetyFeatures = await getSafetyFeatures();
+  } catch (err) {
+    console.error("[/catalog] safety_features fetch failed", err);
+    safetyFeatures = [];
+  }
+
   // The URL's own [phase] segment names which phase this specific route resolves to -- the
   // default selection (and the one CatalogHeader's title area reflects before any client-side
   // switch). A phase slug that matches no sibling (shouldn't happen, the route couldn't have
@@ -35,6 +48,6 @@ export default async function CatalogPage({ params, searchParams }: CatalogPageP
   const routePhase = phases.find((p) => slugify(p.phaseLabel) === phase) ?? phases[0];
 
   return (
-    <VehiclePageClient phases={phases} routePhaseId={routePhase.phaseId} gapsMode={gapsMode} />
+    <VehiclePageClient phases={phases} routePhaseId={routePhase.phaseId} gapsMode={gapsMode} safetyFeatures={safetyFeatures} />
   );
 }

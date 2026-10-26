@@ -103,17 +103,20 @@ export interface DetailData {
 }
 
 // Shape returned by GET /api/safety-features — the safety_features reference
-// table (supabase/migrations/20260824090000_...). Static vocabulary, same
-// for every car (17 rows: 9 gsr2_mandated + 8 beyond_baseline), fetched once
-// by PrehladView on mount rather than per-vehicle like DetailData above.
-// A car's eligibility for the gsr2_mandated rows is derived client-side from
-// its production years (isGsr2Era, app/lib/carFields.ts) — this table never
-// stores which cars have which feature.
+// table (supabase/migrations/20260824090000_..., extended by 20261026220000
+// with a third category, 'basic' — ABS/ESC/airbags — for catalog_'s Trims-tab
+// linkage). Static vocabulary, same for every car (20 rows: 3 basic + 9
+// gsr2_mandated + 8 beyond_baseline), fetched once by PrehladView on mount
+// rather than per-vehicle like DetailData above. A car's eligibility for the
+// gsr2_mandated rows is derived client-side from its production years
+// (isGsr2Era, app/lib/carFields.ts) — this table itself never stores which
+// cars have which feature (catalog_ cars now get that via
+// catalog_trim_features.safety_feature_slug instead — see trimsDisplay.ts).
 export interface SafetyFeature {
   id: string;
   slug: string;
   universal_name: string;
-  category: "gsr2_mandated" | "beyond_baseline";
+  category: "basic" | "gsr2_mandated" | "beyond_baseline";
   marketing_names: string[] | null;
   what_it_does: string | null;
   how_it_works: string | null;

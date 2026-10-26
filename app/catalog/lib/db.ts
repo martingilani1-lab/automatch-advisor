@@ -8,6 +8,10 @@ import type {
   CatalogTrim,
   PhaseBundle,
 } from "./types";
+// Page-agnostic reference-table shape -- /db-test's CarDetail.tsx already imports this same
+// type from here rather than duplicating it; this follows that precedent instead of adding a
+// third copy.
+import type { SafetyFeature } from "@/app/prehlad/types";
 
 // No `slug` column exists anywhere in the catalog_ schema (checked every migration) --
 // catalog_brands.name / catalog_models.name / catalog_phases.generation_code /
@@ -29,6 +33,19 @@ function client() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+}
+
+// The safety_features reference vocabulary (20 rows: 3 basic + 9 gsr2_mandated + 8
+// beyond_baseline) -- same static, car-independent table GET /api/safety-features serves to
+// /prehlad and /db-test, fetched here instead since /catalog's page.tsx is a Server Component
+// that already does its own server-side fetch (getGenerationBundles) rather than a client
+// useEffect fetch. Used only to look up a trim feature's safety_feature_slug -> what_it_does
+// for TrimCards.tsx's title attribute -- /catalog has no NCAP tab to link through to.
+export async function getSafetyFeatures(): Promise<SafetyFeature[]> {
+  const supabase = client();
+  const { data, error } = await supabase.from("safety_features").select("*").order("category").order("universal_name");
+  if (error) throw error;
+  return (data || []) as SafetyFeature[];
 }
 
 export async function getPhaseBundle(
@@ -367,10 +384,10 @@ function transformBundle(
     tireSizes: tireSizesByConfig.get(c.id) ?? [],
   }));
 
-  const featuresByTrim = new Map<string, { feature: string; isOptional: boolean; featureGroup: string | null }[]>();
+  const featuresByTrim = new Map<string, { feature: string; isOptional: boolean; featureGroup: string | null; safetyFeatureSlug: string | null }[]>();
   for (const f of trimFeatureRows) {
     const list = featuresByTrim.get(f.trim_id) ?? [];
-    list.push({ feature: f.feature, isOptional: f.is_optional, featureGroup: f.feature_group ?? null });
+    list.push({ feature: f.feature, isOptional: f.is_optional, featureGroup: f.feature_group ?? null, safetyFeatureSlug: f.safety_feature_slug ?? null });
     featuresByTrim.set(f.trim_id, list);
   }
   const trims: CatalogTrim[] = trimRows.map((t) => ({

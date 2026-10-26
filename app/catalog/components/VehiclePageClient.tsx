@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { PhaseBundle } from "../lib/types";
+import type { SafetyFeature } from "@/app/prehlad/types";
 import CatalogHeader from "./CatalogHeader";
 import KeyFacts from "./KeyFacts";
 import BodyDimensionsTabs from "./BodyDimensionsTabs";
@@ -24,6 +25,10 @@ interface VehiclePageClientProps {
   // fallback if ?phase= in the URL doesn't (or no longer) match any sibling.
   routePhaseId: string;
   gapsMode: boolean;
+  // Static safety_features reference vocabulary (lib/db.ts's getSafetyFeatures) -- threaded
+  // down to TrimsList/TrimCards so a trim feature with a safetyFeatureSlug can show its real
+  // name/what_it_does as a title, not just the raw feature text.
+  safetyFeatures: SafetyFeature[];
 }
 
 const TAB_IDS = ["configurations", "overview", "engines", "gearboxes", "trims"] as const;
@@ -39,7 +44,7 @@ function isTabId(v: string | null): v is TabId {
 // router.replace -- so a refresh or a shared link reproduces the exact same view, and the
 // back button works, without ever triggering a server refetch (every phase's data is
 // already sitting in `phases`, passed down from the server component).
-export default function VehiclePageClient({ phases, routePhaseId, gapsMode }: VehiclePageClientProps) {
+export default function VehiclePageClient({ phases, routePhaseId, gapsMode, safetyFeatures }: VehiclePageClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -148,7 +153,7 @@ export default function VehiclePageClient({ phases, routePhaseId, gapsMode }: Ve
         </TabsContent>
 
         <TabsContent value="trims">
-          <TrimsList trims={bundle.trims} gapsMode={gapsMode} />
+          <TrimsList trims={bundle.trims} gapsMode={gapsMode} safetyFeatures={safetyFeatures} />
         </TabsContent>
       </Tabs>
     </main>
