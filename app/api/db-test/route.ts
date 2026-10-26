@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { getGenerationBundlesByPhaseId } from "@/app/catalog/lib/db";
-import type { PhaseBundle } from "@/app/catalog/lib/types";
+import type { CatalogConfig, PhaseBundle } from "@/app/catalog/lib/types";
 import { groupByGearbox, groupConfigurations } from "@/app/catalog/lib/groupConfigurations";
 import { resolveBodyTile } from "@/app/db-test/lib/filters";
 import type {
@@ -317,6 +317,20 @@ const CATEGORY_LABELS: Record<string, string> = {
 // single-phase POST used to run inline, now reused once per sibling phase (vehicle page
 // redesign step 1: every phase of the generation is transformed and returned in one
 // response, so switching phases client-side needs no refetch).
+// Engine comparison's consumption cell: official combined figure across the engine's own
+// configurations on this phase (different gearboxes/bodies => a min-max range). Electric
+// engines read energy_consumption_kwh100km; everything else fuel_consumption_l100km (the
+// 100%-filled column -- fuel_consumption_combined is dead, see configConsumptionValue above).
+// A PHEV's l/100 km is its WLTP weighted figure, still the fuel column, so it stays l/100 km.
+function engineConsumption(configs: CatalogConfig[], isElectric: boolean): DetailEngine["consumption"] {
+  const vals = configs
+    .map((c) => (isElectric ? c.energyConsumptionKwh100km : c.fuelConsumptionL100km))
+    .filter((n): n is number => n != null && Number(n) > 0)
+    .map(Number);
+  if (!vals.length) return null;
+  return { min: Math.min(...vals), max: Math.max(...vals), unit: isElectric ? "kWh/100 km" : "l/100 km" };
+}
+
 function buildDetailData(bundle: PhaseBundle): DetailData {
     // Engines tab: one widget per distinct engine -- groupConfigurations() does the body x
     // drivetrain x engine x gearbox collapsing so an engine doesn't render once per
@@ -354,6 +368,10 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
         is_ev: isEv,
         id: engine.id,
         reliability: engine.reliabilityRating != null ? RELIABILITY_LABELS[engine.reliabilityRating] ?? "—" : "—",
+        reliability_rating: engine.reliabilityRating,
+        timing_type: engine.timingType,
+        hybrid_type: engine.hybridType,
+        consumption: engineConsumption(group.configs, engine.fuelType === "electric"),
         faults: bundle.faults
           .filter((f) => f.engineId === engine.id)
           .map((f) => ({ fault: f.fault, severity: f.severity })),

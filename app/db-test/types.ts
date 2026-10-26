@@ -56,6 +56,18 @@ export interface DetailEngine {
   // Word-mapped from catalog_engines.reliability_rating (1-5) -- "—" if that's NULL, never a
   // guessed tier (CLAUDE.md "NULL over invention"). pros/cons come from the same row.
   reliability: string;
+  // The raw catalog_engines.reliability_rating (1-5) behind `reliability` -- the engine
+  // comparison's Smart Choice scoring needs the number, not the word. null = unrated.
+  reliability_rating: number | null;
+  // catalog_engines.timing_type ('belt' | 'chain' | 'gear', frozen CHECK) -- null if unknown.
+  timing_type: string | null;
+  // catalog_engines.hybrid_type ('MHEV' | 'PHEV') -- null for a plain combustion engine.
+  hybrid_type: string | null;
+  // Official combined consumption across this engine's configurations on this phase (min/max,
+  // so one gearbox/body spread shows as a range). From fuel_consumption_l100km, or
+  // energy_consumption_kwh100km for electric -- the manufacturer figure, NOT a real-world one.
+  // null when no configuration has a value.
+  consumption: { min: number; max: number; unit: "l/100 km" | "kWh/100 km" } | null;
   faults: DetailFaultItem[];
   pros: string[];
   cons: string[];

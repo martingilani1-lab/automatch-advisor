@@ -17,6 +17,8 @@ import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTab
 import CarHero from "@/app/catalog/components/CarHero";
 import { pickMainMedia } from "@/app/catalog/lib/media";
 import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
+import { CompareBar, EngineCompareView } from "./EngineCompare";
+import { MAX_COMPARE } from "./lib/engineCompare";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -289,7 +291,10 @@ function GearboxAccordion({ gearbox, gapsMode, isOpen, onToggle }: { gearbox: De
 }
 
 // Engines tab card.
-function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void }) {
+// `selected`/`onSelectToggle` drive the engine comparison (EngineCompare.tsx): a checkbox in
+// the header, kept out of the card's own click-to-expand (stopPropagation), disabled once the
+// comparison is full unless it's one of the already-ticked engines.
+function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectDisabled, onSelectToggle }: { engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void; selected: boolean; selectDisabled: boolean; onSelectToggle: () => void }) {
   const rc = engine.reliability !== "—" ? REL_COLORS[engine.reliability] || "#888" : null;
   const cylinders = cylindersLabel(engine.cylinders);
 
@@ -307,7 +312,24 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle }: { engine: Detai
             {engine.fuel_type && <span className="cfuel-tag">{fuelLabel(engine.fuel_type)}</span>}
           </div>
         </div>
-        <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+        <div className="flex shrink-0 items-center gap-3">
+          <label
+            onClick={(ev) => ev.stopPropagation()}
+            title={selectDisabled ? `You can compare up to ${MAX_COMPARE} engines` : "Select to compare"}
+            className={`flex items-center gap-1.5 text-xs ${selected ? "text-blue-400" : "text-zinc-500"} ${selectDisabled ? "cursor-not-allowed opacity-40" : "cursor-pointer hover:text-zinc-300"}`}
+          >
+            <input
+              type="checkbox"
+              checked={selected}
+              disabled={selectDisabled}
+              onChange={onSelectToggle}
+              aria-label={`Compare ${engine.engine}`}
+              className="h-4 w-4 cursor-pointer accent-blue-500 disabled:cursor-not-allowed"
+            />
+            Compare
+          </label>
+          <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+        </div>
       </div>
       {isOpen && (
         <div className="eng-body">
@@ -775,6 +797,19 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
   const [activeTabState, setActiveTabState] = useState<string | null>(null);
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
+  // Engine comparison: ids of the ticked engines (order = tick order, which is also column
+  // order in the comparison view) and whether the side-by-side overlay is open. Reset on a
+  // phase switch -- the ids belong to the previous phase's engine list.
+  // Stored WITH the phase id it belongs to and read through a car.id check, rather than
+  // cleared in an effect (react-hooks/set-state-in-effect): switching phase makes the stale
+  // selection read as empty immediately, with no extra render.
+  const [compareState, setCompareState] = useState<{ carId: string; ids: string[]; open: boolean }>({ carId: car.id, ids: [], open: false });
+  const compareIds = compareState.carId === car.id ? compareState.ids : [];
+  const showEngineCompare = compareState.carId === car.id && compareState.open;
+  const setCompareIds = (ids: string[]) => setCompareState({ carId: car.id, ids, open: false });
+  const setShowEngineCompare = (open: boolean) => setCompareState({ carId: car.id, ids: compareIds, open });
+  const toggleCompare = (id: string) =>
+    setCompareIds(compareIds.includes(id) ? compareIds.filter((x) => x !== id) : compareIds.length >= MAX_COMPARE ? compareIds : [...compareIds, id]);
   const [openGearboxes, setOpenGearboxes] = useState<Record<number, boolean>>({});
   const [openDrivetrain, setOpenDrivetrain] = useState<Record<number, boolean>>({});
   const [openSafety, setOpenSafety] = useState<Record<string, boolean>>({});
@@ -1060,7 +1095,15 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                     {fuelGroupLabel(e.fuel_type)}
                   </div>
                 )}
-                <EngineAccordion engine={e} gapsMode={gapsMode} isOpen={!!openEngines[i] || i === focusEngineIdx} onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))} />
+                <EngineAccordion
+                  engine={e}
+                  gapsMode={gapsMode}
+                  isOpen={!!openEngines[i] || i === focusEngineIdx}
+                  onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))}
+                  selected={compareIds.includes(e.id)}
+                  selectDisabled={!compareIds.includes(e.id) && compareIds.length >= MAX_COMPARE}
+                  onSelectToggle={() => toggleCompare(e.id)}
+                />
               </div>
             ))}
           </div>
@@ -1279,6 +1322,20 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
       {!loading && tabs.length === 0 && (
         <div className="mp-hint" style={{ padding: "20px 0" }}>No detail data available for this car.</div>
+      )}
+
+      {/* Engine comparison -- the bar only on the Engines tab (that's where the checkboxes
+          are), the overlay over everything once opened. Engines resolved from detail.e in
+          tick order; an id no longer present (fuel filter changed) simply drops out. */}
+      {activeTab === "engines" && !showEngineCompare && (
+        <CompareBar count={compareIds.length} onCompare={() => setShowEngineCompare(true)} onClear={() => setCompareIds([])} />
+      )}
+      {showEngineCompare && (
+        <EngineCompareView
+          engines={compareIds.map((id) => (detail?.e ?? []).find((e) => e.id === id)).filter((e): e is DetailEngine => !!e)}
+          carLabel={`${car.make} ${car.model}`}
+          onClose={() => setShowEngineCompare(false)}
+        />
       )}
     </div>
   );
