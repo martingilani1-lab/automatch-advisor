@@ -28,17 +28,17 @@ INSERT INTO safety_features (slug, universal_name, category, marketing_names, wh
    'Stops the wheels from locking under hard braking, so the car can still be steered while braking at full force.',
    'A speed sensor on each wheel reports how fast it is turning. When one wheel slows much faster than the car itself -- about to lock -- the ABS unit briefly releases and re-applies that wheel''s brake pressure, many times per second. The driver feels this as pulsing in the brake pedal; it is normal, keep pressing hard.',
    'Wheel-speed sensors on all four wheels, plus the ABS hydraulic unit with its own control module.',
-   'Cannot be switched off. A lit ABS warning light means the system is off due to a fault -- normal braking still works, but wheels can lock.'),
+   'Cannot be switched off. A lit ABS warning light means the system is off due to a fault -- normal braking still works, but wheels can lock.', false),
   ('esc', 'Electronic Stability Control', 'basic', ARRAY['ESP', 'ESC', 'DSC', 'VSC'],
    'Keeps the car pointing where the driver steers when it starts to skid -- understeer or oversteer -- by braking individual wheels and cutting engine power.',
    'It compares where the driver is steering with where the car is actually going. If they differ (the car is starting to slide), it brakes one or more individual wheels to pull the car back on line and can reduce engine torque. Built on top of ABS and includes traction control. Mandatory on all new cars in the EU since November 2014.',
    'Steering-angle sensor, yaw-rate and lateral-acceleration sensors, and the four ABS wheel-speed sensors.',
-   'Usually partly switchable via an "ESC OFF" / "ASR OFF" button (mainly the traction-control part, for driving on snow or sand); it switches back on at the next engine start. Full deactivation is normally not possible on road cars.'),
+   'Usually partly switchable via an "ESC OFF" / "ASR OFF" button (mainly the traction-control part, for driving on snow or sand); it switches back on at the next engine start. Full deactivation is normally not possible on road cars.', false),
   ('airbags', 'Airbags', 'basic', ARRAY['SRS', 'Front airbags', 'Side airbags', 'Curtain airbags'],
    'Inflates cushions in a crash to stop the occupants hitting the steering wheel, dashboard, doors or side windows.',
    'Crash sensors measure deceleration; if it exceeds the deployment threshold, the airbag control unit fires a gas generator that inflates the bag in a few hundredths of a second, before the occupant moves forward or sideways. Front airbags protect in frontal impacts; side (seat) and curtain airbags protect the chest and head in side impacts. Works together with the seatbelts -- an airbag is designed for a belted occupant.',
    'Front and side crash sensors and the airbag control unit (often with a passenger-seat occupancy sensor).',
-   'The front passenger airbag can usually be switched off with a key switch or menu setting, so a rear-facing child seat can be used there. All other airbags cannot be switched off.');
+   'The front passenger airbag can usually be switched off with a key switch or menu setting, so a rear-facing child seat can be used there. All other airbags cannot be switched off.', false);
 
 ALTER TABLE catalog_trim_features ADD COLUMN safety_feature_slug text REFERENCES safety_features(slug);
 
