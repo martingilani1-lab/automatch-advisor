@@ -143,6 +143,12 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
         continue;
       }
       groupState.set(f.featureGroup, { feature: f.feature, isOptional: false });
+      // A STANDARD item supersedes everything in its group, optional extras included: once a
+      // trim has Climatronic as standard, a lower trim's "Manual AC (optional)" is no longer an
+      // option anyone buys on top of it. Without this the old optional row kept showing grey
+      // under the upgrade (Golf 1J Highline: Climatronic + "Manual AC  optional", reported
+      // 2026-10-26). The reverse still holds -- an optional item never displaces a standard one.
+      optionalByGroup.delete(f.featureGroup);
     }
   }
 
@@ -183,12 +189,17 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
       touchedGroups.add(f.featureGroup);
       const prior = preGroupState.get(f.featureGroup) ?? null;
       if (prior && prior.feature.toLowerCase() === key) continue; // identical -- stays inherited
+      // No standard predecessor but an inherited OPTIONAL one in the same group: this standard
+      // item replaces it too (see apply() above), so it's an upgrade "was: X (optional)" -- also
+      // covers the same text going from optional to standard (A3 8L Attraction -> Ambiente).
+      const priorOptional = prior ? null : (preOptionalByGroup.get(f.featureGroup) ?? [])[0] ?? null;
+      const replaced = prior ? prior.feature : priorOptional ? `${priorOptional.feature} (optional)` : null;
       rows.push({
         feature: f.feature,
         isOptional: false,
         featureGroup: f.featureGroup,
-        status: prior ? "upgraded" : "new",
-        replacedFeature: prior ? prior.feature : null,
+        status: replaced ? "upgraded" : "new",
+        replacedFeature: replaced,
       });
     }
   }
@@ -201,7 +212,8 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
     if (touchedStandalone.has(occ.feature.toLowerCase())) continue;
     rows.push({ feature: occ.feature, isOptional: false, featureGroup: null, status: "inherited", replacedFeature: null });
   }
-  for (const list of preOptionalByGroup.values()) {
+  for (const [group, list] of preOptionalByGroup) {
+    if (touchedGroups.has(group)) continue; // superseded by this trim's own standard item
     for (const occ of list) rows.push({ feature: occ.feature, isOptional: true, featureGroup: null, status: "inherited", replacedFeature: null });
   }
 
