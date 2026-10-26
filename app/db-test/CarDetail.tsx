@@ -879,7 +879,14 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         {car.phaseLabel && <div className="cphase">{car.phaseLabel}</div>}
         <div className="cgen">{originLine(car)}</div>
         <div className="row-tags" style={{ marginTop: 8 }}>
-          <span className="cfuel-tag">{bodyLabel(car.body)}</span>
+          {/* Every distinct body this phase is offered in (car.bodyNames, the same field
+              CarRow.tsx's list row already shows all of), not just the single primaryBody
+              `car.body` -- a phase offered as both Hatchback and Estate was only ever showing
+              the first one here. Same fallback-to-[car.body] CarRow.tsx uses, for a car whose
+              bodyNames hasn't been populated (e.g. a stale cached response). */}
+          {(car.bodyNames && car.bodyNames.length > 0 ? car.bodyNames : [car.body]).map((b) => (
+            <span key={b} className="cfuel-tag">{bodyLabel(b)}</span>
+          ))}
           {(car.fuel || []).map((f) => <span key={f} className="cfuel-tag">{fuelLabel(f)}</span>)}
         </div>
         <div className="cprice" style={{ marginTop: 8 }}>{price}</div>
