@@ -157,6 +157,33 @@ Two clarifications preserved, as asked:
 
 ---
 
+---
+
+## Section 3 — Basic (3) — added 2026-10-26
+
+Category `basic`: fundamental safety equipment listed in trims (ABS, ESP, airbags), added so the
+Trims tab can link it to the NCAP tab like the assists above. Seeded by
+`supabase/migrations/20261026220000_add_basic_safety_features_and_trim_link.sql` — that file holds the
+exact text; summary here.
+
+### Anti-lock Braking System — `abs`
+- **Marketing names**: ABS
+- **What it does**: Stops the wheels locking under hard braking, so the car can still be steered.
+- **Sensors used**: Wheel-speed sensors on all four wheels + ABS hydraulic unit.
+- **How to disable**: Cannot be switched off; the ABS warning light means it is off due to a fault.
+
+### Electronic Stability Control — `esc`
+- **Marketing names**: ESP, ESC, DSC, VSC
+- **What it does**: Brakes individual wheels and cuts power to stop a skid; includes traction control. Mandatory on new EU cars since Nov 2014.
+- **Sensors used**: Steering-angle, yaw-rate and lateral-acceleration sensors + ABS wheel-speed sensors.
+- **How to disable**: Partly (ESC/ASR OFF button, traction part); re-enables at next start.
+
+### Airbags — `airbags`
+- **Marketing names**: SRS, front / side / curtain airbags
+- **What it does**: Cushions occupants against wheel, dash, doors and windows in a crash.
+- **Sensors used**: Front and side crash sensors + airbag control unit (often a passenger occupancy sensor).
+- **How to disable**: Front passenger airbag only (key switch / menu) for rear-facing child seats.
+
 ## Next step (not yet started)
 
 Once this content is reviewed/corrected here, the follow-on work is per-car tagging
