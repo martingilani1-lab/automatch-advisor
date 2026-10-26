@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { IconCheck } from "@tabler/icons-react";
 import type { CarData } from "@/app/lib/carFields";
-import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel, isGsr2Era } from "@/app/lib/carFields";
+import { carPriceMin, carPriceMax, carRel, carStars, carAdult, carMileage, carModelBase, REL_COLORS, originLine, bodyLabel, fuelLabel, getConsumptionForFuel, getPowerForFuel, isGsr2Era } from "@/app/lib/carFields";
 import type { SafetyFeature } from "@/app/prehlad/types";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
@@ -20,6 +20,12 @@ import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
+// Same shortener CarRow.tsx's list row uses ("280000 - 450000 km" -> "280k - 450k km"),
+// duplicated locally rather than imported since it's a tiny pure string helper, matching this
+// codebase's established per-file-duplication convention for ones this small.
+function shortenMileageRange(raw: string): string {
+  return raw.replace(/\d{4,}/g, (m) => fmtK(Number(m)));
+}
 // catalog_component_faults.severity's own frozen vocabulary (critical/moderate/minor, see
 // scripts/catalog-vocabularies.json) -- different words and casing from the legacy schema's
 // SEVERITY_COLORS (Critical/High/Medium/Low), so this is its own map, not a copy.
@@ -743,6 +749,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   }
 
   const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
+  const mileage = carMileage(car);
   const rel = carRel(car);
   const relColor = REL_COLORS[rel] || "#888";
   const stars = carStars(car);
@@ -890,6 +897,9 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
           {(car.fuel || []).map((f) => <span key={f} className="cfuel-tag">{fuelLabel(f)}</span>)}
         </div>
         <div className="cprice" style={{ marginTop: 8 }}>{price}</div>
+        {/* carMileage/pricing.mileageAtMidBudget (catalog_phases.typical_mileage_range) --
+            already shown on the car-list row (CarRow.tsx), just missing from this page. */}
+        {mileage && <div className="tg">{shortenMileageRange(mileage)}</div>}
 
         {hasUnlockedSpecs ? (<>
           <div className="mp-hint" style={{ marginTop: 10, marginBottom: 4 }}>Matches your filter</div>
