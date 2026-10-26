@@ -38,13 +38,17 @@ interface TrimCardsProps {
 // grey, since "this is one of the 20 reference safety systems" is the more useful signal here.
 // /catalog has no NCAP tab to click through to (unlike /db-test's own copy of this component),
 // so this is static: a title attribute carries the feature's plain-language explanation.
+// Inherited rows fade to opacity-40 (was 60) -- requested 2026-10-26: make what the trim
+// already had recede further so what it actually ADDS (new/upgraded, still full-strength
+// green/amber/yellow) reads as the obviously distinguishing content, not just a slightly
+// different shade in the same list.
 function FeatureRow({ r, safetyFeatureBySlug }: { r: ResolvedFeatureRow; safetyFeatureBySlug: Map<string, SafetyFeature> }) {
   const safetyFeature = r.safetyFeatureSlug ? safetyFeatureBySlug.get(r.safetyFeatureSlug) : undefined;
   return (
     <li className="flex items-center justify-between gap-3 text-sm">
       <span className="flex flex-col">
         {safetyFeature ? (
-          <span className="flex items-center gap-2 text-yellow-300" style={{ opacity: r.status === "inherited" ? 0.6 : 1 }} title={safetyFeature.what_it_does ?? undefined}>
+          <span className="flex items-center gap-2 text-yellow-300" style={{ opacity: r.status === "inherited" ? 0.4 : 1 }} title={safetyFeature.what_it_does ?? undefined}>
             <IconShieldCheck size={14} stroke={2} className="shrink-0" />
             {r.feature}
           </span>
@@ -62,7 +66,7 @@ function FeatureRow({ r, safetyFeatureBySlug }: { r: ResolvedFeatureRow; safetyF
             </span>
           )}
           {r.status === "inherited" && (
-            <span className="flex items-center gap-2 text-muted opacity-60">
+            <span className="flex items-center gap-2 text-muted opacity-40">
               <IconCheck size={14} stroke={2} className="shrink-0" />
               {r.feature}
             </span>

@@ -529,10 +529,14 @@ function trimRowColor(r: ResolvedFeatureRow): string {
   return r.status === "new" ? "#a5d6a7" : r.status === "upgraded" ? "#ff9800" : "#6b6b72";
 }
 
+// Inherited rows fade to 0.45 (was 0.7) -- requested 2026-10-26: make what the trim already
+// had recede further so what it actually ADDS (new/upgraded, still full-strength green/amber/
+// yellow) reads as the obviously distinguishing content, not just a slightly different shade
+// in the same list.
 function TrimFeatureRow({ r, onShowInNcap }: { r: ResolvedFeatureRow; onShowInNcap: (slug: string) => void }) {
   return (
     <div style={{ marginBottom: 3 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: ".78rem", lineHeight: 1.5, color: trimRowColor(r), opacity: r.status === "inherited" ? 0.7 : 1 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: ".78rem", lineHeight: 1.5, color: trimRowColor(r), opacity: r.status === "inherited" ? 0.45 : 1 }}>
         {r.safetyFeatureSlug ? (
           <button
             type="button"
