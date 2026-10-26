@@ -10,7 +10,7 @@ import type { SafetyFeature } from "@/app/prehlad/types";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
-import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, safetyEquipmentAvailability, safetyEquipmentAvailabilityLabel, distinctSafetyFeatureSlugs, type CompareRow } from "@/app/catalog/lib/trimsDisplay";
+import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, safetyEquipmentAvailability, safetyEquipmentAvailabilityLabel, distinctSafetyFeatureSlugs, trimFeatureCategory, TRIM_CATEGORY_ORDER, TRIM_CATEGORY_LABELS, type CompareRow, type ResolvedFeatureRow } from "@/app/catalog/lib/trimsDisplay";
 import type { CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
@@ -524,41 +524,59 @@ function SafetyFeatureAccordion({ feature, badgeLabel, badgeColor, availabilityL
 // yellow instead of green/amber/grey. The glyph swaps to a shield in place of +/↑/check for
 // the same reason -- "this is a safety system" is the more useful signal here than "new vs
 // inherited vs upgraded", which the colour/opacity still carries.
+function trimRowColor(r: ResolvedFeatureRow): string {
+  if (r.safetyFeatureSlug) return "#facc15";
+  return r.status === "new" ? "#a5d6a7" : r.status === "upgraded" ? "#ff9800" : "#6b6b72";
+}
+
+function TrimFeatureRow({ r, onShowInNcap }: { r: ResolvedFeatureRow; onShowInNcap: (slug: string) => void }) {
+  return (
+    <div style={{ marginBottom: 3 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: ".78rem", lineHeight: 1.5, color: trimRowColor(r), opacity: r.status === "inherited" ? 0.7 : 1 }}>
+        {r.safetyFeatureSlug ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onShowInNcap(r.safetyFeatureSlug!); }}
+            aria-label={`Show ${r.feature} in NCAP`}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer" }}
+            className="sf-link"
+          >
+            <IconShieldCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />
+            {r.feature}
+          </button>
+        ) : (
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {r.status === "new" && <span style={{ flexShrink: 0, fontWeight: 700 }}>+</span>}
+            {r.status === "upgraded" && <span style={{ flexShrink: 0, fontWeight: 700 }}>↑</span>}
+            {r.status === "inherited" && <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />}
+            {r.feature}
+          </span>
+        )}
+        {r.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
+      </div>
+      {r.replacedFeature && <div style={{ fontSize: ".68rem", color: "#6b6b72", paddingLeft: 19 }}>was: {r.replacedFeature}</div>}
+    </div>
+  );
+}
+
+// Grouped into the 5 display sections (trimFeatureCategory, trimsDisplay.ts) instead of one
+// flat list -- requested 2026-10-26, the flat list "looks chaotic". Within each section, rows
+// keep resolveTrimFeatures' own upgraded/new/inherited order; a section with nothing in it is
+// skipped entirely rather than shown empty.
 function TrimFeatureList({ trim, base, allTrims, onShowInNcap }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[]; onShowInNcap: (slug: string) => void }) {
   const rows = resolveTrimFeatures(trim, base, allTrims);
-  const color = (r: typeof rows[number]) => {
-    if (r.safetyFeatureSlug) return "#facc15";
-    return r.status === "new" ? "#a5d6a7" : r.status === "upgraded" ? "#ff9800" : "#6b6b72";
-  };
   return (
     <>
-      {rows.map((r, i) => (
-        <div key={i} style={{ marginBottom: 3 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: ".78rem", lineHeight: 1.5, color: color(r), opacity: r.status === "inherited" ? 0.7 : 1 }}>
-            {r.safetyFeatureSlug ? (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onShowInNcap(r.safetyFeatureSlug!); }}
-                aria-label={`Show ${r.feature} in NCAP`}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", padding: 0, font: "inherit", color: "inherit", cursor: "pointer" }}
-                className="sf-link"
-              >
-                <IconShieldCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />
-                {r.feature}
-              </button>
-            ) : (
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {r.status === "new" && <span style={{ flexShrink: 0, fontWeight: 700 }}>+</span>}
-                {r.status === "upgraded" && <span style={{ flexShrink: 0, fontWeight: 700 }}>↑</span>}
-                {r.status === "inherited" && <IconCheck size={13} stroke={2.5} style={{ flexShrink: 0 }} />}
-                {r.feature}
-              </span>
-            )}
-            {r.isOptional && <span className="eng-badge" style={{ background: "#6b6b7222", color: "#9999aa", border: "1px solid #6b6b7244" }}>optional</span>}
+      {TRIM_CATEGORY_ORDER.map((cat) => {
+        const catRows = rows.filter((r) => trimFeatureCategory(r) === cat);
+        if (catRows.length === 0) return null;
+        return (
+          <div key={cat} style={{ marginBottom: 10 }}>
+            <div className="sub-label">{TRIM_CATEGORY_LABELS[cat]}</div>
+            {catRows.map((r, i) => <TrimFeatureRow key={i} r={r} onShowInNcap={onShowInNcap} />)}
           </div>
-          {r.replacedFeature && <div style={{ fontSize: ".68rem", color: "#6b6b72", paddingLeft: 19 }}>was: {r.replacedFeature}</div>}
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 }

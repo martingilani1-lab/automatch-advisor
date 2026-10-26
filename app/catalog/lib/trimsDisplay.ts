@@ -222,7 +222,13 @@ export function resolveTrimFeatures(trim: CatalogTrim, base: CatalogTrim, allTri
   }
   for (const [group, list] of preOptionalByGroup) {
     if (touchedGroups.has(group)) continue; // superseded by this trim's own standard item
-    for (const occ of list) rows.push({ feature: occ.feature, isOptional: true, featureGroup: null, status: "inherited", replacedFeature: null, safetyFeatureSlug: occ.safetyFeatureSlug });
+    // featureGroup: group here, not hardcoded null -- a pre-existing bug this categorisation
+    // work exposed: every inherited-optional row was silently losing its feature_group,
+    // irrelevant while nothing read it, but it broke trimFeatureCategory's routing for any
+    // such row once that started existing (caught live: Superb 3V FL's Laurin & Klement
+    // inheriting Style's optional "Canton sound system" fell to the groupless default
+    // instead of staying in Technology & Infotainment with 'sound').
+    for (const occ of list) rows.push({ feature: occ.feature, isOptional: true, featureGroup: group, status: "inherited", replacedFeature: null, safetyFeatureSlug: occ.safetyFeatureSlug });
   }
 
   const order: Record<ResolvedFeatureRow["status"], number> = { upgraded: 0, new: 1, inherited: 2 };
@@ -377,4 +383,96 @@ export function distinctSafetyFeatureSlugs(trims: CatalogTrim[]): string[] {
   const slugs = new Set<string>();
   for (const t of trims) for (const f of t.features) if (f.safetyFeatureSlug) slugs.add(f.safetyFeatureSlug);
   return [...slugs];
+}
+
+// A trim's equipment list reorganised into 5 display sections (requested 2026-10-26: the flat
+// list "looks chaotic", group by what the feature is actually FOR). A presentation grouping
+// only -- doesn't touch feature_group's own job (which slot a feature occupies, for the
+// upgrade/replace logic above) or safety_feature_slug's (which of the 20 reference safety
+// systems a feature is). Fixed display order: Safety & ADAS first (the highest-stakes
+// category), then Comfort, Technology, Visual, Dynamics.
+export type TrimFeatureCategory = "safety" | "comfort" | "technology" | "visual" | "dynamics";
+
+export const TRIM_CATEGORY_ORDER: TrimFeatureCategory[] = ["safety", "comfort", "technology", "visual", "dynamics"];
+
+export const TRIM_CATEGORY_LABELS: Record<TrimFeatureCategory, string> = {
+  safety: "Safety & ADAS",
+  comfort: "Comfort & Ergonomics",
+  technology: "Technology & Infotainment",
+  visual: "Visual & Exterior",
+  dynamics: "Driving Dynamics & Chassis",
+};
+
+// feature_group -> category, covering every one of the 27 live group values. Checked FIRST
+// (before safety_feature_slug below) and deliberately so for one real case: 'headlights'
+// stays "Visual & Exterior" even for a row like "Matrix LED headlights" that also carries a
+// safety_feature_slug ('adaptive_matrix_headlights') -- by explicit request, Matrix/Bi-Xenon/
+// LED headlights belong in the exterior-look category, not safety, even though they're also
+// (legitimately) an ADAS reference row elsewhere. 'cruise'/'parking'/'airbags' map to "safety"
+// here too, which is what correctly catches a GROUPLESS-of-slug member of those groups (plain
+// "Cruise control"/"Parking sensors" with no safety_feature_slug of their own, which still
+// need to land in the same section as the ACC/reversing-detection row they upgrade into, not
+// get split across two sections mid-upgrade-chain).
+const GROUP_CATEGORY: Record<string, TrimFeatureCategory> = {
+  airbags: "safety",
+  cruise: "safety",
+  parking: "safety",
+  climate: "comfort",
+  seat_comfort: "comfort",
+  seat_adjustment: "comfort",
+  locking: "comfort",
+  armrests: "comfort",
+  sliding_doors: "comfort",
+  mirrors: "comfort",
+  light_rain_sensors: "comfort",
+  windows: "comfort",
+  infotainment: "technology",
+  instruments: "technology",
+  smartphone: "technology",
+  sound: "technology",
+  wheels: "visual",
+  bumpers: "visual",
+  headlights: "visual",
+  fog_lights: "visual",
+  ambient_lighting: "visual",
+  interior_trim: "visual",
+  rear_spoiler: "visual",
+  roof_rails: "visual",
+  seats: "visual",
+  steering_wheel: "visual",
+  suspension: "dynamics",
+};
+
+// Groupless feature text with no safety_feature_slug either -- read directly off all 65 live
+// distinct strings in this bucket (2026-10-26), not guessed: this is a display-routing call
+// ("where does 'Chrome grille' belong on screen"), not a claim about the car, so reading each
+// string's plain meaning is a different kind of judgement than inventing a fact would be. A
+// future string this table hasn't seen yet falls back to "visual" (see trimFeatureCategory) --
+// matched 49 of these 65's own real majority, a reasonable default for exactly this reason.
+const STANDALONE_CATEGORY: Record<string, TrimFeatureCategory> = {
+  "Auto-dimming rearview mirror": "comfort",
+  "Auto-dimming mirror": "comfort",
+  "Umbrella in doors": "comfort",
+  "Power tailgate": "comfort",
+  "Projection light from mirrors": "comfort",
+  "Jumbo Box": "comfort",
+  "Acoustic windows": "comfort",
+  "Voice control": "technology",
+  "Additional USB ports": "technology",
+  "CD changer": "technology",
+  "SEAT Drive Profile selector": "dynamics",
+  "SEAT Drive Profile": "dynamics",
+  "Drive profile selection": "dynamics",
+  "Sport exhaust": "dynamics",
+  "Power steering": "dynamics",
+};
+
+// feature_group wins when set (see its own comment above for why, re: headlights); otherwise
+// safety_feature_slug (catches groupless ABS/ESC/Front Assist/Lane Assist/Travel Assist/
+// driver-fatigue-detection, none of which belong to a replaceable "slot"); otherwise the
+// standalone lookup, defaulting to "visual" for anything that table hasn't seen yet.
+export function trimFeatureCategory(row: { featureGroup: string | null; safetyFeatureSlug: string | null; feature: string }): TrimFeatureCategory {
+  if (row.featureGroup) return GROUP_CATEGORY[row.featureGroup] ?? "visual";
+  if (row.safetyFeatureSlug) return "safety";
+  return STANDALONE_CATEGORY[row.feature] ?? "visual";
 }

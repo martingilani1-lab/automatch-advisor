@@ -11,7 +11,11 @@ import {
   buildTrimLayout,
   tierLabel,
   trimComparisonLabel,
+  trimFeatureCategory,
+  TRIM_CATEGORY_ORDER,
+  TRIM_CATEGORY_LABELS,
   type CompareRow,
+  type ResolvedFeatureRow,
 } from "../lib/trimsDisplay";
 import Badge from "./ui/badge";
 
@@ -34,47 +38,64 @@ interface TrimCardsProps {
 // grey, since "this is one of the 20 reference safety systems" is the more useful signal here.
 // /catalog has no NCAP tab to click through to (unlike /db-test's own copy of this component),
 // so this is static: a title attribute carries the feature's plain-language explanation.
+function FeatureRow({ r, safetyFeatureBySlug }: { r: ResolvedFeatureRow; safetyFeatureBySlug: Map<string, SafetyFeature> }) {
+  const safetyFeature = r.safetyFeatureSlug ? safetyFeatureBySlug.get(r.safetyFeatureSlug) : undefined;
+  return (
+    <li className="flex items-center justify-between gap-3 text-sm">
+      <span className="flex flex-col">
+        {safetyFeature ? (
+          <span className="flex items-center gap-2 text-yellow-300" style={{ opacity: r.status === "inherited" ? 0.6 : 1 }} title={safetyFeature.what_it_does ?? undefined}>
+            <IconShieldCheck size={14} stroke={2} className="shrink-0" />
+            {r.feature}
+          </span>
+        ) : (<>
+          {r.status === "new" && (
+            <span className="flex items-center gap-2 text-emerald-400">
+              <span className="shrink-0 font-semibold">+</span>
+              {r.feature}
+            </span>
+          )}
+          {r.status === "upgraded" && (
+            <span className="flex items-center gap-2 text-amber-400">
+              <span className="shrink-0 font-semibold">↑</span>
+              {r.feature}
+            </span>
+          )}
+          {r.status === "inherited" && (
+            <span className="flex items-center gap-2 text-muted opacity-60">
+              <IconCheck size={14} stroke={2} className="shrink-0" />
+              {r.feature}
+            </span>
+          )}
+        </>)}
+        {r.replacedFeature && <span className="pl-5 text-xs text-muted">was: {r.replacedFeature}</span>}
+      </span>
+      {r.isOptional && <Badge variant="default">optional</Badge>}
+    </li>
+  );
+}
+
+// Grouped into the 5 display sections (trimFeatureCategory, trimsDisplay.ts) instead of one
+// flat list -- requested 2026-10-26, the flat list "looks chaotic". Within each section, rows
+// keep resolveTrimFeatures' own upgraded/new/inherited order; a section with nothing in it is
+// skipped entirely rather than shown empty.
 function FeatureList({ trim, base, allTrims, safetyFeatureBySlug }: { trim: CatalogTrim; base: CatalogTrim; allTrims: CatalogTrim[]; safetyFeatureBySlug: Map<string, SafetyFeature> }) {
   const rows = resolveTrimFeatures(trim, base, allTrims);
   return (
-    <ul className="flex flex-col gap-1.5">
-      {rows.map((r, i) => {
-        const safetyFeature = r.safetyFeatureSlug ? safetyFeatureBySlug.get(r.safetyFeatureSlug) : undefined;
+    <div className="flex flex-col gap-3">
+      {TRIM_CATEGORY_ORDER.map((cat) => {
+        const catRows = rows.filter((r) => trimFeatureCategory(r) === cat);
+        if (catRows.length === 0) return null;
         return (
-          <li key={i} className="flex items-center justify-between gap-3 text-sm">
-            <span className="flex flex-col">
-              {safetyFeature ? (
-                <span className="flex items-center gap-2 text-yellow-300" style={{ opacity: r.status === "inherited" ? 0.6 : 1 }} title={safetyFeature.what_it_does ?? undefined}>
-                  <IconShieldCheck size={14} stroke={2} className="shrink-0" />
-                  {r.feature}
-                </span>
-              ) : (<>
-                {r.status === "new" && (
-                  <span className="flex items-center gap-2 text-emerald-400">
-                    <span className="shrink-0 font-semibold">+</span>
-                    {r.feature}
-                  </span>
-                )}
-                {r.status === "upgraded" && (
-                  <span className="flex items-center gap-2 text-amber-400">
-                    <span className="shrink-0 font-semibold">↑</span>
-                    {r.feature}
-                  </span>
-                )}
-                {r.status === "inherited" && (
-                  <span className="flex items-center gap-2 text-muted opacity-60">
-                    <IconCheck size={14} stroke={2} className="shrink-0" />
-                    {r.feature}
-                  </span>
-                )}
-              </>)}
-              {r.replacedFeature && <span className="pl-5 text-xs text-muted">was: {r.replacedFeature}</span>}
-            </span>
-            {r.isOptional && <Badge variant="default">optional</Badge>}
-          </li>
+          <div key={cat}>
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">{TRIM_CATEGORY_LABELS[cat]}</p>
+            <ul className="flex flex-col gap-1.5">
+              {catRows.map((r, i) => <FeatureRow key={i} r={r} safetyFeatureBySlug={safetyFeatureBySlug} />)}
+            </ul>
+          </div>
         );
       })}
-    </ul>
+    </div>
   );
 }
 
