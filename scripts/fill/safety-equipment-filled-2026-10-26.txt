@@ -1,0 +1,84 @@
+VW Golf CD1 | PF 2019–2024 | Trims: - NO TRIMS IN DB (trims + equipment needed first) |
+VW Golf CD1 | FL 2024– | Trims: - NO TRIMS IN DB (trims + equipment needed first) |
+VW Multivan T7 | 2021– | Trims: Multivan (T1), Life (T2), Style (T3) | Multivan: 7 airbags, ESP, Front Assist, Lane Assist Life: Park Assist Style: Matrix LED headlights, Travel Assist
+VW New Beetle 9C | PF 1998–2005 | Trims: Basis (T1), Highline (T4) | Basis: ABS, Dual front and side airbags, ESP
+VW New Beetle 9C | FL 2005–2010 | Trims: Basis (T1), Design Edition (T3), Highline (T4) | Basis: ABS, Dual front and side airbags, ESP
+VW Passat 3G | PF 2014–2019 | Trims: Trendline (T1), Comfortline (T2), Highline (T3), R-Line (T3) | Trendline: 6 airbags, ESP Comfortline: Front Assist, Front and rear parking sensors Highline: Adaptive cruise control (ACC)
+VW Passat 3G | FL 2019–2023 | Trims: Business (T2), Elegance (T3), R-Line (T3) | Business: 6 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors, Adaptive cruise control (ACC), Matrix LED headlights (opt) Elegance: Matrix LED headlights, Travel Assist
+VW Passat CJ | 2024– | Trims: Passat (T1), Business (T2), Elegance (T3), R-Line (T3) | Passat: 8 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors, Adaptive cruise control (ACC) Business: Travel Assist Elegance: Matrix LED headlights, Park Assist Plus
+VW Polo AW | PF 2017–2021 | Trims: Trendline (T1), Comfortline (T2), Highline (T3), R-Line (T3) | Trendline: 6 airbags, ESP, Front Assist Comfortline: Driver fatigue detection Highline: Front and rear parking sensors
+VW Polo AW | FL 2021– | Trims: Polo (T1), Life (T2), R-Line (T3), Style (T3) | Polo: 6 airbags, ESP, Front Assist, Lane Assist Life: Driver fatigue detection Style: Front and rear parking sensors, Matrix LED headlights, Travel Assist
+VW T-Cross C11 | PF 2019–2023 | Trims: T-Cross (Base) (T1), Life (T2), R-Line (T3), Style (T3) | T-Cross (Base): 6 airbags, ESP, Front Assist, Lane Assist Life: Rear parking sensors Style: Adaptive cruise control (ACC)
+VW T-Cross C11 | FL 2024– | Trims: T-Cross (Base) (T1), Life (T2), R-Line (T3), Style (T3) | T-Cross (Base): 6 airbags, ESP, Front Assist, Lane Assist Life: Rear parking sensors Style: Matrix LED headlights, Travel Assist
+VW T-Roc A11 | PF 2017–2021 | Trims: T-Roc (T1), R-Line (T3), Style (T3) | T-Roc: 6 airbags, ESP, Front Assist, Lane Assist Style: Adaptive cruise control (ACC)
+VW T-Roc A11 | FL 2022– | Trims: T-Roc (T1), Life (T2), R-Line (T3), Style (T3) | T-Roc: 6 airbags, ESP, Front Assist, Lane Assist Life: Park Assist Style: Adaptive cruise control (ACC)
+VW Taigo CS | 2021– | Trims: Taigo (Base) (T1), Life (T2), R-Line (T3), Style (T3) | Taigo (Base): 6 airbags, ESP, Front Assist, Lane Assist Life: Rear parking sensors Style: Matrix LED headlights, Travel Assist
+VW Tiguan AD1 | PF 2016–2020 | Trims: Trendline (T1), Comfortline (T2), Highline (T3), R-Line (T3) | Trendline: 7 airbags, ESP Comfortline: Front and rear parking sensors, Front Assist, Lane Assist Highline: Adaptive cruise control (ACC)
+VW Tiguan AD1 | FL 2020–2023 | Trims: Tiguan (T1), Life (T2), Elegance (T3), R-Line (T3) | Tiguan: 7 airbags, ESP, Front Assist, Lane Assist Life: Adaptive cruise control (ACC), Front and rear parking sensors Elegance: Matrix LED headlights, Travel Assist
+VW Tiguan CT | 2024– | Trims: Tiguan (T1), Life (T2), Elegance (T3), R-Line (T3) | Tiguan: 8 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors Life: Adaptive cruise control (ACC), Park Assist Plus Elegance: Matrix LED headlights, Travel Assist
+VW Touran 5T | PF 2015–2020 | Trims: Trendline (T1), Comfortline (T2), Highline (T3), R-Line (T3) | Trendline: 7 airbags, ESP, Front Assist Comfortline: Front and rear parking sensors Highline: Adaptive cruise control (ACC)
+VW Touran 5T | FL 2020– | Trims: R-Line (T3) | R-Line: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors, Adaptive cruise control (ACC) Škoda Octavia NX | 2019–2024 | Trims: - NO TRIMS IN DB (trims + equipment needed first) |
+Škoda Scala NW1 | PF 2019–2023 | Trims: Active (T1), Ambition (T2), Monte Carlo (T3), Style (T3) | Active: 6 airbags, ESP, Front Assist, Lane Assist Ambition: Rear parking sensors
+Škoda Scala NW1 | FL 2024– | Trims: Essence (T1), Selection (T2), Monte Carlo (T3) | Essence: 6 airbags, ESP, Front Assist, Lane Assist Selection: Rear parking sensors, Driver fatigue detection
+Škoda Superb 3V | PF 2015–2019 | Trims: Active (T1), Ambition (T2), Sportline (T3), Style (T3), L&K (T4) | Active: 7 airbags, ESP, Front Assist Ambition: Front and rear parking sensors Style: Adaptive cruise control (ACC)
+Škoda Superb 3V | FL 2019–2024 | Trims: Active (T1), Ambition (T2), Sportline (T3), Style (T3), L&K (T4) | Active: 7 airbags, ESP, Front Assist, Lane Assist Ambition: Front and rear parking sensors Style: Adaptive cruise control (ACC), Matrix LED headlights (opt) L&K: Matrix LED headlights
+Škoda Superb PY | 2024– | Trims: Essence (T1), Selection (T2), Sportline (T3), L&K (T4) | Essence: 8 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors L&K: Matrix LED headlights, Travel Assist
+=== VOLKSWAGEN === VW Arteon 3H7 | PF 2017–2020 | Trims: Arteon / Basis (T1), Elegance (T2), R-Line (T3) | Arteon / Basis: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors Elegance: Adaptive cruise control (ACC)
+VW Arteon 3H7 | FL 2020–2024 | Trims: Arteon / Basis (T1), Elegance (T2), R-Line (T3) | Arteon / Basis: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors, Adaptive cruise control (ACC) Elegance: Travel Assist
+VW Bora 1J | PF 1998–2001 | Trims: Basis (T1), Trendline (T2), Comfortline (T3), Highline (T4) | Basis: 4 airbags, ABS Trendline: ESP (opt)
+VW Bora 1J | FL 2001–2005 | Trims: Basis (T1), Trendline (T2), Comfortline (T3), Highline (T4) | Basis: 4 airbags, ABS, ESP
+VW Caddy SB | 2020– | Trims: Caddy (T1), Life (T2), Style (T3) | Caddy: 6 airbags, ESP, Front Assist, Lane Assist Life: Rear parking sensors
+VW Golf 1J | PF 1997–2000 | Trims: Basis (T1), Trendline (T2), Comfortline (T3), Highline (T4) | Basis: ABS, Dual front and side airbags
+VW Golf 1J | FL 2000–2006 | Trims: Basis (T1), Trendline (T2), Comfortline (T3), Highline (T4) | Basis: ABS, Dual front and side airbags, ESP
+VW Golf 5G | PF 2012–2016 | Trims: Trendline (T1), Comfortline (T2), Highline (T3), R-Line (T3) | Trendline: 7 airbags, ESP Comfortline: Driver fatigue detection Highline: Front and rear parking sensors
+VW Golf 5G | FL 2017–2020 | Trims: Trendline (T1), Comfortline (T2), Highline (T3), R-Line (T3) | Trendline: 7 airbags, ESP, Front Assist Comfortline: Driver fatigue detection Highline: Front and rear parking sensors, Adaptive cruise control (ACC) === ŠKODA === Škoda Fabia NJ | PF 2014–2018 | Trims: Active (T1), Ambition (T2), Monte Carlo (T3), Style (T3) | Active: 6 airbags, ESP Ambition: Front Assist Style: Rear parking sensors
+Škoda Fabia NJ | FL 2018–2021 | Trims: Active (T1), Ambition (T2), Monte Carlo (T3), Style (T3) | Active: 6 airbags, ESP Ambition: Front Assist Style: Rear parking sensors
+Škoda Fabia PJ | PF 2021–2024 | Trims: Active (T1), Ambition (T2), Monte Carlo (T3), Style (T3) | Active: 6 airbags, ESP, Front Assist, Lane Assist Ambition: Driver fatigue detection Style: Rear parking sensors
+Škoda Fabia PJ | FL 2024– | Trims: Essence (T1), Selection (T2), Monte Carlo (T3) | Essence: 6 airbags, ESP, Front Assist, Lane Assist Selection: Rear parking sensors, Driver fatigue detection
+Škoda Kamiq NW4 | PF 2019–2023 | Trims: Active (T1), Ambition (T2), Monte Carlo (T3), Style (T3) | Active: 6 airbags, ESP, Front Assist, Lane Assist Ambition: Rear parking sensors
+Škoda Kamiq NW4 | FL 2024– | Trims: Essence (T1), Selection (T2), Monte Carlo (T3) | Essence: 6 airbags, ESP, Front Assist, Lane Assist Selection: Rear parking sensors, Driver fatigue detection
+Škoda Karoq NU7 | PF 2017–2021 | Trims: Active (T1), Ambition (T2), Sportline (T3), Style (T3) | Active: 7 airbags, ESP, Front Assist Ambition: Rear parking sensors Style: Front and rear parking sensors, Adaptive cruise control (ACC)
+Škoda Karoq NU7 | FL 2021– | Trims: Active (T1), Ambition (T2), Sportline (T3), Style (T3) | Active: 7 airbags, ESP, Front Assist, Lane Assist Ambition: Rear parking sensors Style: Front and rear parking sensors, Adaptive cruise control (ACC)
+Škoda Kodiaq NS7 | PF 2017–2021 | Trims: Active (T1), Ambition (T2), Scout/Sportline/Style (T3), L&K (T4) | Active: 7 airbags, ESP, Front Assist Ambition: Rear parking sensors Style: Front and rear parking sensors, Adaptive cruise control (ACC)
+Škoda Kodiaq NS7 | FL 2021–2024 | Trims: Active (T1), Ambition (T2), Scout/Sportline/Style (T3), L&K (T4) | Active: 7 airbags, ESP, Front Assist, Lane Assist Ambition: Rear parking sensors Style: Front and rear parking sensors, Adaptive cruise control (ACC), Matrix LED headlights (opt) L&K: Matrix LED headlights
+Škoda Kodiaq PS | 2024– | Trims: Selection (T2), Sportline (T3), Top Selection (T3), Exclusive Selection (T4) | Selection: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors Top Selection: Matrix LED headlights
+Škoda Octavia 1U | PF 1996–2000 | Trims: LX (T1), GLX (T2), SLX (T3) | LX: ABS (opt), Driver airbag GLX: ABS, Dual front airbags SLX: Dual front and side airbags
+Škoda Octavia 1U | FL 2000–2010 | Trims: Classic (T1), Tour (T1), Ambiente (T2), Elegance (T3) | Classic: ABS, Dual front airbags Ambiente: Dual front and side airbags (opt) Elegance: Dual front and side airbags
+Škoda Octavia 1Z | PF 2004–2008 | Trims: Classic (T1), Ambiente (T2), Elegance (T3) | Classic: 4 airbags, ABS Ambiente: 6 airbags, ESP (opt) Elegance: ESP
+Škoda Octavia 1Z | FL 2009–2013 | Trims: Active (T1), Ambition (T2), Elegance (T3), L&K (T4) | Active: 6 airbags, ESP Elegance: Rear parking sensors L&K: Bi-Xenon with cornering (AFS)
+Škoda Octavia 5E | PF 2013–2016 | Trims: Active (T1), Ambition (T2), Elegance (T3), L&K (T4) | Active: 7 airbags, ESP Elegance: Rear parking sensors
+Škoda Octavia 5E | FL 2017–2020 | Trims: Active (T1), Ambition (T2), Style (T3), L&K (T4) | Active: 7 airbags, ESP, Front Assist Ambition: Rear parking sensors Style: Front and rear parking sensors === SEAT === SEAT Arona KJ7 | PF 2017–2021 | Trims: Reference (T1), Style (T2), FR (T3), Xcellence (T3) | Reference: 6 airbags, ESP, Front Assist Style: Driver fatigue detection Xcellence: Rear parking sensors
+SEAT Arona KJ7 | FL 2021– | Trims: Reference (T1), Style (T2), FR (T3), Xcellence (T3) | Reference: 6 airbags, ESP, Front Assist, Lane Assist Style: Driver fatigue detection Xcellence: Rear parking sensors
+SEAT Ateca KH7 | PF 2016–2020 | Trims: Reference (T1), Style (T2), FR (T3), Xcellence (T3) | Reference: 7 airbags, ESP, Front Assist Style: Rear parking sensors, Driver fatigue detection Xcellence: Front and rear parking sensors
+SEAT Ateca KH7 | FL 2020– | Trims: Reference (T1), Style (T2), FR (T3), Xcellence (T3) | Reference: 7 airbags, ESP, Front Assist Style: Rear parking sensors, Adaptive cruise control (ACC) Xcellence: Front and rear parking sensors, Travel Assist
+SEAT Ibiza KJ | PF 2017–2021 | Trims: Reference (T1), Style (T2), FR (T3), Xcellence (T3) | Reference: 6 airbags, ESP, Front Assist Style: Driver fatigue detection Xcellence: Rear parking sensors
+SEAT Ibiza KJ | FL 2021– | Trims: Reference (T1), Style (T2), FR (T3), Xcellence (T3) | Reference: 6 airbags, ESP, Front Assist, Lane Assist Style: Driver fatigue detection Xcellence: Rear parking sensors
+SEAT León 1M | PF 1999–2003 | Trims: Stella (T1), Signo (T2), Sport (T3), Top Sport (T4) | Stella: ABS, Dual front and side airbags
+SEAT León 1M | FL 2003–2006 | Trims: Stella (T1), Signo (T2), Sport (T3), FR (T4) | Stella: ABS, Dual front and side airbags FR: ESP
+SEAT León 5F | PF 2012–2016 | Trims: Reference (T1), Style (T2), FR (T3) | Reference: 7 airbags, ESP Style: Driver fatigue detection
+SEAT León 5F | FL 2017–2020 | Trims: Reference (T1), Style (T2), FR (T3), Xcellence (T3) | Reference: 7 airbags, ESP, Front Assist Xcellence: Rear parking sensors
+SEAT León KL | PF 2020–2024 | Trims: Style (T2), FR (T3), Xcellence (T3) | Style: 7 airbags, ESP, Front Assist, Lane Assist Xcellence: Rear parking sensors
+SEAT León KL | FL 2024– | Trims: Style (T2), FR (T3) | Style: 7 airbags, ESP, Front Assist, Lane Assist FR: Rear parking sensors
+SEAT Tarraco KN2 | 2018–2024 | Trims: Style (T2), FR (T3), Xcellence (T3) | Style: 7 airbags, ESP, Front Assist, Lane Assist, Rear parking sensors Xcellence: Front and rear parking sensors, Adaptive cruise control (ACC)
+SEAT Toledo 1M2 | PF 1998–2003 | Trims: Stella (T1), Signo (T2), Executive (T3), Sport (T4) | Stella: ABS, Dual front and side airbags
+SEAT Toledo 1M2 | FL 2003–2004 | Trims: Stella (T1), Signo (T2), Executive (T3), FR (T4) | Stella: ABS, Dual front and side airbags Signo: ESP === AUDI === Audi A1 GB | PF 2018– | Trims: Basis (T1), advanced (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist, Lane Assist advanced: Rear parking sensors
+Audi A3 8L | PF 1996–2000 | Trims: Attraction (T1), Ambition (T2), Ambiente (T3) | Attraction: ABS, Dual front airbags, Dual front and side airbags (opt) Ambition: Dual front and side airbags
+Audi A3 8L | FL 2000–2003 | Trims: Attraction (T1), Ambition (T2), Ambiente (T3), S line (T4) | Attraction: ABS, Dual front and side airbags, ESP
+Audi A3 8V | PF 2012–2016 | Trims: Attraction / Basis (T1), Ambiente / Design (T2), Ambition / Sport (T2), S line (T3) | Attraction / Basis: 7 airbags, ESP Ambiente / Design: Rear parking sensors
+Audi A3 8V | FL 2016–2020 | Trims: Attraction / Basis (T1), Ambiente / Design (T2), Ambition / Sport (T2), S line (T3) | Attraction / Basis: 7 airbags, ESP, Front Assist Ambiente / Design: Rear parking sensors
+Audi A3 8Y | PF 2020–2024 | Trims: Basis (T1), advanced (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist, Lane Assist advanced: Rear parking sensors
+Audi A3 8Y | FL 2024– | Trims: Basis (T1), advanced (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist, Lane Assist, Driver fatigue detection advanced: Front and rear parking sensors
+Audi A4 B9 | PF 2015–2019 | Trims: Basis (T1), design (T2), sport (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist design: Rear parking sensors
+Audi A4 B9 | FL 2019–2024 | Trims: Basis (T1), advanced (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist, Front and rear parking sensors
+Audi Q2 GA | PF 2016–2020 | Trims: Basis (T1), design (T2), sport (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist design: Rear parking sensors (opt)
+Audi Q2 GA | FL 2020– | Trims: Basis (T1), design (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist design: Rear parking sensors
+Audi Q3 F3 | PF 2018– | Trims: Basis (T1), Advanced (T2), S line (T3) | Basis: 6 airbags, ESP, Front Assist, Lane Assist Advanced: Rear parking sensors
+Audi TT 8N | PF 1998–2003 | Trims: Base (T1) | Base: ABS, Dual front and side airbags, ESP
+Audi TT 8N | FL 2003–2006 | Trims: Base (T1), S line (T2) | Base: ABS, Dual front and side airbags, ESP
+Audi TT 8S | PF 2014–2018 | Trims: TT (T1), S line (T2) | TT: 6 airbags, ESP, Lane Assist
+Audi TT 8S | FL 2018–2023 | Trims: TT (T1), S line (T2) | TT: 6 airbags, ESP, Lane Assist, Front and rear parking sensors (opt)
+=== CUPRA === Cupra Formentor KM7 | PF 2020–2024 | Trims: Formentor (T1), VZ (Veloz) (T2) | Formentor: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors VZ: Adaptive cruise control (ACC), Travel Assist
+Cupra Formentor KM7 | FL 2024– | Trims: Formentor (T1), VZ (Veloz) (T2) | Formentor: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors, Adaptive cruise control (ACC) VZ: Matrix LED headlights, Travel Assist
+Cupra León KL | PF 2020–2024 | Trims: Cupra León (T1) | Cupra León: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors
+Cupra León KL | FL 2024– | Trims: Cupra León (T1) | Cupra León: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors, Adaptive cruise control (ACC)
+Cupra Terramar KP | 2024– | Trims: Cupra (T1), VZ (T2), America's Cup (T3) | Cupra: 7 airbags, ESP, Front Assist, Lane Assist, Front and rear parking sensors, Adaptive cruise control (ACC) VZ: Matrix LED headlights, Travel Assist
