@@ -1,0 +1,804 @@
+ENGINE MAINTENANCE — fill per engine (2026-10-27)  ·  130 engines
+
+Price basis: EUR, parts + labour, independent workshop in SK/CZ, as a range min-max.
+Yearly cost = routine servicing at ~15,000 km/year (no tyres, no repairs).
+Leave a field empty if unknown — it stays NULL, nothing is guessed.
+Diesels: leave 'plugs' empty, fill 'fuel filter'. Petrols: leave 'fuel filter' empty (or fill if the engine has a serviceable one).
+Chain engines: 'timing' = no fixed interval → leave km/years empty, put typical chain-kit price only if it's a known common job.
+
+Fields per engine (one line each, keep the order, separate with ' | '):
+  oil: <km> / <months> | spec: <oil standard / viscosity> | oil €: <min-max>
+  air filter: <km> | fuel filter: <km> | plugs: <km> | plugs €: <min-max>
+  timing: <km> / <years> | timing €: <min-max> | yearly €: <min-max> | note: <free text, optional>
+
+Example (format only — not real values):
+XXXX@00 | 1.0 TSI | petrol | belt (in DB) | 4.0 l
+  oil: 15000 / 12 | spec: VW 508 00, 0W-20 | oil €: 90-130
+  air filter: 60000 | fuel filter:  | plugs: 60000 | plugs €: 80-120
+  timing: 120000 / 8 | timing €: 450-650 | yearly €: 180-280 | note: belt kit incl. water pump
+
+
+============ DIESEL ============
+
+CUSA@55 | 1.4 TDI 55kW | diesel | belt 210 000 km (in DB) | 4.1 l
+  used in: Fabia NJ
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CUSB@66 | 1.4 TDI 66kW | diesel | belt 210 000 km (in DB) | 4.1 l
+  used in: Fabia NJ
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CUTA@77 | 1.4 TDI 77kW | diesel | belt 210 000 km (in DB) | 4.1 l
+  used in: Fabia NJ
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DGTD@59 | 1.6 TDI 59kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Polo AW
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DGTE@70 | 1.6 TDI 70kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Arona KJ7, Ibiza KJ, Polo AW, T-Cross C11
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CAYC@77 | 1.6 TDI CR (CAYC) — 77 kW | diesel | belt 210 000 km (in DB) | 4.3 l
+  used in: Octavia 1Z
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CLHA@77 | 1.6 TDI | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A3 8V, Golf 5G, León 5F, Octavia 5E
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CRKB@81 | 1.6 TDI | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A3 8V, Golf 5G, León 5F, Octavia 5E
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DDYA@85 | 1.6 TDI 85kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Arona KJ7, Ateca KH7, Ibiza KJ, Kamiq NW4, Karoq NU7, Q2 GA, Scala NW1, T-Roc A11
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DGTE@85 | 1.6 TDI 85kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Touran 5T
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DCXA@88 | 1.6 TDI 88kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Passat 3G, Superb 3V
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AGP@50 | 1.9 SDI | diesel | belt 90 000 km (in DB) | 4.5 l
+  used in: Golf 1J, Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AQM@50 | 1.9 SDI 50kW (Euro3) | diesel | belt 90 000 km (in DB) | 4.5 l
+  used in: Bora 1J, Golf 1J, León 1M, Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AGR@66 | 1.9 TDI 66kW (Wastegate) | diesel | belt 90 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+ALH@66 | 1.9 TDI 66kW (VNT) | diesel | belt 90 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, New Beetle 9C, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+ATD@74 | 1.9 TDI PD | diesel | belt 90 000 km (in DB) | 4.3 l
+  used in: A3 8L, Bora 1J, Golf 1J, New Beetle 9C, Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BSW@77 | 1.9 TDI PD | diesel | belt 120 000 km (in DB) | 4.3 l
+  used in: New Beetle 9C
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BXE@77 | 1.9 TDI PD (BXE) — 77 kW | diesel | belt 120 000 km (in DB) | 4.3 l
+  used in: Octavia 1Z
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AHF@81 | 1.9 TDI 81kW (Euro2) | diesel | belt 90 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+ASV@81 | 1.9 TDI 81kW (Euro3) | diesel | belt 90 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AJM@85 | 1.9 TDI PD (AJM) | diesel | belt 90 000 km (in DB) | 4.3 l
+  used in: Bora 1J, Golf 1J
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+ASZ@96 | 1.9 TDI PD | diesel | belt 90 000 km (in DB) | 4.3 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+ARL@110 | 1.9 TDI PD (ARL) | diesel | belt 90 000 km (in DB) | 4.3 l
+  used in: Bora 1J, Golf 1J, León 1M, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DTRF@75 | 2.0 TDI 75kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Caddy SB
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DFGC@85 | 2.0 TDI 85kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DTRD@85 | 2.0 TDI 85kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A3 8Y, Golf CD1, León KL, Octavia NX
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DTRE@90 | 2.0 TDI 90kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Caddy SB
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BKD@103 | 2.0 TDI PD (BKD) — 103 kW | diesel | belt 120 000 km (in DB) | 3.8 l
+  used in: Octavia 1Z
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CFHC@103 | 2.0 TDI CR (CFHC) — 103 kW | diesel | belt 210 000 km (in DB) | 4.3 l
+  used in: Octavia 1Z
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CRBC@110 | 2.0 TDI | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A3 8V, Golf 5G, León 5F, Octavia 5E, Passat 3G, Superb 3V
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DEUA@110 | 2.0 TDI 110kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DFFA@110 | 2.0 TDI 110kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A3 8Y, Ateca KH7, Formentor KM7, Golf CD1, Karoq NU7, Kodiaq PS, León KL, Multivan T7, Octavia NX, Passat CJ, Q2 GA, Q3 F3, Superb PY, T-Roc A11, Tarraco KN2, Tiguan CT, Touran 5T
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DFGA@110 | 2.0 TDI 110kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Arteon 3H7, Kodiaq NS7, Passat 3G, Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DEZE@120 | 35 TDI 120kW | diesel/MHEV | belt 210 000 km (in DB) | 4.7 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CUNA@135 | 2.0 TDI | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A3 8V, Golf 5G, León 5F, Octavia 5E, TT 8S
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DETA@140 | 2.0 TDI 140kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DFEA@140 | 2.0 TDI 140kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Arteon 3H7, Passat 3G, Superb 3V
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DFHA@140 | 2.0 TDI 140kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Ateca KH7, Karoq NU7, Kodiaq NS7, Q3 F3, Tarraco KN2, Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DXNM@142 | 2.0 TDI 142kW | diesel | belt 210 000 km (in DB) | 4.7 l
+  used in: Kodiaq PS, Passat CJ, Superb PY, Tiguan CT
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DTPA@150 | 40 TDI 150kW | diesel/MHEV | belt 210 000 km (in DB) | 4.7 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CUAA@176 | 2.0 BiTDI 176kW | diesel | belt 120 000 km (in DB) | 4.7 l
+  used in: Arteon 3H7, Kodiaq NS7, Passat 3G, Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CSWB@160 | 3.0 TDI 160kW | diesel | chain, no km interval in DB (in DB) | 6.1 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CRTC@200 | 3.0 TDI 200kW | diesel | chain, no km interval in DB (in DB) | 6.1 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DEWA@255 | 3.0 TDI S4 255kW | diesel/MHEV | chain, no km interval in DB (in DB) | 6.1 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs: n/a | plugs €: n/a
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+
+============ PETROL ============
+
+CHYA@44 | 1.0 MPI 44kW | petrol | belt 120 000 km (in DB) | 3.4 l
+  used in: Fabia NJ
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHYA@48 | 1.0 MPI 48kW | petrol | belt 120 000 km (in DB) | 3.4 l
+  used in: Polo AW
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHYB@55 | 1.0 MPI 55kW | petrol | belt 120 000 km (in DB) | 3.4 l
+  used in: Fabia NJ, Ibiza KJ, Polo AW
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHYB@59 | 1.0 MPI 59kW | petrol | belt 120 000 km (in DB) | 3.4 l
+  used in: Fabia PJ
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHZB@70 | 1.0 TSI 70kW | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A1 GB, Arona KJ7, Fabia NJ, Fabia PJ, Ibiza KJ, Kamiq NW4, Polo AW, Scala NW1, T-Cross C11, Taigo CS
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHZC@81 | 1.0 TSI 81kW | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: Fabia NJ, Polo AW
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DLAA@81 | 1.0 TSI 81kW | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A1 GB, A3 8Y, Fabia PJ, Golf CD1, Kamiq NW4, León KL, Octavia NX, Scala NW1, T-Cross C11, Taigo CS
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DLAB@81 | 1.0 eTSI 81kW | petrol/MHEV | belt 120 000 km (in DB) | 4.0 l
+  used in: A3 8Y, Golf CD1, Octavia NX
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHZD@85 | 1.0 TSI 85kW | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A1 GB, Arona KJ7, Ateca KH7, Ibiza KJ, Kamiq NW4, Karoq NU7, Polo AW, Q2 GA, Scala NW1, T-Cross C11, T-Roc A11
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJZB@63 | 1.2 TSI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: Golf 5G, León 5F, Octavia 5E
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJZC@66 | 1.2 TSI 66kW | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: Fabia NJ
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CBZB@77 | 1.2 TSI (CBZB) — 77 kW | petrol | chain, no km interval in DB (in DB) | 3.6 l
+  used in: Octavia 1Z
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJZA@77 | 1.2 TSI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A3 8V, Golf 5G, León 5F, Octavia 5E
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJZD@81 | 1.2 TSI 81kW | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: Fabia NJ
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CYVB@81 | 1.2 TSI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A3 8V, Golf 5G, León 5F, Octavia 5E, Touran 5T
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AMD@44 | 1.4 8V | petrol | chain, no km interval in DB (in DB) | 4.0 l
+  used in: Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AXP@55 | 1.4 16V | petrol | belt 90 000 km (in DB) | 3.2 l
+  used in: Bora 1J, Golf 1J, León 1M, New Beetle 9C, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CAXA@90 | 1.4 TSI (CAXA) — 90 kW | petrol | chain, no km interval in DB (in DB) | 3.6 l
+  used in: Octavia 1Z
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CZCA@92 | 1.4 TSI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A3 8V, Golf 5G, León 5F, Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHPA@103 | 1.4 TSI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: Golf 5G, León 5F
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CVNA@110 | 1.4 TFSI 110kW | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CZDA@110 | 1.4 TSI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: A3 8V, Ateca KH7, Golf 5G, Karoq NU7, Kodiaq NS7, León 5F, Octavia 5E, Passat 3G, Q2 GA, Superb 3V, Tiguan AD1, Touran 5T
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DGEA@110 | 1.4 eHybrid (engine 110kW / system 150kW) | petrol/PHEV | belt 120 000 km (in DB) | 4.0 l
+  used in: A3 8Y, Golf CD1, Octavia NX
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DPBE@84 | 1.5 TSI 84kW | petrol | belt 120 000 km (in DB) | 4.3 l
+  used in: Caddy SB
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DPBC@100 | 1.5 TSI 100kW | petrol | belt 120 000 km (in DB) | 4.3 l
+  used in: Multivan T7
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DADA@110 | 1.5 TSI Evo 110kW | petrol | belt 120 000 km (in DB) | 4.3 l
+  used in: A1 GB, A3 8Y, Arona KJ7, Arteon 3H7, Ateca KH7, Caddy SB, Fabia PJ, Formentor KM7, Golf CD1, Ibiza KJ, Kamiq NW4, Karoq NU7, Kodiaq NS7, León KL, Octavia NX, Passat 3G, Polo AW, Q2 GA, Q3 F3, Scala NW1, Superb 3V, T-Cross C11, T-Roc A11, Taigo CS, Tarraco KN2, Tiguan AD1, Touran 5T
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DFYA@110 | 1.5 eTSI 110kW | petrol/MHEV | belt 120 000 km (in DB) | 4.3 l
+  used in: A3 8Y, Golf CD1, Octavia NX
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DXDB@110 | 1.5 eTSI 110kW | petrol/MHEV | belt 120 000 km (in DB) | 4.3 l
+  used in: Kodiaq PS, Passat CJ, Superb PY, Terramar KP, Tiguan CT
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BSE@75 | 1.6 MPI (BSE) — 75 kW | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: Octavia 1Z
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AEE@55 | 1.6 MPI | petrol | belt 90 000 km (in DB) | 3.5 l
+  used in: Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AKL@74 | 1.6 MPI | petrol | belt 90 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, New Beetle 9C, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BFQ@75 | 1.6 MPI | petrol | belt 90 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, New Beetle 9C, Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AUS@77 | 1.6 16V (AUS) | petrol | belt 90 000 km (in DB) | 3.2 l
+  used in: Bora 1J, Golf 1J, León 1M, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AGN@92 | 1.8 20V | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, Octavia 1U, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+APG@92 | 1.8 20V (APG) | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: A3 8L, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AGU@110 | 1.8T 20V | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, New Beetle 9C, Octavia 1U, TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+ARX@110 | 1.8T (4x4) | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BVP@120 | 1.8T | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+ARY@132 | 1.8T quattro | petrol | belt, no km interval in DB (in DB) | oil capacity unknown
+  used in: TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AUQ@132 | 1.8T 20V RS | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: A3 8L, Bora 1J, Golf 1J, León 1M, Octavia 1U, Toledo 1M2, TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BVR@140 | 1.8T | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AMK@154 | 1.8T Cupra R (AMK) | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: A3 8L, León 1M
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+APY@154 | 1.8T S3 (APY) | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: A3 8L
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BAM@165 | 1.8T Cupra R (BAM) | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: A3 8L, León 1M, TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BFV@176 | 1.8T quattro Sport | petrol | belt 120 000 km (in DB) | 4.5 l
+  used in: TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJSA@132 | 1.8 TSI | petrol | chain, no km interval in DB (in DB) | 5.2 l
+  used in: A3 8V, León 5F, Octavia 5E, Passat 3G, Superb 3V, TT 8S
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+APK@85 | 2.0 MPI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: Bora 1J, Golf 1J, New Beetle 9C, Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AZH@85 | 2.0 MPI | petrol | belt 120 000 km (in DB) | 4.0 l
+  used in: Bora 1J, Golf 1J, New Beetle 9C, Octavia 1U
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DLVB@110 | 35 TFSI 110kW | petrol/MHEV | chain, no km interval in DB (in DB) | 5.2 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CZPA@132 | 2.0 TSI 132kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Kodiaq NS7, Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CVKB@140 | 2.0 TFSI ultra 140kW | petrol | chain, no km interval in DB (in DB) | 5.2 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DKZA@140 | 2.0 TSI 140kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: A3 8Y, Arteon 3H7, Ateca KH7, Formentor KM7, Karoq NU7, Kodiaq NS7, León KL, Q2 GA, Q3 F3, T-Roc A11, Tarraco KN2, TT 8S
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CZPC@147 | 2.0 TSI GTI 147kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: A1 GB, Polo AW
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DKZA@150 | 2.0 TSI 150kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: A3 8Y, León KL
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DMSA@150 | 40 TFSI 150kW | petrol/MHEV | chain, no km interval in DB (in DB) | 5.2 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNPA@150 | 2.0 TSI 150kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Kodiaq PS, Multivan T7, Passat CJ, Superb PY, Terramar KP, Tiguan CT
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNND@152 | 2.0 TSI GTI 152kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: A1 GB, Polo AW
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHHB@162 | 2.0 TSI | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Golf 5G, Octavia 5E, Passat 3G, Superb 3V, Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHHA@169 | 2.0 TSI | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Golf 5G, Octavia 5E
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CHHC@169 | 2.0 TFSI 169kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: TT 8S
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DKNA@180 | 45 TFSI 180kW | petrol/MHEV | chain, no km interval in DB (in DB) | 5.2 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DKTB@180 | 2.0 TFSI 180kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: TT 8S
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNPA@180 | 2.0 TSI RS 180kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Formentor KM7, Golf CD1, Kodiaq NS7, León KL, Q3 F3
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CYRB@185 | 2.0 TFSI 185kW | petrol | chain, no km interval in DB (in DB) | 5.2 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNFE@195 | 2.0 TSI 195kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Passat CJ, Superb PY, Terramar KP, Tiguan CT
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNPA@195 | 2.0 TSI 195kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: León KL
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNUA@200 | 2.0 TSI 200kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Arteon 3H7, Passat 3G, Superb 3V
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJXA@206 | 2.0 TSI Cupra 206kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: León 5F, Superb 3V
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJXC@221 | 2.0 TSI R | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: A3 8V, Golf 5G, León 5F
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNFC@221 | 2.0 TSI Cupra 221kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Ateca KH7, León KL, Q2 GA, T-Roc A11
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CJXG@228 | 2.0 TFSI TTS 228kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: TT 8S
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNFB@228 | 2.0 TSI VZ 228kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Formentor KM7, León KL
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNFC@228 | 2.0 TFSI (DNFC) 228kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: A3 8Y
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNFG@235 | 2.0 TSI R 235kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: Arteon 3H7, Tiguan AD1
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNFB@245 | 2.0 TSI 245kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: León KL
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNFC@245 | 2.0 TFSI (DNFC) 245kW | petrol | chain, no km interval in DB (in DB) | 5.7 l
+  used in: A3 8Y
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AGZ@110 | 2.3 V5 (AGZ) | petrol | chain, no km interval in DB (in DB) | 4.6 l
+  used in: Bora 1J, Golf 1J, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AQN@125 | 2.3 V5 (AQN) | petrol | chain, no km interval in DB (in DB) | 4.6 l
+  used in: Bora 1J, Golf 1J, New Beetle 9C, Toledo 1M2
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNWB@287 | 2.5 TFSI VZ5 287kW | petrol | chain, no km interval in DB (in DB) | 7.1 l
+  used in: Formentor KM7
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DAZA@294 | 2.5 TFSI RS3 294kW | petrol | chain, no km interval in DB (in DB) | 7.1 l
+  used in: A3 8V, Q3 F3, TT 8S
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+DNWC@294 | 2.5 TFSI RS3 (DNWC) 294kW | petrol | chain, no km interval in DB (in DB) | 7.1 l
+  used in: A3 8Y
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AUE@150 | 2.8 V6 (AUE) | petrol | chain, no km interval in DB (in DB) | 5.5 l
+  used in: Bora 1J, Golf 1J, León 1M
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+CWGD@260 | 3.0 TFSI S4 260kW | petrol | chain, no km interval in DB (in DB) | 7.5 l
+  used in: A4 B9
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+AXJ@165 | 3.2 VR6 RSi | petrol | chain, no km interval in DB (in DB) | 5.5 l
+  used in: New Beetle 9C
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BFH@177 | 3.2 VR6 R32 (BFH) | petrol | chain, no km interval in DB (in DB) | 5.5 l
+  used in: Golf 1J
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
+
+BHE@184 | 3.2 VR6 | petrol | chain, no km interval in DB (in DB) | 5.5 l
+  used in: TT 8N
+  oil:  /  | spec:  | oil €: 
+  air filter:  | fuel filter:  | plugs:  | plugs €: 
+  timing:  /  | timing €:  | yearly €:  | note: 
