@@ -388,6 +388,7 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
                   {r.price && <span style={{ color: "#e4e4e7", whiteSpace: "nowrap" }}>{r.price}</span>}
                 </div>
               ))}
+              {engine.maintenance.note && <div className="maint-item">{engine.maintenance.note}</div>}
               {yearly && (
                 <div className="maint-item" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                   <span>
@@ -397,7 +398,6 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
                   <span style={{ color: "#e4e4e7", fontWeight: 600, whiteSpace: "nowrap" }}>{yearly.replace(" / year", "")}</span>
                 </div>
               )}
-              {engine.maintenance.note && <div className="maint-item">{engine.maintenance.note}</div>}
               <div className="maint-item" style={{ fontSize: ".68rem", color: "#6b6b72" }}>
                 Typical prices at an independent workshop in SK/CZ, parts + labour.
               </div>
