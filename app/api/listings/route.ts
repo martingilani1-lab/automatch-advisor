@@ -26,7 +26,7 @@ export interface ListingSource {
   country: "SK" | "CZ";
   status: "ok" | "error";
   count: number; // listings read from the page, before engine filtering
-  searchUrl: string;
+  searchUrl: string; // first result page read -- the "open on portal" link
 }
 
 export interface ListingsResponse {
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       supabase.from("catalog_phases").select("id, year_from, year_to, catalog_models(name, catalog_brands(name))").eq("id", phaseId).single(),
       supabase
         .from("catalog_vehicle_configurations")
-        .select("phase_id, catalog_engines(id, code, display_name, power_kw, fuel_type, hybrid_type), transmission_units(family)")
+        .select("phase_id, catalog_engines(id, code, display_name, power_kw, fuel_type, hybrid_type), transmission_units(family), catalog_body_types(name)")
         .eq("phase_id", phaseId),
     ]);
     if (phaseRes.error) throw phaseRes.error;
@@ -91,6 +91,9 @@ export async function POST(req: Request) {
       .map((r) => candidateFromRow(r, phase.year_from, phase.year_to))
       .filter((c): c is EngineCandidate => c != null);
     const target = candidates.find((c) => c.engineId === engineId);
+    const bodyRows: string[] = ((configsRes.data ?? []) as any[])
+      .map((r) => (Array.isArray(r.catalog_body_types) ? r.catalog_body_types[0]?.name : r.catalog_body_types?.name))
+      .filter(Boolean);
     if (!target) return NextResponse.json(EMPTY, { status: 404 });
 
     const query: PortalSearchQuery = {
@@ -100,19 +103,33 @@ export async function POST(req: Request) {
       // One year of registration lag, same grace the matcher allows.
       yearTo: phase.year_to != null ? phase.year_to + 1 : null,
       fuel: target.fuel,
+      powerKw: target.powerKw,
+      bodyNames: [...new Set(bodyRows.map((b) => b))],
     };
 
-    // All portals in parallel; one failing never fails the search.
+    // All portals (and each portal's few result pages) in parallel; one failing never fails
+    // the search. A portal counts as "error" only if none of its pages could be read.
+    const MAX_PAGES_PER_PORTAL = 3;
     const results = await Promise.all(
       PORTAL_PROVIDERS.map(async (p) => {
-        const searchUrl = p.searchUrl(query);
-        try {
-          const listings = p.parse(await fetchPage(searchUrl), searchUrl);
-          return { source: { portal: p.id, name: p.name, country: p.country, status: "ok", count: listings.length, searchUrl } as ListingSource, listings };
-        } catch (err) {
-          console.error(`[/api/listings] ${p.id}`, err);
-          return { source: { portal: p.id, name: p.name, country: p.country, status: "error", count: 0, searchUrl } as ListingSource, listings: [] as PortalListing[] };
-        }
+        const urls = p.searchUrls(query).slice(0, MAX_PAGES_PER_PORTAL);
+        const pages = await Promise.all(
+          urls.map(async (url) => {
+            try {
+              return p.parse(await fetchPage(url), url);
+            } catch (err) {
+              console.error(`[/api/listings] ${p.id} ${url}`, err);
+              return null;
+            }
+          })
+        );
+        const ok = pages.filter((x): x is PortalListing[] => x != null);
+        const listings = ok.flat();
+        const source: ListingSource = {
+          portal: p.id, name: p.name, country: p.country,
+          status: ok.length ? "ok" : "error", count: listings.length, searchUrl: urls[0] ?? "",
+        };
+        return { source, listings };
       })
     );
 

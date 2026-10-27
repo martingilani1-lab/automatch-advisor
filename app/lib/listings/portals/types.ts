@@ -15,7 +15,9 @@ export interface PortalSearchQuery {
   model: string; // catalog model name, e.g. "Octavia"
   yearFrom: number | null;
   yearTo: number | null; // null = still in production
-  fuel: AdFuel | null; // the target engine's fuel -- portals filter on it, cutting noise
+  fuel: AdFuel | null; // the target engine's fuel
+  powerKw: number | null; // the target engine's power -- the sharpest portal filter there is
+  bodyNames?: string[]; // catalog body types of this phase (portals split e.g. Octavia / Octavia Combi)
 }
 
 export interface PortalListing {
@@ -37,7 +39,9 @@ export interface PortalProvider {
   id: string;
   name: string; // shown on cards, e.g. "Autobazar.sk"
   country: "SK" | "CZ";
-  searchUrl(q: PortalSearchQuery): string;
+  // One or more result pages to read for this search (e.g. hatchback + estate model pages).
+  // Kept small -- every URL is one request to the portal.
+  searchUrls(q: PortalSearchQuery): string[];
   // Reads one results page. Must never throw on unexpected HTML: return what it could read
   // (possibly []) -- a portal redesign then shows as "0 ads" for that portal, not a crash.
   parse(html: string, pageUrl: string): PortalListing[];
