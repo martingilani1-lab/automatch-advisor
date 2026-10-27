@@ -12,7 +12,7 @@
 
 BEGIN;
 
-CREATE TEMP TABLE _svc (k text, code text, km int, yrs smallint, cmin int, cmax int) ON COMMIT DROP;
+CREATE TEMP TABLE _svc (k text, code text, km int, yrs smallint, cost_min int, cost_max int) ON COMMIT DROP;
 INSERT INTO _svc VALUES
   -- gearboxes                          km      yrs   €min  €max   (source: maintenance_note)
   ('tu', 'Aisin 09G (TF-60SN)',         50000,  NULL, 140,  200),  -- 50-60k km, ~EUR 140-200
@@ -47,13 +47,13 @@ DECLARE n_tu int; n_dt int;
 BEGIN
   UPDATE transmission_units t
      SET service_interval_km = s.km, service_interval_years = s.yrs,
-         service_cost_eur_min = s.cmin, service_cost_eur_max = s.cmax
+         service_cost_eur_min = s.cost_min, service_cost_eur_max = s.cost_max
     FROM _svc s WHERE s.k = 'tu' AND t.code = s.code;
   GET DIAGNOSTICS n_tu = ROW_COUNT;
 
   UPDATE drivetrain_systems d
      SET service_interval_km = s.km, service_interval_years = s.yrs,
-         service_cost_eur_min = s.cmin, service_cost_eur_max = s.cmax
+         service_cost_eur_min = s.cost_min, service_cost_eur_max = s.cost_max
     FROM _svc s WHERE s.k = 'dt' AND d.code = s.code;
   GET DIAGNOSTICS n_dt = ROW_COUNT;
 
