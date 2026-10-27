@@ -15,7 +15,9 @@ import { createClient } from "@supabase/supabase-js";
 import type { AdReadResult, AdVocabularyModel } from "@/app/lib/listings/adReader";
 import { readAd } from "@/app/lib/listings/adReader";
 import type { EngineCandidate, EngineMatch } from "@/app/lib/listings/matchAdToEngine";
-import { adFuelOf, adTransmissionOf, matchAdToEngine } from "@/app/lib/listings/matchAdToEngine";
+import { matchAdToEngine } from "@/app/lib/listings/matchAdToEngine";
+import type { RawConfigRow } from "@/app/lib/listings/searchListings";
+import { candidateFromRow } from "@/app/lib/listings/searchListings";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,24 +111,12 @@ export async function POST(req: Request) {
     if (configsRes.error) throw configsRes.error;
 
     // 4. One candidate per (phase, engine, gearbox family); the matcher merges them per engine.
-    const candidates: EngineCandidate[] = ((configsRes.data ?? []) as any[])
-      .filter((c) => c.catalog_engines && c.transmission_units)
-      .map((c) => {
-        const e = c.catalog_engines;
-        const phase = phaseById.get(c.phase_id);
-        const name = e.display_name ?? e.code;
-        return {
-          engineId: e.id,
-          label: `${name} · ${e.code}${/kw/i.test(name) ? "" : ` · ${e.power_kw} kW`}`,
-          engineName: e.display_name,
-          phaseIds: [c.phase_id],
-          powerKw: Number(e.power_kw),
-          fuel: adFuelOf(e.fuel_type, e.hybrid_type),
-          transmissions: [adTransmissionOf(c.transmission_units.family)],
-          yearFrom: phase?.yearFrom ?? null,
-          yearTo: phase?.yearTo ?? null,
-        };
-      });
+    const candidates = ((configsRes.data ?? []) as unknown as RawConfigRow[])
+      .map((r) => {
+        const phase = phaseById.get(r.phase_id);
+        return candidateFromRow(r, phase?.yearFrom ?? null, phase?.yearTo ?? null);
+      })
+      .filter((c): c is EngineCandidate => c != null);
 
     const match = matchAdToEngine(read.ad, candidates);
     const usedPhaseIds = new Set(match.candidates.flatMap((c) => c.phaseIds ?? []));

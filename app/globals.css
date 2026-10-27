@@ -202,6 +202,18 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .tco-cmp-total td{font-size:1.05rem;font-weight:700}
 .tco-cmp-note{font-size:.68rem;font-weight:400;margin-top:2px}
 .tco-cmp-val{font-weight:600}
+/* Real-vehicle ads (ListingsSection.tsx): TheParking-style cards, each a link to the original
+   ad on its portal. Photo loads from the portal itself. */
+.ad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.ad-card{display:flex;flex-direction:column;background:#1c1c1e;border:1px solid #2a2a2e;border-radius:8px;overflow:hidden;text-decoration:none;color:inherit;transition:border-color .12s}
+.ad-card:hover{border-color:#60a5fa}
+.ad-card-photo{aspect-ratio:4/3;background:#202024;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ad-card-photo img{width:100%;height:100%;object-fit:cover}
+.ad-card-body{padding:10px 12px;display:flex;flex-direction:column;gap:3px;flex:1}
+.ad-card-title{color:#f0f0f0;font-weight:600;font-size:.82rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ad-card-price{color:#f0f0f0;font-weight:700;font-size:1rem}
+.ad-card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;padding-top:6px}
+.ad-card-foot .eng-badge{white-space:nowrap;flex-shrink:0}
 .tco-cmp-cfg{margin-top:6px;font-size:.7rem;line-height:1.4}
 /* Model picker options: regular entries a step dimmer so the "Similar models" group on top
    reads in db-test's white accent (#fffefc). Option colours apply where the browser renders the

@@ -21,6 +21,7 @@ import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
 import { CompareBar, EngineCompareView } from "./EngineCompare";
 import { MAX_COMPARE } from "./lib/engineCompare";
 import TcoCalculator from "./TcoCalculator";
+import ListingsSection from "./ListingsSection";
 import { representativeYear } from "./lib/tco";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
@@ -852,6 +853,9 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const searchParams = useSearchParams();
 
   const [activeTabState, setActiveTabState] = useState<string | null>(null);
+  // Engine whose real-world ads the Ads tab shows (set by a configuration's "Search real
+  // vehicles" button). CarDetail is keyed by car, so this resets when the car changes.
+  const [adsEngineId, setAdsEngineId] = useState<string | null>(null);
   const [openEngines, setOpenEngines] = useState<Record<number, boolean>>({});
   // Engine comparison: ids of the ticked engines (order = tick order, which is also column
   // order in the comparison view) and whether the side-by-side overlay is open. Reset on a
@@ -1011,6 +1015,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   if (filteredEngines.length > 0) tabs.push({ id: "engines", label: "Engines", count: filteredEngines.length });
   // Cost of ownership is per configuration (engine + gearbox + AWD), so it sits next to them.
   if (configs.length > 0) tabs.push({ id: "costs", label: "Costs" });
+  if (configs.length > 0) tabs.push({ id: "ads", label: "Ads" });
   if (gearboxGroups.length > 0) tabs.push({ id: "gearboxes", label: "Gearboxes", count: gearboxGroups.length });
   if (drivetrainGroups.length > 0) tabs.push({ id: "drivetrain", label: "Drivetrain System", count: drivetrainGroups.length });
   if ((detail?.dims.length ?? 0) > 0) tabs.push({ id: "dimensions", label: "Dimensions", count: detail!.dims.length });
@@ -1169,7 +1174,17 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
         {activeTab === "configurations" && (
           <div className="mp-section">
-            <ConfigRows configs={configs} onNavigate={handleConfigNavigate} />
+            <ConfigRows
+              configs={configs}
+              onNavigate={handleConfigNavigate}
+              onSearchAds={(c) => { setAdsEngineId(c.engine.id); selectTab("ads"); }}
+            />
+          </div>
+        )}
+
+        {activeTab === "ads" && (
+          <div className="mp-section">
+            <ListingsSection phaseId={car.id} configs={configs} engineId={adsEngineId} onEngineChange={setAdsEngineId} />
           </div>
         )}
 
