@@ -204,6 +204,29 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .trim-compare-table th:first-child,.trim-compare-table td:first-child{text-align:left}
 .trim-compare-table thead th{background:#202024;color:#6b6b72;font-size:.64rem;text-transform:uppercase;font-weight:700}
 
+/* /db-test's Engines tab comparison (EngineCompare.tsx) -- floating action bar + full-screen
+   side-by-side view, both using this page's own #1c1c1e/#2a2a2e card palette instead of the
+   separate Tailwind zinc/blue design this shipped under (see that file's own header comment).
+   No backdrop-blur anywhere -- nothing else on this page uses it, so the overlay is a plain
+   near-opaque background instead. */
+.compare-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center;padding:0 16px 16px;transform:translateY(150%);transition:transform .3s ease-out}
+.compare-bar.visible{transform:translateY(0)}
+.compare-bar-inner{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#1c1c1e;border:1px solid #2a2a2e;border-radius:8px;padding:12px 16px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.compare-bar-clear{border:0;background:none;padding:0;color:#6b6b72;font-size:.72rem;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:'DM Sans',sans-serif}
+.compare-bar-clear:hover{color:#f0f0f0}
+.compare-bar-cta{flex-shrink:0;border:1px solid rgba(96,165,250,.4);background:rgba(96,165,250,.12);color:#60a5fa;border-radius:6px;padding:9px 16px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .12s}
+.compare-bar-cta:hover{background:rgba(96,165,250,.2);border-color:rgba(96,165,250,.6)}
+
+.compare-overlay{position:fixed;inset:0;z-index:50;overflow-y:auto;background:#0e0e0f}
+.compare-overlay-inner{max-width:900px;margin:0 auto;padding:24px 16px 48px}
+.compare-close-btn{border:1px solid #2a2a2e;background:#1c1c1e;border-radius:6px;padding:7px;color:#6b6b72;cursor:pointer;transition:all .12s;display:flex;align-items:center}
+.compare-close-btn:hover{border-color:#3a3a3e;color:#f0f0f0}
+
+.compare-grid{display:grid;gap:12px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
+.compare-card{background:#1c1c1e;border:1px solid #2a2a2e;border-radius:8px;padding:13px;scroll-snap-align:center}
+.compare-row{border-top:1px solid rgba(255,255,255,.04);padding:10px 0}
+.compare-row:first-child{border-top:none;padding-top:0}
+
 /* Equipment trim highlighting — matches user's equipment preference */
 .eq-highlight{border-color:#e8ff47 !important;background:rgba(232,255,71,.06) !important;box-shadow:0 0 12px rgba(232,255,71,.1)}
 .eq-highlight .eq-trim{color:#e8ff47}
