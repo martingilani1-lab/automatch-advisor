@@ -16,7 +16,7 @@ describe("calculateAnnualDepreciation", () => {
     expect(calculateAnnualDepreciation(150, 2005)).toBe(150);
   });
   it("respects a custom current year", () => {
-    expect(calculateAnnualDepreciation(10000, 2020, 2030)).toBe(1000); // age 10 -> 5 %
+    expect(calculateAnnualDepreciation(10000, 2020, 2030)).toBe(500); // age 10 -> 5 %
   });
   it("handles bad input safely", () => {
     expect(calculateAnnualDepreciation(0, 2015)).toBe(0);
