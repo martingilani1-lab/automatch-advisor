@@ -155,6 +155,20 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .maint-card{background:#202024;border:1px solid #2a2a2e;border-radius:8px;padding:4px 12px;margin-bottom:8px}
 .maint-item{font-size:.78rem;color:#9999aa;line-height:1.5;padding:8px 0}
 .maint-item+.maint-item{border-top:1px solid rgba(255,255,255,.05)}
+/* TCO calculator (TcoCalculator.tsx), shown inside a .maint-card on the engine card. Same
+   palette and hairline-divider rows as .maint-item; just enough layout to be readable. */
+.tco{padding:8px 0}
+.tco-slider{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin:8px 0 4px}
+.tco-slider strong{color:#f0f0f0;font-size:.85rem}
+.tco-slider input{width:100%;accent-color:#60a5fa}
+.tco-lines{list-style:none;margin:0;padding:0}
+.tco-line{display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:.78rem}
+.tco-line+.tco-line{border-top:1px solid rgba(255,255,255,.05)}
+.tco-line .cgrid-val{white-space:nowrap}
+.tco-insurance-btn{margin-top:4px;font-size:.72rem;color:#60a5fa;background:none;border:0;padding:0;cursor:pointer}
+.tco-totals{display:flex;gap:24px;padding:10px 0;border-top:1px solid #2a2a2e;margin-top:4px}
+.tco-totals .cgrid-val{font-size:1rem;font-weight:700}
+.tco>p{margin-top:6px;line-height:1.5}
 .fault-block{margin-bottom:12px}
 .fault-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .fault-area{font-weight:600;font-size:.82rem}

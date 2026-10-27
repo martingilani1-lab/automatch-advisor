@@ -5,6 +5,7 @@
 // Every constant below is a deliberate, coarse SK/CZ ballpark for an ESTIMATE, not live market
 // data. They are collected in one place so updating a fuel price or the vignette is a one-line
 // change, not a hunt through JSX.
+import type { DetailEngine } from "../types";
 import { reliabilityTone, type RelTone } from "./engineCompare";
 
 // ---- Constants ----------------------------------------------------------------------------
@@ -176,4 +177,25 @@ export function calcTco(car: TcoInput, annualKm: number): TcoResult {
 
   const yearlyTotal = lines.reduce((sum, l) => sum + (l.yearly ?? 0), 0);
   return { lines, yearlyTotal, monthlyTotal: yearlyTotal / 12, incomplete: lines.some((l) => l.yearly == null) };
+}
+
+// ---- Adapter for the Engines tab ----------------------------------------------------------
+// Builds a TcoInput from one DetailEngine + the phase's market price (midpoint of the
+// price_range_min/max shown in the car header; 0/0 = unknown -> null, never €0).
+// Consumption: midpoint of the official combined range, lifted by REAL_WORLD_FACTOR.
+// Timing belt: only for belt engines -- a chain job has no interval, so it isn't prorated.
+const mid = (a: number | null, b: number | null) => (a == null && b == null ? null : (((a ?? b) as number) + ((b ?? a) as number)) / 2);
+export function tcoInputFromEngine(e: DetailEngine, priceMin: number, priceMax: number): TcoInput {
+  const m = e.maintenance;
+  const isBelt = e.timing_type === "belt";
+  return {
+    priceEur: priceMin > 0 || priceMax > 0 ? mid(priceMin || null, priceMax || null) : null,
+    fuelType: e.fuel_type || FALLBACK_FUEL,
+    consumptionPer100: realWorldConsumption(e.consumption ? (e.consumption.min + e.consumption.max) / 2 : null),
+    powerKw: e.power_kw,
+    reliabilityRating: e.reliability_rating,
+    yearlyServiceEur: mid(m.yearlyMaintenanceEurMin, m.yearlyMaintenanceEurMax),
+    timingBeltCostEur: isBelt ? mid(m.timingServiceCostEurMin, m.timingServiceCostEurMax) : null,
+    timingBeltIntervalKm: isBelt ? e.timing_replacement_km : null,
+  };
 }
