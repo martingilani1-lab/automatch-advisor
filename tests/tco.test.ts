@@ -25,10 +25,10 @@ describe("calcTco", () => {
     expect(line(r, "drivetrain")).toBeUndefined(); // FWD: no AWD line at all
     expect(line(r, "tires")).toBeCloseTo(150 + 60);
     expect(line(r, "repairs")).toBe(200); // good engine + good gearbox (+0)
-    expect(line(r, "fixed")).toBe(100);
+    expect(line(r, "fixed")).toBe(130); // €90 SK vignette + €80 STK/EK every 2 years
     expect(line(r, "insurance")).toBe(110);
     expect(line(r, "depreciation")).toBe(1000);
-    expect(r.yearlyTotal).toBeCloseTo(1665 + 260 + 15 + 210 + 200 + 100 + 110 + 1000);
+    expect(r.yearlyTotal).toBeCloseTo(1665 + 260 + 15 + 210 + 200 + 130 + 110 + 1000);
     expect(r.monthlyTotal).toBeCloseTo(r.yearlyTotal / 12);
     expect(r.incomplete).toBe(false);
   });
@@ -53,10 +53,10 @@ describe("calcTco", () => {
     expect(line(r, "fuel")).toBeNull();
     expect(line(r, "gearbox")).toBeNull();
     expect(r.incomplete).toBe(true);
-    expect(r.yearlyTotal).toBeCloseTo(260 + 210 + 200 + 100 + 110 + 1000);
+    expect(r.yearlyTotal).toBeCloseTo(260 + 210 + 200 + 130 + 110 + 1000);
   });
   it("prices insurance by power bands", () => {
-    expect([99, 100, 150, 151].map(insuranceEstimate)).toEqual([110, 150, 150, 180]);
+    expect([99, 100, 150, 151].map((kw) => insuranceEstimate(kw))).toEqual([110, 150, 150, 180]);
   });
 });
 

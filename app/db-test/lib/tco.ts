@@ -23,21 +23,54 @@ export const MIN_ANNUAL_KM = 5000;
 export const MAX_ANNUAL_KM = 50000;
 export const ANNUAL_KM_STEP = 1000;
 
-// € per unit (litre, kg for CNG, kWh for electric). Petrol/diesel set by Martin 2026-10-27;
-// update these when prices move -- nothing else in the app reads them.
-export const FUEL_PRICE_EUR: Record<string, number> = {
-  petrol: 1.85,
-  diesel: 1.95,
-  lpg: 0.8,
-  cng: 1.4,
-  electric: 0.25, // home-charging mix
+// ---- Country price sets -------------------------------------------------------------------
+// Everything that depends on WHERE the car is driven lives in one CountryCosts object, so a
+// future country/language switch only has to pick a different set -- calcTco() never reads a
+// country-specific number from anywhere else. Only SK exists so far; add a country by adding
+// its full set here (no partial sets: a missing number would silently fall back to SK's).
+// Workshop prices (engine/gearbox/AWD service) come from the DB and are SK/CZ figures.
+export type CountryCode = "SK";
+
+export interface CountryCosts {
+  code: CountryCode;
+  name: string;
+  // € per unit (litre, kg for CNG, kWh for electric).
+  fuelPriceEur: Record<string, number>;
+  vignetteEur: number; // annual motorway vignette
+  inspectionEur: number; // periodic technical + emissions inspection (STK + EK in SK)
+  inspectionEveryYears: number;
+  tireSetCostEur: number; // one set of 4 mid-range tyres, fitted
+  tireSwapCostEur: number; // one seasonal swap (summer <-> winter)
+  // Compulsory third-party liability estimate by engine power -- the main factor insurers
+  // price on. A real quote also depends on age, region, claims history; hence the "Calculate
+  // exact insurance" link next to it. Bands: [maxKw (inclusive), €/year]; last band = above.
+  insuranceBands: { maxKw: number; eur: number }[];
+  insuranceAboveEur: number;
+  insuranceLabel: string;
+}
+
+export const COUNTRY_COSTS: Record<CountryCode, CountryCosts> = {
+  SK: {
+    code: "SK",
+    name: "Slovakia",
+    fuelPriceEur: { petrol: 1.85, diesel: 1.95, lpg: 0.8, cng: 1.4, electric: 0.25 }, // petrol/diesel: Martin 2026-10-27
+    vignetteEur: 90, // annual vignette, Martin 2026-10-27
+    inspectionEur: 80,
+    inspectionEveryYears: 2,
+    tireSetCostEur: 400,
+    tireSwapCostEur: 30,
+    insuranceBands: [{ maxKw: 99, eur: 110 }, { maxKw: 150, eur: 150 }],
+    insuranceAboveEur: 180,
+    insuranceLabel: "PZP",
+  },
 };
-// Fallback for a fuel type not in the map -- petrol, the most common in the catalog.
+export const DEFAULT_COUNTRY: CountryCode = "SK";
+
+// Fallback for a fuel type not in the price set -- petrol, the most common in the catalog.
 const FALLBACK_FUEL = "petrol";
 
-export const TIRE_SET_COST_EUR = 400; // one set of 4 mid-range tyres, fitted
+// Physical, not country-specific.
 export const TIRE_SET_LIFE_KM = 40000;
-export const TIRE_SWAP_COST_EUR = 30; // one seasonal swap (summer <-> winter)
 export const TIRE_SWAPS_PER_YEAR = 2;
 
 // Unexpected-repairs reserve. The BASE comes from the engine's reliability (the 3-tone fold
@@ -52,17 +85,8 @@ export const UNIT_RESERVE_UPLIFT_EUR: Record<RelTone, number> = { good: 0, avera
 const RESERVE_SCALE_MIN = 0.5;
 const RESERVE_SCALE_MAX = 1.5;
 
-export const VIGNETTE_EUR = 60; // SK annual highway vignette
-export const INSPECTION_EUR = 80; // STK + EK together
-export const INSPECTION_EVERY_YEARS = 2;
-
-// Compulsory third-party liability (PZP) estimate by engine power -- the main factor SK/CZ
-// insurers price on. A real quote also depends on age, region, claims history; hence the
-// "Calculate exact insurance" link next to it.
-export function insuranceEstimate(powerKw: number): number {
-  if (powerKw < 100) return 110;
-  if (powerKw <= 150) return 150;
-  return 180;
+export function insuranceEstimate(powerKw: number, costs: CountryCosts = COUNTRY_COSTS[DEFAULT_COUNTRY]): number {
+  return costs.insuranceBands.find((b) => powerKw <= b.maxKw)?.eur ?? costs.insuranceAboveEur;
 }
 
 // Depreciation follows the car's AGE (calculateAnnualDepreciation, ./depreciation.ts: 15 / 10 /
@@ -156,9 +180,14 @@ function unitServiceLine(key: "gearbox" | "drivetrain", label: string, u: TcoUni
 }
 
 // ---- The calculation ----------------------------------------------------------------------
-export function calcTco(car: TcoInput, annualKm: number, currentYear = new Date().getFullYear()): TcoResult {
-  const fuelKey = car.fuelType.toLowerCase() in FUEL_PRICE_EUR ? car.fuelType.toLowerCase() : FALLBACK_FUEL;
-  const fuelPrice = FUEL_PRICE_EUR[fuelKey];
+export function calcTco(
+  car: TcoInput,
+  annualKm: number,
+  currentYear = new Date().getFullYear(),
+  costs: CountryCosts = COUNTRY_COSTS[DEFAULT_COUNTRY],
+): TcoResult {
+  const fuelKey = car.fuelType.toLowerCase() in costs.fuelPriceEur ? car.fuelType.toLowerCase() : FALLBACK_FUEL;
+  const fuelPrice = costs.fuelPriceEur[fuelKey];
   const unit = fuelKey === "electric" ? "kWh" : fuelKey === "cng" ? "kg" : "l";
 
   const fuel = car.consumptionPer100 != null ? (annualKm / 100) * car.consumptionPer100 * fuelPrice : null;
@@ -166,7 +195,7 @@ export function calcTco(car: TcoInput, annualKm: number, currentYear = new Date(
   const belt = car.timingBelt ? proratedYearly(car.timingBelt, annualKm) ?? 0 : 0;
   const engine = car.engineYearlyServiceEur != null ? car.engineYearlyServiceEur + belt : null;
 
-  const tires = (TIRE_SET_COST_EUR / TIRE_SET_LIFE_KM) * annualKm + TIRE_SWAP_COST_EUR * TIRE_SWAPS_PER_YEAR;
+  const tires = (costs.tireSetCostEur / TIRE_SET_LIFE_KM) * annualKm + costs.tireSwapCostEur * TIRE_SWAPS_PER_YEAR;
 
   const scale = Math.min(RESERVE_SCALE_MAX, Math.max(RESERVE_SCALE_MIN, annualKm / DEFAULT_ANNUAL_KM));
   const eTone = reliabilityTone(car.engineReliabilityRating);
@@ -176,8 +205,8 @@ export function calcTco(car: TcoInput, annualKm: number, currentYear = new Date(
     (REPAIR_RESERVE_EUR[eTone] + UNIT_RESERVE_UPLIFT_EUR[gTone] + (dTone ? UNIT_RESERVE_UPLIFT_EUR[dTone] : 0)) * scale;
   const toneWord = (t: RelTone) => (t === "unknown" ? "not rated" : t);
 
-  const fixed = VIGNETTE_EUR + INSPECTION_EUR / INSPECTION_EVERY_YEARS;
-  const insurance = insuranceEstimate(car.powerKw);
+  const fixed = costs.vignetteEur + costs.inspectionEur / costs.inspectionEveryYears;
+  const insurance = insuranceEstimate(car.powerKw, costs);
   const age = car.manufactureYear != null ? Math.max(0, currentYear - car.manufactureYear) : null;
   const depreciation =
     car.priceEur == null ? null : car.manufactureYear != null
@@ -214,7 +243,7 @@ export function calcTco(car: TcoInput, annualKm: number, currentYear = new Date(
       key: "tires",
       label: "Tyres & seasonal swaps",
       yearly: tires,
-      detail: `${eur(TIRE_SET_COST_EUR)} set per ${kmText(TIRE_SET_LIFE_KM)} + ${TIRE_SWAPS_PER_YEAR}× swap`,
+      detail: `${eur(costs.tireSetCostEur)} set per ${kmText(TIRE_SET_LIFE_KM)} + ${TIRE_SWAPS_PER_YEAR}× swap`,
     },
     {
       key: "repairs",
@@ -226,9 +255,9 @@ export function calcTco(car: TcoInput, annualKm: number, currentYear = new Date(
       key: "fixed",
       label: "Vignette + STK/EK",
       yearly: fixed,
-      detail: `${eur(VIGNETTE_EUR)} vignette + ${eur(INSPECTION_EUR)} inspection every ${INSPECTION_EVERY_YEARS} years`,
+      detail: `${eur(costs.vignetteEur)} vignette + ${eur(costs.inspectionEur)} inspection every ${costs.inspectionEveryYears} years`,
     },
-    { key: "insurance", label: "Insurance (PZP estimate)", yearly: insurance, detail: `${car.powerKw} kW` },
+    { key: "insurance", label: `Insurance (${costs.insuranceLabel} estimate)`, yearly: insurance, detail: `${car.powerKw} kW` },
     {
       key: "depreciation",
       label: "Depreciation",
