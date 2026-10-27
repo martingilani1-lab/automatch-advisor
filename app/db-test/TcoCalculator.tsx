@@ -11,8 +11,9 @@ import { useMemo, useState } from "react";
 
 import type { CatalogConfig } from "@/app/catalog/lib/types";
 import type { TcoKey } from "./lib/tco";
-import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, rankedLines, tcoOptions } from "./lib/tco";
-import { FUEL_SORT_ORDER, dbTestEngineLabel } from "./ConfigRows";
+import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, rankedLines } from "./lib/tco";
+import { buildTcoOptions } from "./lib/tcoOptions";
+import { MAX_COST_COMPARE } from "./CostCompare";
 
 interface TcoCalculatorProps {
   configs: CatalogConfig[];
@@ -22,27 +23,21 @@ interface TcoCalculatorProps {
   // Wired later to the external insurance comparison (affiliate) portal. Until then the
   // button renders but does nothing -- deliberately a placeholder, not a fake quote.
   onInsuranceClick?: () => void;
+  // Cross-model cost comparison (CostCompare.tsx): adds THIS car with the configuration
+  // currently picked here. `comparedKeys` are the configuration keys of this car already in
+  // the comparison; `compareCount` is how many vehicles it holds overall (max 3).
+  onAddToCompare?: (configKey: string) => void;
+  comparedKeys?: string[];
+  compareCount?: number;
 }
 
 const fmtEur = (n: number) => `€${Math.round(n).toLocaleString("en-US").replace(/,/g, " ")}`;
 const fmtKm = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} km`;
 const pct = (share: number) => `${Math.round(share * 100)} %`;
 
-export default function TcoCalculator({ configs, priceMin, priceMax, onInsuranceClick }: TcoCalculatorProps) {
+export default function TcoCalculator({ configs, priceMin, priceMax, onInsuranceClick, onAddToCompare, comparedKeys = [], compareCount = 0 }: TcoCalculatorProps) {
   // Same order as the Configurations tab: fuel group, then smallest engine first.
-  const options = useMemo(() => {
-    const opts = tcoOptions(configs, priceMin, priceMax, dbTestEngineLabel);
-    const byKey = new Map(configs.map((c) => [`${c.engine.id}|${c.gearbox.id}|${c.drivetrain?.id ?? "2wd"}`, c]));
-    const rank = (k: string) => {
-      const e = byKey.get(k)!.engine;
-      return [FUEL_SORT_ORDER[e.fuelType.toLowerCase()] ?? 99, e.displacementCc ?? Infinity, e.powerKw] as const;
-    };
-    return opts.sort((a, b) => {
-      const [fa, da, pa] = rank(a.key);
-      const [fb, db, pb] = rank(b.key);
-      return fa - fb || da - db || pa - pb || a.label.localeCompare(b.label);
-    });
-  }, [configs, priceMin, priceMax]);
+  const options = useMemo(() => buildTcoOptions(configs, priceMin, priceMax), [configs, priceMin, priceMax]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [annualKm, setAnnualKm] = useState(DEFAULT_ANNUAL_KM);
@@ -70,6 +65,21 @@ export default function TcoCalculator({ configs, priceMin, priceMax, onInsurance
         </select>
         <span className="tg">{option.bodies.join(" · ")}</span>
       </label>
+
+      {onAddToCompare && (
+        <button
+          type="button"
+          className="tco-compare-btn"
+          disabled={comparedKeys.includes(option.key) || compareCount >= MAX_COST_COMPARE}
+          onClick={() => onAddToCompare(option.key)}
+        >
+          {comparedKeys.includes(option.key)
+            ? "✓ In cost comparison"
+            : compareCount >= MAX_COST_COMPARE
+              ? `Cost comparison full (${MAX_COST_COMPARE})`
+              : "+ Compare costs with other models"}
+        </button>
+      )}
 
       <label className="tco-field">
         <span className="tco-field-row">

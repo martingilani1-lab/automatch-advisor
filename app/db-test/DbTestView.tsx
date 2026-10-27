@@ -23,6 +23,7 @@ import {
 import CarRow from "./CarRow";
 import FilterPanel from "./FilterPanel";
 import CarDetail from "./CarDetail";
+import { CostCompareBar, CostCompareView, MAX_COST_COMPARE, type CostCompareEntry } from "./CostCompare";
 import type { DetailData, DetailResponse } from "./types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 
@@ -190,6 +191,22 @@ export default function DbTestView() {
     if (carId) loadDetail(carId);
   }, [carId, loadDetail]);
 
+  // Cross-model cost comparison (CostCompare.tsx). Lives here, not in CarDetail, because it
+  // spans several cars and must survive opening/closing them. In-memory only -- a refresh
+  // starts a fresh comparison, same as the engine comparison.
+  const [costCompare, setCostCompare] = useState<CostCompareEntry[]>([]);
+  const [showCostCompare, setShowCostCompare] = useState(false);
+  const addCostCompare = useCallback((phaseId: string, configKey: string) => {
+    setCostCompare((prev) =>
+      prev.length >= MAX_COST_COMPARE || prev.some((e) => e.phaseId === phaseId && e.configKey === configKey)
+        ? prev
+        : [...prev, { phaseId, configKey }]
+    );
+  }, []);
+  const closeCostCompare = useCallback(() => setShowCostCompare(false), []);
+  // The Engines tab's own compare bar sits in the same spot -- keep ours out of its way there.
+  const onEnginesTab = !!openCarData && searchParams.get("tab") === "engines";
+
   const activeFilterCount =
     selectedBody.length + filters.fuel.length + filters.gearbox.length + filters.drivetrain.length + filters.brand.length +
     (filters.priceMin != null ? 1 : 0) + (filters.priceMax != null ? 1 : 0);
@@ -256,6 +273,9 @@ export default function DbTestView() {
           siblingPhases={phaseSiblings[openCarData.id] ?? []}
           onSwitchPhase={openCar}
           safetyFeatures={safetyFeatures}
+          onAddCostCompare={(configKey) => addCostCompare(openCarData.id, configKey)}
+          costComparedKeys={costCompare.filter((e) => e.phaseId === openCarData.id).map((e) => e.configKey ?? "")}
+          costCompareCount={costCompare.length}
         />
       ) : (<>
         <div className="results-hdr">
@@ -318,6 +338,23 @@ export default function DbTestView() {
           ))}
         </>)}
       </>)}
+    <CostCompareBar
+        count={costCompare.length}
+        hidden={onEnginesTab || showCostCompare}
+        onOpen={() => setShowCostCompare(true)}
+        onClear={() => setCostCompare([])}
+      />
+      {showCostCompare && (
+        <CostCompareView
+          entries={costCompare}
+          onChange={setCostCompare}
+          onClose={closeCostCompare}
+          cars={allCars}
+          details={detailCache}
+          loading={detailLoading}
+          loadDetail={loadDetail}
+        />
+      )}
     </main>
   );
 }

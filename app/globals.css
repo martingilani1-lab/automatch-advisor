@@ -176,6 +176,31 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .tco-insurance-btn{margin-top:4px;font-size:.72rem;color:#60a5fa;background:none;border:0;padding:0;cursor:pointer}
 .tco-missing{margin-top:10px;padding:10px 12px;background:#202024;border:1px solid #2a2a2e;border-radius:8px;display:flex;flex-direction:column;gap:4px}
 .tco>p{margin-top:12px;line-height:1.5}
+.tco-compare-btn{margin:-4px 0 14px;font-size:.78rem;font-weight:600;color:#60a5fa;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.35);border-radius:6px;padding:7px 12px;cursor:pointer}
+.tco-compare-btn:disabled{color:#6b6b72;background:none;border-color:#2a2a2e;cursor:default}
+
+/* Cross-model cost comparison table (CostCompare.tsx). Scrolls sideways on phones, row
+   labels stay pinned on the left; the "Lowest cost" column gets the same blue accent as the
+   engine comparison's Smart Choice. */
+.tco-cmp-scroll{overflow-x:auto;margin-top:6px;border:1px solid #2a2a2e;border-radius:8px}
+.tco-cmp{width:100%;border-collapse:collapse;font-size:.8rem;min-width:560px}
+.tco-cmp th,.tco-cmp td{padding:10px 12px;text-align:left;vertical-align:top;border-top:1px solid rgba(255,255,255,.05);min-width:170px}
+.tco-cmp thead th{border-top:0;background:#1c1c1e;font-weight:400}
+.tco-cmp-rowhead{position:sticky;left:0;z-index:1;background:#141416;color:#9999aa;font-weight:600;font-size:.74rem;min-width:120px !important;width:120px}
+.tco-cmp thead .tco-cmp-rowhead{background:#1c1c1e}
+.tco-cmp td{color:#f0f0f0}
+.tco-cmp-win{background:rgba(96,165,250,.06)}
+.tco-cmp thead th.tco-cmp-win{box-shadow:inset 0 2px 0 #60a5fa}
+.tco-cmp-colhead{display:flex;justify-content:space-between;align-items:center;min-height:22px;margin-bottom:6px}
+.tco-cmp-badge{display:inline-flex;align-items:center;gap:4px;background:#60a5fa22;color:#60a5fa;border:1px solid #60a5fa44}
+.tco-cmp-remove{margin-left:auto;border:0;background:none;color:#6b6b72;cursor:pointer;padding:2px;display:flex}
+.tco-cmp-remove:hover{color:#f0f0f0}
+.tco-cmp-select{width:100%;background:#202024;color:#f0f0f0;border:1px solid #2a2a2e;border-radius:6px;padding:6px 8px;font-size:.76rem;margin-top:4px}
+.tco-cmp-add{background:#141416 !important;border-left:1px dashed #2a2a2e}
+.tco-cmp-total td{font-size:1.05rem;font-weight:700}
+.tco-cmp-note{font-size:.68rem;font-weight:400;margin-top:2px}
+.tco-cmp-val{font-weight:600}
+.tco-cmp-cfg{margin-top:6px;font-size:.7rem;line-height:1.4}
 .fault-block{margin-bottom:12px}
 .fault-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .fault-area{font-weight:600;font-size:.82rem}

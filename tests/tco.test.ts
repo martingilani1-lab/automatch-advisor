@@ -1,6 +1,6 @@
 // TCO calculator math (app/db-test/lib/tco.ts) -- per configuration.
 import { describe, it, expect } from "vitest";
-import { calcTco, insuranceEstimate, proratedYearly, rankedLines, type TcoInput } from "@/app/db-test/lib/tco";
+import { calcTco, insuranceEstimate, pickCheapest, proratedYearly, rankedLines, type TcoInput, type TcoResult } from "@/app/db-test/lib/tco";
 import { EMPTY_UNIT_SERVICE } from "@/app/catalog/lib/engineMaintenance";
 
 const svc = (km: number | null, yrs: number | null, min: number | null, max: number | null) =>
@@ -77,5 +77,22 @@ describe("rankedLines", () => {
     expect(ranked[0].key).toBe("fuel");
     expect(ranked.every((l, i) => i === 0 || ranked[i - 1].yearly >= l.yearly)).toBe(true);
     expect(ranked.reduce((s, l) => s + l.share, 0)).toBeCloseTo(1);
+  });
+});
+
+describe("pickCheapest", () => {
+  const res = (yearlyTotal: number, incomplete = false): TcoResult => ({ lines: [], yearlyTotal, monthlyTotal: yearlyTotal / 12, incomplete });
+  it("picks the clearly cheapest vehicle", () => {
+    expect(pickCheapest([res(5000), res(4200), res(4600)])).toBe(1);
+  });
+  it("no pick when the gap is under €60/year", () => {
+    expect(pickCheapest([res(5000), res(4950)])).toBeNull();
+  });
+  it("no pick when any vehicle is missing data or still loading", () => {
+    expect(pickCheapest([res(5000), res(3000, true)])).toBeNull();
+    expect(pickCheapest([res(5000), null])).toBeNull();
+  });
+  it("needs at least two vehicles", () => {
+    expect(pickCheapest([res(5000)])).toBeNull();
   });
 });

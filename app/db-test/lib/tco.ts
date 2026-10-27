@@ -245,6 +245,7 @@ export function tcoOptions(
   const price = priceMin > 0 || priceMax > 0 ? mid(priceMin || null, priceMax || null) : null;
   const groups = new Map<string, CatalogConfig[]>();
   for (const c of configs) {
+    // Same key as tcoOptions.ts's tcoKeyOf() -- keep the two in step.
     const key = `${c.engine.id}|${c.gearbox.id}|${c.drivetrain?.id ?? "2wd"}`;
     groups.set(key, [...(groups.get(key) ?? []), c]);
   }
@@ -287,4 +288,17 @@ export function rankedLines(r: TcoResult): (TcoLine & { yearly: number; share: n
     .filter((l): l is TcoLine & { yearly: number } => l.yearly != null && l.yearly > 0)
     .map((l) => ({ ...l, share: r.yearlyTotal > 0 ? l.yearly / r.yearlyTotal : 0 }))
     .sort((a, b) => b.yearly - a.yearly);
+}
+
+// ---- Cross-model comparison ---------------------------------------------------------------
+// Which compared vehicle is cheapest to own. Deliberately strict, same spirit as the engine
+// comparison's Smart Choice: no pick unless at least 2 vehicles are compared, EVERY total is
+// complete (a vehicle missing its fuel or gearbox price would look cheaper than it is), and the
+// winner is at least CHEAPEST_MARGIN_EUR a year below the runner-up -- €5 a month is noise for
+// an estimate built on ranges and ballpark constants.
+export const CHEAPEST_MARGIN_EUR = 60;
+export function pickCheapest(results: (TcoResult | null)[]): number | null {
+  if (results.length < 2 || results.some((r) => r == null || r.incomplete)) return null;
+  const totals = (results as TcoResult[]).map((r, i) => ({ i, t: r.yearlyTotal })).sort((a, b) => a.t - b.t);
+  return totals[1].t - totals[0].t >= CHEAPEST_MARGIN_EUR ? totals[0].i : null;
 }

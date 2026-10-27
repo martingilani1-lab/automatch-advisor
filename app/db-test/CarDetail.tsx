@@ -136,6 +136,11 @@ interface CarDetailProps {
   // assists" (gsr2_mandated) and "Optional assists" (beyond_baseline) lists below -- the
   // latter only rendered for GSR2-era cars, see its own comment for why.
   safetyFeatures: SafetyFeature[];
+  // Cross-model cost comparison (CostCompare.tsx, state in DbTestView) -- forwarded to the
+  // Costs tab's "+ Compare costs" button.
+  onAddCostCompare: (configKey: string) => void;
+  costComparedKeys: string[];
+  costCompareCount: number;
 }
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -840,7 +845,7 @@ function TrimsPanel({ trims, onShowInNcap }: TrimsPanelProps) {
   );
 }
 
-export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack, siblingPhases, onSwitchPhase, safetyFeatures }: CarDetailProps) {
+export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFilter, drivetrainFilter, gapsMode, onBack, siblingPhases, onSwitchPhase, safetyFeatures, onAddCostCompare, costComparedKeys, costCompareCount }: CarDetailProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1169,7 +1174,14 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
         {activeTab === "costs" && (
           <div className="mp-section">
-            <TcoCalculator configs={configs} priceMin={carPriceMin(car)} priceMax={carPriceMax(car)} />
+            <TcoCalculator
+              configs={configs}
+              priceMin={carPriceMin(car)}
+              priceMax={carPriceMax(car)}
+              onAddToCompare={onAddCostCompare}
+              comparedKeys={costComparedKeys}
+              compareCount={costCompareCount}
+            />
           </div>
         )}
 
