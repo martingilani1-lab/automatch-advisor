@@ -21,6 +21,7 @@ import type { DetailData } from "./types";
 import type { TcoKey, TcoOption, TcoResult } from "./lib/tco";
 import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, pickCheapest, rankedLines } from "./lib/tco";
 import { buildTcoOptions } from "./lib/tcoOptions";
+import { modelName, phaseOptionLabel, suggestSimilarCars } from "./lib/costCompareSuggest";
 
 export const MAX_COST_COMPARE = 3;
 
@@ -86,13 +87,12 @@ export function CostCompareBar({ count, hidden, onOpen, onClear }: CostCompareBa
 interface ModelSelectProps {
   cars: CarData[];
   value: string;
-  placeholder?: string;
   onChange: (phaseId: string) => void;
 }
 
 // Native <select> grouped by brand -- 300+ phases is too many for a flat list, and a native
 // picker is the most usable option on phones.
-function ModelSelect({ cars, value, placeholder, onChange }: ModelSelectProps) {
+function ModelSelect({ cars, value, onChange }: ModelSelectProps) {
   const groups = useMemo(() => {
     const byMake = new Map<string, CarData[]>();
     for (const c of cars) byMake.set(c.make, [...(byMake.get(c.make) ?? []), c]);
@@ -102,7 +102,6 @@ function ModelSelect({ cars, value, placeholder, onChange }: ModelSelectProps) {
   }, [cars]);
   return (
     <select className="tco-cmp-select" value={value} onChange={(e) => e.target.value && onChange(e.target.value)} aria-label="Model">
-      {placeholder && <option value="">{placeholder}</option>}
       {groups.map(([make, list]) => (
         <optgroup key={make} label={make}>
           {list.map((c) => (
@@ -111,6 +110,90 @@ function ModelSelect({ cars, value, placeholder, onChange }: ModelSelectProps) {
         </optgroup>
       ))}
     </select>
+  );
+}
+
+// ---- "Add a vehicle" ----------------------------------------------------------------------
+
+interface AddVehicleProps {
+  cars: CarData[];
+  compared: CarData[];
+  onAdd: (phaseId: string) => void;
+}
+
+// Suggestions first (same model in other phases/generations, then same-class rivals at a
+// similar price -- see suggestSimilarCars), then a brand -> model -> phase cascade for
+// anything else. The cascade adds the car as soon as a phase is picked; a model with a single
+// phase is added straight from the model step.
+function AddVehicle({ cars, compared, onAdd }: AddVehicleProps) {
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const suggestions = useMemo(() => suggestSimilarCars(cars, compared), [cars, compared]);
+  const brands = useMemo(() => [...new Set(cars.map((c) => c.make))].sort((a, b) => a.localeCompare(b)), [cars]);
+  const models = useMemo(
+    () => [...new Set(cars.filter((c) => c.make === brand).map(modelName))].sort((a, b) => a.localeCompare(b)),
+    [cars, brand]
+  );
+  const phases = useMemo(
+    () => cars.filter((c) => c.make === brand && modelName(c) === model).sort((a, b) => a.years.localeCompare(b.years)),
+    [cars, brand, model]
+  );
+  const takenIds = new Set(compared.map((c) => c.id));
+
+  const add = (id: string) => {
+    onAdd(id);
+    setBrand("");
+    setModel("");
+  };
+
+  return (
+    <div className="tco-add">
+      {suggestions.length > 0 && (
+        <>
+          <div className="cgrid-label">Suggested</div>
+          <div className="tco-add-suggest">
+            {suggestions.map((sg) => (
+              <button key={sg.car.id} type="button" className="tco-add-chip" onClick={() => add(sg.car.id)}>
+                <span className="tco-add-chip-name">{sg.car.make} {carOptionLabel(sg.car)}</span>
+                <span className="tg">{sg.reason}</span>
+              </button>
+            ))}
+          </div>
+          <div className="cgrid-label" style={{ marginTop: 10 }}>Or choose</div>
+        </>
+      )}
+      <select className="tco-cmp-select" value={brand} onChange={(e) => { setBrand(e.target.value); setModel(""); }} aria-label="Brand">
+        <option value="">Brand…</option>
+        {brands.map((b) => <option key={b} value={b}>{b}</option>)}
+      </select>
+      <select
+        className="tco-cmp-select"
+        value={model}
+        disabled={!brand}
+        aria-label="Model"
+        onChange={(e) => {
+          const m = e.target.value;
+          const only = cars.filter((c) => c.make === brand && modelName(c) === m);
+          if (only.length === 1 && !takenIds.has(only[0].id)) add(only[0].id);
+          else setModel(m);
+        }}
+      >
+        <option value="">Model…</option>
+        {models.map((m) => <option key={m} value={m}>{m}</option>)}
+      </select>
+      <select
+        className="tco-cmp-select"
+        value=""
+        disabled={!model}
+        aria-label="Phase"
+        onChange={(e) => e.target.value && add(e.target.value)}
+      >
+        <option value="">Generation / phase…</option>
+        {phases.map((c) => (
+          <option key={c.id} value={c.id} disabled={takenIds.has(c.id)}>{phaseOptionLabel(c)}</option>
+        ))}
+      </select>
+    </div>
   );
 }
 
@@ -251,8 +334,12 @@ export function CostCompareView({ entries, onChange, onClose, cars, details, loa
                 ))}
                 {entries.length < MAX_COST_COMPARE && (
                   <th className="tco-cmp-add">
-                    <div className="cgrid-label">Add a vehicle</div>
-                    <ModelSelect cars={cars} value="" placeholder="Pick a model…" onChange={addEntry} />
+                    <div className="cgrid-label" style={{ marginBottom: 6 }}>Add a vehicle</div>
+                    <AddVehicle
+                      cars={cars}
+                      compared={columns.map((c) => c.car).filter((c): c is CarData => c != null)}
+                      onAdd={addEntry}
+                    />
                   </th>
                 )}
               </tr>
