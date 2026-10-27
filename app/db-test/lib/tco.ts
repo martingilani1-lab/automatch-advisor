@@ -55,10 +55,10 @@ export const COUNTRY_COSTS: Record<CountryCode, CountryCosts> = {
     name: "Slovakia",
     fuelPriceEur: { petrol: 1.85, diesel: 1.95, lpg: 0.8, cng: 1.4, electric: 0.25 }, // petrol/diesel: Martin 2026-10-27
     vignetteEur: 90, // annual vignette, Martin 2026-10-27
-    inspectionEur: 80,
+    inspectionEur: 90, // STK + EK together, Martin 2026-10-27
     inspectionEveryYears: 2,
     tireSetCostEur: 400,
-    tireSwapCostEur: 30,
+    tireSwapCostEur: 45, // at least, Martin 2026-10-27
     insuranceBands: [{ maxKw: 99, eur: 110 }, { maxKw: 150, eur: 150 }],
     insuranceAboveEur: 180,
     insuranceLabel: "PZP",
@@ -127,7 +127,7 @@ export interface TcoInput {
   drivetrain: TcoUnit | null; // null = 2WD, no AWD service line at all
 }
 
-export type TcoKey = "fuel" | "engine" | "gearbox" | "drivetrain" | "tires" | "repairs" | "fixed" | "insurance" | "depreciation";
+export type TcoKey = "fuel" | "engine" | "gearbox" | "drivetrain" | "tires" | "repairs" | "fixed" | "vignette" | "insurance" | "depreciation";
 
 export interface TcoLine {
   key: TcoKey;
@@ -180,11 +180,20 @@ function unitServiceLine(key: "gearbox" | "drivetrain", label: string, u: TcoUni
 }
 
 // ---- The calculation ----------------------------------------------------------------------
+// Choices the BUYER makes, as opposed to facts about the car or the country.
+export interface TcoOptions {
+  // The annual motorway vignette is optional: plenty of owners never drive on motorways or
+  // buy a short-term one. Off by default; when off the line is left out entirely (not "no
+  // data"), so it never makes a total "incomplete".
+  includeVignette?: boolean;
+}
+
 export function calcTco(
   car: TcoInput,
   annualKm: number,
   currentYear = new Date().getFullYear(),
   costs: CountryCosts = COUNTRY_COSTS[DEFAULT_COUNTRY],
+  options: TcoOptions = {},
 ): TcoResult {
   const fuelKey = car.fuelType.toLowerCase() in costs.fuelPriceEur ? car.fuelType.toLowerCase() : FALLBACK_FUEL;
   const fuelPrice = costs.fuelPriceEur[fuelKey];
@@ -205,7 +214,7 @@ export function calcTco(
     (REPAIR_RESERVE_EUR[eTone] + UNIT_RESERVE_UPLIFT_EUR[gTone] + (dTone ? UNIT_RESERVE_UPLIFT_EUR[dTone] : 0)) * scale;
   const toneWord = (t: RelTone) => (t === "unknown" ? "not rated" : t);
 
-  const fixed = costs.vignetteEur + costs.inspectionEur / costs.inspectionEveryYears;
+  const fixed = costs.inspectionEur / costs.inspectionEveryYears;
   const insurance = insuranceEstimate(car.powerKw, costs);
   const age = car.manufactureYear != null ? Math.max(0, currentYear - car.manufactureYear) : null;
   const depreciation =
@@ -253,10 +262,13 @@ export function calcTco(
     },
     {
       key: "fixed",
-      label: "Vignette + STK/EK",
+      label: "STK/EK inspection",
       yearly: fixed,
-      detail: `${eur(costs.vignetteEur)} vignette + ${eur(costs.inspectionEur)} inspection every ${costs.inspectionEveryYears} years`,
+      detail: `${eur(costs.inspectionEur)} every ${costs.inspectionEveryYears} years`,
     },
+    ...(options.includeVignette
+      ? [{ key: "vignette" as const, label: "Motorway vignette", yearly: costs.vignetteEur, detail: `Annual vignette, ${costs.name}` }]
+      : []),
     { key: "insurance", label: `Insurance (${costs.insuranceLabel} estimate)`, yearly: insurance, detail: `${car.powerKw} kW` },
     {
       key: "depreciation",

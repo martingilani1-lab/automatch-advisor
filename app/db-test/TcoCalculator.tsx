@@ -11,7 +11,7 @@ import { useMemo, useState } from "react";
 
 import type { CatalogConfig } from "@/app/catalog/lib/types";
 import type { TcoKey } from "./lib/tco";
-import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, rankedLines } from "./lib/tco";
+import { ANNUAL_KM_STEP, COUNTRY_COSTS, DEFAULT_ANNUAL_KM, DEFAULT_COUNTRY, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, rankedLines } from "./lib/tco";
 import { buildTcoOptions } from "./lib/tcoOptions";
 import { MAX_COST_COMPARE } from "./CostCompare";
 
@@ -43,11 +43,12 @@ export default function TcoCalculator({ configs, priceMin, priceMax, manufacture
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [annualKm, setAnnualKm] = useState(DEFAULT_ANNUAL_KM);
+  const [includeVignette, setIncludeVignette] = useState(false);
 
   // Falls back to the first option when nothing is picked yet, or when the phase switcher
   // swapped in a configuration list that no longer contains the old pick.
   const option = options.find((o) => o.key === selectedKey) ?? options[0] ?? null;
-  const tco = useMemo(() => (option ? calcTco(option.input, annualKm) : null), [option, annualKm]);
+  const tco = useMemo(() => (option ? calcTco(option.input, annualKm, undefined, undefined, { includeVignette }) : null), [option, annualKm, includeVignette]);
   const ranked = useMemo(() => (tco ? rankedLines(tco) : []), [tco]);
 
   if (!option || !tco) return <p className="tg">No configurations to calculate.</p>;
@@ -97,6 +98,14 @@ export default function TcoCalculator({ configs, priceMin, priceMax, manufacture
           onChange={(e) => setAnnualKm(Number(e.target.value))}
           aria-label="Annual mileage in km"
         />
+      </label>
+
+      <label className="tco-check">
+        <input type="checkbox" checked={includeVignette} onChange={(e) => setIncludeVignette(e.target.checked)} />
+        <span>
+          Include annual motorway vignette ({fmtEur(COUNTRY_COSTS[DEFAULT_COUNTRY].vignetteEur)} / year)
+          <span className="tg"> · only if you use motorways regularly</span>
+        </span>
       </label>
 
       <div className="tco-totals">

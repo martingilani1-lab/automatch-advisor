@@ -19,7 +19,7 @@ import type { CarData } from "@/app/lib/carFields";
 import { carModelBase, carPriceMax, carPriceMin } from "@/app/lib/carFields";
 import type { DetailData } from "./types";
 import type { TcoKey, TcoOption, TcoResult } from "./lib/tco";
-import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, pickCheapest, rankedLines } from "./lib/tco";
+import { ANNUAL_KM_STEP, COUNTRY_COSTS, DEFAULT_ANNUAL_KM, DEFAULT_COUNTRY, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, pickCheapest, rankedLines } from "./lib/tco";
 import { buildTcoOptions } from "./lib/tcoOptions";
 import { representativeYear } from "./lib/tco";
 import { suggestSimilarCars, type Suggestion } from "./lib/costCompareSuggest";
@@ -39,7 +39,7 @@ const fmtKm = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} km
 
 // Fixed row order (same as the Costs tab's calculation order); a row only shows if at least one
 // compared vehicle has that line at all (AWD service appears only when an AWD car is compared).
-const ROW_ORDER: TcoKey[] = ["fuel", "engine", "gearbox", "drivetrain", "tires", "repairs", "fixed", "insurance", "depreciation"];
+const ROW_ORDER: TcoKey[] = ["fuel", "engine", "gearbox", "drivetrain", "tires", "repairs", "fixed", "vignette", "insurance", "depreciation"];
 
 export function carOptionLabel(c: CarData): string {
   const years = c.years ? ` (${c.years})` : "";
@@ -152,6 +152,7 @@ interface Column {
 
 export function CostCompareView({ entries, onChange, onClose, cars, details, loading, loadDetail }: CostCompareViewProps) {
   const [annualKm, setAnnualKm] = useState(DEFAULT_ANNUAL_KM);
+  const [includeVignette, setIncludeVignette] = useState(false);
 
   // Every compared model needs its configurations; loadDetail() is a no-op when they're
   // already cached or on their way.
@@ -183,11 +184,11 @@ export function CostCompareView({ entries, onChange, onClose, cars, details, loa
           car,
           options,
           option,
-          result: option ? calcTco(option.input, annualKm) : null,
+          result: option ? calcTco(option.input, annualKm, undefined, undefined, { includeVignette }) : null,
           isLoading: !detail && !!loading[entry.phaseId],
         };
       }),
-    [entries, cars, details, loading, annualKm]
+    [entries, cars, details, loading, annualKm, includeVignette]
   );
 
   const cheapest = pickCheapest(columns.map((c) => c.result));
@@ -227,6 +228,15 @@ export function CostCompareView({ entries, onChange, onClose, cars, details, loa
             aria-label="Annual mileage in km"
           />
         </label>
+
+        <label className="tco-check">
+          <input type="checkbox" checked={includeVignette} onChange={(e) => setIncludeVignette(e.target.checked)} />
+          <span>
+            Include annual motorway vignette ({fmtEur(COUNTRY_COSTS[DEFAULT_COUNTRY].vignetteEur)} / year)
+            <span className="tg"> · only if you use motorways regularly</span>
+          </span>
+        </label>
+
 
         <div className="tco-cmp-scroll">
           <table className="tco-cmp">
