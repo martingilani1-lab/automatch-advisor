@@ -281,6 +281,9 @@ export default function DbTestView() {
         <div className="results-hdr">
           <h3>DB test</h3>
           <div className="tg">{loaded ? `${sortedList.length} phases` : "Loading…"}</div>
+          <Link href="/db-test/ad-match" className="cfg-link" style={{ fontSize: ".8rem", display: "inline-block", marginTop: 6 }}>
+            Match a used-car ad to an engine →
+          </Link>
         </div>
 
         <input

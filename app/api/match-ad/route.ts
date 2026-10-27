@@ -29,6 +29,9 @@ export interface MatchAdResponse {
   read: AdReadResult;
   models: { modelId: string; brand: string; model: string }[];
   match: EngineMatch;
+  // Display labels for every phase id referenced by the match's candidates ("Škoda Octavia
+  // (5E) Facelift 2017–2020"), so a page can link each candidate to its car page.
+  phases: { id: string; label: string }[];
 }
 
 const EMPTY_RESPONSE: MatchAdResponse = {
@@ -40,11 +43,13 @@ const EMPTY_RESPONSE: MatchAdResponse = {
   },
   models: [],
   match: { matchedEngineId: null, confidenceScore: 0, reason: "model_not_found", candidates: [] },
+  phases: [],
 };
 
 interface PhaseRef {
   id: string;
   modelId: string;
+  label: string;
   generationCode: string | null;
   yearFrom: number | null;
   yearTo: number | null;
@@ -58,7 +63,7 @@ export async function POST(req: Request) {
 
     // 1. Vocabulary: every catalog model with its brand and phases.
     const [modelsRes] = await Promise.all([
-      supabase.from("catalog_models").select("id, name, catalog_brands(name), catalog_phases(id, generation_code, year_from, year_to)"),
+      supabase.from("catalog_models").select("id, name, catalog_brands(name), catalog_phases(id, generation_code, phase_label, year_from, year_to)"),
     ]);
     if (modelsRes.error) throw modelsRes.error;
 
@@ -74,7 +79,9 @@ export async function POST(req: Request) {
         generationCodes: [...new Set(ps.map((p) => p.generation_code).filter(Boolean))] as string[],
       });
       for (const p of ps) {
-        phases.push({ id: p.id, modelId: m.id, generationCode: p.generation_code, yearFrom: p.year_from, yearTo: p.year_to });
+        const years = p.year_from ? ` ${p.year_from}–${p.year_to ?? ""}` : "";
+        const label = [`${brand ?? ""} ${m.name}`.trim(), p.generation_code ? `(${p.generation_code})` : null, p.phase_label].filter(Boolean).join(" ") + years;
+        phases.push({ id: p.id, modelId: m.id, label, generationCode: p.generation_code, yearFrom: p.year_from, yearTo: p.year_to });
       }
     }
 
@@ -122,7 +129,9 @@ export async function POST(req: Request) {
       });
 
     const match = matchAdToEngine(read.ad, candidates);
-    return NextResponse.json({ read, models, match } satisfies MatchAdResponse);
+    const usedPhaseIds = new Set(match.candidates.flatMap((c) => c.phaseIds ?? []));
+    const phaseLabels = modelPhases.filter((p) => usedPhaseIds.has(p.id)).map((p) => ({ id: p.id, label: p.label }));
+    return NextResponse.json({ read, models, match, phases: phaseLabels } satisfies MatchAdResponse);
   } catch (err) {
     console.error("[/api/match-ad]", err);
     return NextResponse.json(EMPTY_RESPONSE, { status: 500 });
