@@ -1,7 +1,7 @@
 // "Add a vehicle" suggestions + cascade label parsing (app/db-test/lib/costCompareSuggest.ts).
 import { describe, it, expect } from "vitest";
 import type { CarData } from "@/app/lib/carFields";
-import { generationCode, modelName, phaseOptionLabel, suggestSimilarCars } from "@/app/db-test/lib/costCompareSuggest";
+import { generationCode, modelName, suggestSimilarCars } from "@/app/db-test/lib/costCompareSuggest";
 
 function car(id: string, make: string, name: string, gen: string, phase: string, segment: string, body: string, price: number): CarData {
   return {
@@ -23,7 +23,6 @@ describe("label parsing", () => {
   it("splits the server's model label", () => {
     expect(modelName(octNX)).toBe("Octavia");
     expect(generationCode(octNX)).toBe("NX");
-    expect(phaseOptionLabel(octNX)).toBe("NX · Pre-facelift (2020–2024)");
   });
 });
 

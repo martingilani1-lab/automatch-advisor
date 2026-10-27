@@ -201,13 +201,11 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .tco-cmp-note{font-size:.68rem;font-weight:400;margin-top:2px}
 .tco-cmp-val{font-weight:600}
 .tco-cmp-cfg{margin-top:6px;font-size:.7rem;line-height:1.4}
-.tco-add{display:flex;flex-direction:column;gap:4px;min-width:200px}
-.tco-add .tco-cmp-select:disabled{opacity:.45}
-.tco-add-suggest{display:flex;flex-direction:column;gap:6px;margin-top:4px}
-.tco-add-chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:#202024;border:1px solid #2a2a2e;border-radius:6px;padding:7px 9px;cursor:pointer;font-family:inherit}
-.tco-add-chip:hover{border-color:rgba(96,165,250,.6)}
-.tco-add-chip-name{color:#f0f0f0;font-size:.76rem;font-weight:600;line-height:1.35}
-.tco-add-chip .tg{font-size:.68rem}
+/* Model picker options: regular entries a step dimmer so the "Similar models" group on top
+   reads in db-test's white accent (#fffefc). Option colours apply where the browser renders the
+   list itself (desktop Chrome/Edge/Firefox); phones use their own native sheet. */
+.tco-cmp-select option,.tco-cmp-select optgroup{background:#202024;color:#9999aa}
+.tco-cmp-select option.tco-opt-similar{color:#fffefc;font-weight:600}
 .fault-block{margin-bottom:12px}
 .fault-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .fault-area{font-weight:600;font-size:.82rem}

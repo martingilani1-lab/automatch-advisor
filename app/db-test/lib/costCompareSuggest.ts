@@ -1,5 +1,5 @@
-// "Add a vehicle" helpers for the cost comparison (CostCompare.tsx): the brand -> model ->
-// phase cascade, and the "Suggested" list shown above it -- the same model in another
+// "Similar models" for the cost comparison's Add-a-vehicle picker (CostCompare.tsx): shown as
+// the first group of the brand-grouped model list -- the same model in another
 // phase/generation first, then cars of the same class at a similar price, so a buyer
 // comparing an Octavia sees other Octavias and its real rivals before the whole catalog.
 import type { CarData } from "@/app/lib/carFields";
@@ -14,11 +14,6 @@ export function modelName(c: CarData): string {
 }
 export function generationCode(c: CarData): string | null {
   return c.model.match(/\(([^)]+)\)/)?.[1] ?? null;
-}
-// Phase picker label once brand + model are already chosen: "5F · Pre-facelift (2012–2016)".
-export function phaseOptionLabel(c: CarData): string {
-  const parts = [generationCode(c), c.phaseLabel].filter(Boolean).join(" · ");
-  return `${parts || c.model}${c.years ? ` (${c.years})` : ""}`;
 }
 
 const priceMid = (c: CarData) => (carPriceMin(c) + carPriceMax(c)) / 2;
