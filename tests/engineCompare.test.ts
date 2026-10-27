@@ -3,11 +3,13 @@
 import { describe, it, expect } from "vitest";
 import { engineVerdict, pickSmartChoice, reliabilityTone, topFaults, consumptionLabel } from "@/app/db-test/lib/engineCompare";
 import type { DetailEngine } from "@/app/db-test/types";
+import { EMPTY_ENGINE_MAINTENANCE } from "@/app/catalog/lib/engineMaintenance";
 
 function eng(over: Partial<DetailEngine> & { id: string }): DetailEngine {
   return {
     engine: over.id, fuel_type: "petrol", power_kw: 81, displacement_cc: 999, torque_nm: 200, cylinders: "L3",
     is_ev: false, reliability: "Good", reliability_rating: 4, timing_type: "belt", hybrid_type: null,
+    timing_replacement_km: 120000, maintenance: EMPTY_ENGINE_MAINTENANCE,
     consumption: { min: 5.5, max: 5.5, unit: "l/100 km" }, faults: [], pros: [], cons: [], bodyNames: [],
     ...over,
   };
@@ -67,5 +69,23 @@ describe("pickSmartChoice", () => {
     const petrol = eng({ id: "p", reliability_rating: 4, consumption: { min: 9, max: 9, unit: "l/100 km" } });
     const ev = eng({ id: "e", fuel_type: "electric", reliability_rating: 4, consumption: { min: 15, max: 15, unit: "kWh/100 km" } });
     expect(pickSmartChoice([petrol, ev])).toBeNull();
+  });
+});
+
+describe("pickSmartChoice with yearly maintenance", () => {
+  const withYearly = (id: string, min: number, max: number) =>
+    eng({ id, maintenance: { ...EMPTY_ENGINE_MAINTENANCE, yearlyMaintenanceEurMin: min, yearlyMaintenanceEurMax: max } });
+  it("a €150/year cheaper engine wins between otherwise equal engines, with the reason", () => {
+    const pick = pickSmartChoice([withYearly("dear", 300, 400), withYearly("cheap", 150, 250)]);
+    expect(pick?.engineId).toBe("cheap");
+    expect(pick?.reasons).toContain("Lowest yearly maintenance");
+  });
+  it("ignores yearly cost when any compared engine lacks it", () => {
+    expect(pickSmartChoice([withYearly("a", 150, 250), eng({ id: "b" })])).toBeNull();
+  });
+  it("never outweighs a reliability tier on its own", () => {
+    const reliableButDear = { ...withYearly("r", 350, 450), reliability_rating: 5 };
+    const cheapButWorse = { ...withYearly("c", 150, 250), reliability_rating: 4 };
+    expect(pickSmartChoice([reliableButDear, cheapButWorse])?.engineId).toBe("r");
   });
 });

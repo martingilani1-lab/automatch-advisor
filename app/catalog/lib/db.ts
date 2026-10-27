@@ -6,6 +6,7 @@ import type {
   CatalogFault,
   CatalogMediaItem,
   CatalogTrim,
+  EngineMaintenance,
   PhaseBundle,
 } from "./types";
 // Page-agnostic reference-table shape -- /db-test's CarDetail.tsx already imports this same
@@ -211,7 +212,7 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
         fuel_consumption_l100km, energy_consumption_kwh100km,
         co2_emissions_g_km, battery_capacity_net_kwh, ev_range_wltp_km, max_charging_kw_dc,
         catalog_body_types(id, name),
-        catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type, reliability_rating, pros, cons),
+        catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type, reliability_rating, pros, cons, oil_change_interval_km, oil_change_interval_months, oil_spec, oil_service_cost_eur_min, oil_service_cost_eur_max, air_filter_interval_km, fuel_filter_interval_km, spark_plug_interval_km, spark_plug_cost_eur_min, spark_plug_cost_eur_max, timing_replacement_years, timing_service_cost_eur_min, timing_service_cost_eur_max, yearly_maintenance_eur_min, yearly_maintenance_eur_max, maintenance_note),
         transmission_units(id, code, family, maker, speeds, reliability_note, maintenance_note, reliability_rating, pros, cons),
         drivetrain_systems(id, code, type, generation, maker, description, reliability_note, maintenance_note, reliability_rating, pros, cons)
         `
@@ -343,6 +344,7 @@ function transformBundle(
       reliabilityRating: c.catalog_engines.reliability_rating,
       pros: c.catalog_engines.pros ?? [],
       cons: c.catalog_engines.cons ?? [],
+      maintenance: engineMaintenance(c.catalog_engines),
     },
     gearbox: {
       id: c.transmission_units.id,
@@ -448,5 +450,29 @@ function transformBundle(
     trims,
     faults,
     media,
+  };
+}
+
+// catalog_engines maintenance columns -> EngineMaintenance. numeric/integer columns can arrive
+// as strings from PostgREST for numeric types, so every number goes through num().
+function engineMaintenance(e: any): EngineMaintenance {
+  const num = (v: unknown): number | null => (v == null ? null : Number(v));
+  return {
+    oilChangeIntervalKm: num(e.oil_change_interval_km),
+    oilChangeIntervalMonths: num(e.oil_change_interval_months),
+    oilSpec: e.oil_spec ?? null,
+    oilServiceCostEurMin: num(e.oil_service_cost_eur_min),
+    oilServiceCostEurMax: num(e.oil_service_cost_eur_max),
+    airFilterIntervalKm: num(e.air_filter_interval_km),
+    fuelFilterIntervalKm: num(e.fuel_filter_interval_km),
+    sparkPlugIntervalKm: num(e.spark_plug_interval_km),
+    sparkPlugCostEurMin: num(e.spark_plug_cost_eur_min),
+    sparkPlugCostEurMax: num(e.spark_plug_cost_eur_max),
+    timingReplacementYears: num(e.timing_replacement_years),
+    timingServiceCostEurMin: num(e.timing_service_cost_eur_min),
+    timingServiceCostEurMax: num(e.timing_service_cost_eur_max),
+    yearlyMaintenanceEurMin: num(e.yearly_maintenance_eur_min),
+    yearlyMaintenanceEurMax: num(e.yearly_maintenance_eur_max),
+    note: e.maintenance_note ?? null,
   };
 }

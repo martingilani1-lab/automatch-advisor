@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { IconBulb, IconX } from "@tabler/icons-react";
 
 import type { DetailEngine } from "./types";
+import { eurRange, km, yearlyMaintenanceLabel } from "@/app/catalog/lib/engineMaintenance";
 import {
   MAX_COMPARE,
   consumptionLabel,
@@ -128,6 +129,15 @@ export function EngineCompareView({ engines, carLabel, onClose }: EngineCompareV
             const timing = timingLabel(e.timing_type);
             const cons = consumptionLabel(e.consumption);
             const traps = topFaults(e.faults);
+            const yearly = yearlyMaintenanceLabel(e.maintenance);
+            const m = e.maintenance;
+            const oil = m.oilChangeIntervalKm != null ? `every ${km(m.oilChangeIntervalKm)}${m.oilChangeIntervalMonths != null ? ` / ${m.oilChangeIntervalMonths} mo` : ""}` : null;
+            const timingCost = eurRange(m.timingServiceCostEurMin, m.timingServiceCostEurMax);
+            const timingEvery = e.timing_type === "chain"
+              ? "No fixed interval"
+              : e.timing_replacement_km != null
+                ? `every ${km(e.timing_replacement_km)}${m.timingReplacementYears != null ? ` / ${m.timingReplacementYears} years` : ""}`
+                : null;
             return (
               <section
                 key={e.id}
@@ -157,6 +167,14 @@ export function EngineCompareView({ engines, carLabel, onClose }: EngineCompareV
                   </CompareRow>
                   <CompareRow label="Power / torque">
                     {e.power_kw} kW{e.torque_nm != null ? ` · ${e.torque_nm} Nm` : ""}
+                  </CompareRow>
+                  <CompareRow label="Yearly maintenance">
+                    {yearly ? <span style={{ fontWeight: 700 }}>{yearly}</span> : <span className="tg">No data</span>}
+                    {oil && <div className="tg" style={{ marginTop: 3 }}>Oil {oil}</div>}
+                  </CompareRow>
+                  <CompareRow label={e.timing_type === "chain" ? "Timing chain job" : "Timing belt kit"}>
+                    {timingCost ?? <span className="tg">No data</span>}
+                    {timingEvery && <div className="tg" style={{ marginTop: 3 }}>{timingEvery}</div>}
                   </CompareRow>
                   <CompareRow label="Expensive traps">
                     {traps.length ? (
@@ -189,9 +207,9 @@ export function EngineCompareView({ engines, carLabel, onClose }: EngineCompareV
 
         <p className="tg" style={{ marginTop: 20, lineHeight: 1.6 }}>
           {smart
-            ? "Smart Choice weighs the reliability rating most, then the number and severity of known faults, then official consumption."
+            ? "Smart Choice weighs the reliability rating most, then the number and severity of known faults, then yearly maintenance cost and official consumption."
             : "No Smart Choice: the engines are too close to call, or not enough of them have a reliability rating."}{" "}
-          Use-case tags are derived from fuel type and power. Consumption is the manufacturer&apos;s combined figure, not a real-world measurement.
+          Use-case tags are derived from fuel type and power. Consumption is the manufacturer&apos;s combined figure, not a real-world measurement. Maintenance prices are typical independent-workshop prices in SK/CZ.
         </p>
       </div>
     </div>

@@ -2,6 +2,30 @@
 // boundary into a component prop type (same remap-discipline as buildCar() in
 // app/api/cars/route.ts for the legacy schema).
 
+// catalog_engines' maintenance columns (20261027140000), camelCased. EUR prices are parts +
+// labour at an independent SK/CZ workshop, min-max; yearly cost assumes ~15,000 km/year of
+// routine servicing (no tyres, no repairs). Every field NULL = not known -- never guessed.
+// Spark plugs are NULL for diesels, fuel filter NULL for most modern petrols; chain engines
+// have no timing km/years, only a typical chain-job cost.
+export interface EngineMaintenance {
+  oilChangeIntervalKm: number | null;
+  oilChangeIntervalMonths: number | null;
+  oilSpec: string | null;
+  oilServiceCostEurMin: number | null;
+  oilServiceCostEurMax: number | null;
+  airFilterIntervalKm: number | null;
+  fuelFilterIntervalKm: number | null;
+  sparkPlugIntervalKm: number | null;
+  sparkPlugCostEurMin: number | null;
+  sparkPlugCostEurMax: number | null;
+  timingReplacementYears: number | null;
+  timingServiceCostEurMin: number | null;
+  timingServiceCostEurMax: number | null;
+  yearlyMaintenanceEurMin: number | null;
+  yearlyMaintenanceEurMax: number | null;
+  note: string | null;
+}
+
 export interface CatalogEngine {
   id: string;
   code: string;
@@ -19,6 +43,7 @@ export interface CatalogEngine {
   reliabilityRating: number | null;
   pros: string[];
   cons: string[];
+  maintenance: EngineMaintenance;
 }
 
 export interface CatalogGearbox {

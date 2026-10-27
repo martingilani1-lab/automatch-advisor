@@ -74,21 +74,38 @@ export interface SmartChoice {
   reasons: string[];
 }
 
-export function engineScore(e: DetailEngine, consumptionFloor: number | null): number | null {
+// Yearly servicing midpoint (catalog_engines yearly_maintenance_eur_min/max); null if unknown.
+function midYearly(e: DetailEngine): number | null {
+  const { yearlyMaintenanceEurMin: a, yearlyMaintenanceEurMax: b } = e.maintenance;
+  if (a == null && b == null) return null;
+  const lo = (a ?? b) as number;
+  const hi = (b ?? a) as number;
+  return (lo + hi) / 2;
+}
+
+// Running-cost term added 2026-10-27 with the engine maintenance data: −1 point per €100 of
+// yearly servicing above the cheapest compared engine (only when EVERY compared engine has a
+// yearly figure -- a missing one must not look free). €100/year ≈ one moderate fault on this
+// scale: real money, but never enough on its own to outweigh a reliability tier (4 points).
+export function engineScore(e: DetailEngine, consumptionFloor: number | null, yearlyFloor: number | null = null): number | null {
   if (e.reliability_rating == null) return null;
   const faults = e.faults.reduce((sum, f) => sum + (FAULT_PENALTY[(f.severity || "").toLowerCase()] ?? 0), 0);
   const mid = midConsumption(e);
   const cons = consumptionFloor != null && mid != null ? (mid - consumptionFloor) * 0.5 : 0;
-  return e.reliability_rating * 4 - faults - cons;
+  const y = midYearly(e);
+  const yearly = yearlyFloor != null && y != null ? (y - yearlyFloor) / 100 : 0;
+  return e.reliability_rating * 4 - faults - cons - yearly;
 }
 
 export function pickSmartChoice(engines: DetailEngine[]): SmartChoice | null {
   const units = new Set(engines.map((e) => e.consumption?.unit ?? null));
   const comparableConsumption = units.size === 1 && !units.has(null);
   const floor = comparableConsumption ? Math.min(...engines.map((e) => midConsumption(e) as number)) : null;
+  const yearlyKnown = engines.every((e) => midYearly(e) != null);
+  const yearlyFloor = yearlyKnown ? Math.min(...engines.map((e) => midYearly(e) as number)) : null;
 
   const scored = engines
-    .map((e) => ({ e, s: engineScore(e, floor) }))
+    .map((e) => ({ e, s: engineScore(e, floor, yearlyFloor) }))
     .filter((x): x is { e: DetailEngine; s: number } => x.s != null)
     .sort((a, b) => b.s - a.s);
   if (scored.length < 2 || scored[0].s - scored[1].s < SMART_MARGIN) return null;
@@ -106,6 +123,10 @@ export function pickSmartChoice(engines: DetailEngine[]): SmartChoice | null {
   const wm = midConsumption(win);
   if (comparableConsumption && wm != null && others.every((o) => wm < (midConsumption(o) as number))) {
     reasons.push("Lowest consumption");
+  }
+  const wy = midYearly(win);
+  if (yearlyKnown && wy != null && others.every((o) => wy < (midYearly(o) as number))) {
+    reasons.push("Lowest yearly maintenance");
   }
   if (!reasons.length) reasons.push("Best overall balance of reliability and running costs");
   return { engineId: win.id, reasons };

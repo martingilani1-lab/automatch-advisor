@@ -10,6 +10,7 @@ import type { SafetyFeature } from "@/app/prehlad/types";
 import { matchesFuelOption, classifyGearboxTypes, GEARBOX_TYPES } from "@/app/db-test/lib/filters";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
+import { maintenanceRows, yearlyMaintenanceLabel } from "@/app/catalog/lib/engineMaintenance";
 import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, safetyEquipmentAvailability, safetyEquipmentAvailabilityLabel, distinctSafetyFeatureSlugs, trimFeatureCategory, TRIM_CATEGORY_ORDER, TRIM_CATEGORY_LABELS, type CompareRow, type ResolvedFeatureRow } from "@/app/catalog/lib/trimsDisplay";
 import type { CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
@@ -297,6 +298,13 @@ function GearboxAccordion({ gearbox, gapsMode, isOpen, onToggle }: { gearbox: De
 function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectDisabled, onSelectToggle }: { engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void; selected: boolean; selectDisabled: boolean; onSelectToggle: () => void }) {
   const rc = engine.reliability !== "—" ? REL_COLORS[engine.reliability] || "#888" : null;
   const cylinders = cylindersLabel(engine.cylinders);
+  // Maintenance window: same click-to-reveal tile + .maint-card as GearboxAccordion's
+  // maintenance note, but structured rows (interval · spec · price) since the engine's data is
+  // numeric (catalog_engines maintenance columns), plus the yearly estimate on the tile itself
+  // so it reads without opening.
+  const [maintOpen, setMaintOpen] = useState(false);
+  const maintRows = maintenanceRows(engine.maintenance, engine.timing_type, engine.timing_replacement_km);
+  const yearly = yearlyMaintenanceLabel(engine.maintenance);
 
   return (
     <div id={`engine-${engine.id}`} className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
@@ -354,6 +362,47 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
               </div>
             )}
           </div>
+          {maintRows.length > 0 || yearly ? (
+            <div className="cgrid">
+              <div
+                className="cgrid-item cgrid-item-btn"
+                onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
+              >
+                <div className="cgrid-val">
+                  {"🔧"} Maintenance{yearly ? <span style={{ color: "#9999aa", fontWeight: 400 }}> · {yearly}</span> : null} {maintOpen ? "▴" : "▾"}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <MissingMarker gapsMode={gapsMode} label="maintenance" />
+          )}
+          {maintOpen && (maintRows.length > 0 || yearly) && (
+            <div className="maint-card" onClick={(e) => e.stopPropagation()}>
+              {maintRows.map((r, ri) => (
+                <div key={ri} className="maint-item" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span>
+                    <span style={{ color: "#e4e4e7", fontWeight: 600 }}>{r.label}</span>
+                    {r.interval ? ` · ${r.interval}` : ""}
+                    {r.detail ? <span style={{ color: "#71717a" }}> · {r.detail}</span> : null}
+                  </span>
+                  {r.price && <span style={{ color: "#e4e4e7", whiteSpace: "nowrap" }}>{r.price}</span>}
+                </div>
+              ))}
+              {yearly && (
+                <div className="maint-item" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <span>
+                    <span style={{ color: "#e4e4e7", fontWeight: 600 }}>Yearly servicing</span>
+                    <span style={{ color: "#71717a" }}> · ~15 000 km/year, no tyres or repairs</span>
+                  </span>
+                  <span style={{ color: "#e4e4e7", fontWeight: 600, whiteSpace: "nowrap" }}>{yearly.replace(" / year", "")}</span>
+                </div>
+              )}
+              {engine.maintenance.note && <div className="maint-item">{engine.maintenance.note}</div>}
+              <div className="maint-item" style={{ fontSize: ".68rem", color: "#6b6b72" }}>
+                Typical prices at an independent workshop in SK/CZ, parts + labour.
+              </div>
+            </div>
+          )}
           {engine.pros?.length > 0 && (<>
             <div className="sub-label">{"✅"} Pros</div>
             {engine.pros.map((p, pi) => <div key={pi} className="pro-item">{"·"} {p}</div>)}

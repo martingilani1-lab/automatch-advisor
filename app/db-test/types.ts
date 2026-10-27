@@ -3,7 +3,7 @@
 // in the Prehľad version) has no catalog_ equivalent at all (no vehicle_safety_features-style
 // table), so it's dropped here rather than carried over empty — see CarDetail.tsx's Safety tab.
 
-import type { CatalogConfig, CatalogMediaItem, CatalogTrim } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogMediaItem, CatalogTrim, EngineMaintenance } from "@/app/catalog/lib/types";
 
 // A fault carries its own severity (catalog_component_faults.severity: 'critical' | 'moderate'
 // | 'minor' | null) through to display, so the engine/gearbox fault lists can sort by it and
@@ -63,6 +63,11 @@ export interface DetailEngine {
   timing_type: string | null;
   // catalog_engines.hybrid_type ('MHEV' | 'PHEV') -- null for a plain combustion engine.
   hybrid_type: string | null;
+  // catalog_engines.timing_replacement_km -- belt interval; null for chains (no fixed interval).
+  timing_replacement_km: number | null;
+  // Service intervals + typical SK/CZ workshop prices (catalog_engines maintenance columns) --
+  // shown in the engine card's Maintenance tile and the comparison's yearly-cost row.
+  maintenance: EngineMaintenance;
   // Official combined consumption across this engine's configurations on this phase (min/max,
   // so one gearbox/body spread shows as a range). From fuel_consumption_l100km, or
   // energy_consumption_kwh100km for electric -- the manufacturer figure, NOT a real-world one.

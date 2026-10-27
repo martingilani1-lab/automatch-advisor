@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { groupByGearbox, groupConfigurations } from "@/app/catalog/lib/groupConfigurations";
 import type { CatalogConfig, CatalogEngine, CatalogGearbox } from "@/app/catalog/lib/types";
+import { EMPTY_ENGINE_MAINTENANCE } from "@/app/catalog/lib/engineMaintenance";
 
 function makeEngine(id: string, code: string): CatalogEngine {
   return {
     id, code, displayName: null, displacementCc: null, powerKw: 110, fuelType: "petrol",
     torqueNm: null, cylinders: null, emissionStandard: null, timingType: null,
     engineOilCapacityLiters: null, timingReplacementKm: null, hybridType: null,
-    reliabilityRating: null, pros: [], cons: [],
+    reliabilityRating: null, pros: [], cons: [], maintenance: EMPTY_ENGINE_MAINTENANCE,
   };
 }
 

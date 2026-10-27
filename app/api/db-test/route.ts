@@ -371,6 +371,8 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
         reliability_rating: engine.reliabilityRating,
         timing_type: engine.timingType,
         hybrid_type: engine.hybridType,
+        timing_replacement_km: engine.timingReplacementKm,
+        maintenance: engine.maintenance,
         consumption: engineConsumption(group.configs, engine.fuelType === "electric"),
         faults: bundle.faults
           .filter((f) => f.engineId === engine.id)
