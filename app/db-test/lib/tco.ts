@@ -1,11 +1,18 @@
-// Total Cost of Ownership math behind TcoCalculator.tsx. Pure functions only -- the component
-// owns the mileage slider state and just calls calcTco() inside a useMemo, so every rule here
-// is unit-testable (tests/tco.test.ts) without rendering anything.
+// Total Cost of Ownership math behind TcoCalculator.tsx -- per CONFIGURATION (engine + gearbox
+// + drivetrain), not per engine, because the gearbox's fluid service and the AWD system's
+// Haldex/Torsen service are real recurring costs, and the gearbox's reliability changes how much
+// to keep aside for repairs (a DQ200 car is not a 02J car with the same engine).
+//
+// Pure functions only -- the component owns the mileage slider + selected configuration and
+// just calls calcTco() inside a useMemo, so every rule here is unit-testable
+// (tests/tco.test.ts) without rendering anything.
 //
 // Every constant below is a deliberate, coarse SK/CZ ballpark for an ESTIMATE, not live market
 // data. They are collected in one place so updating a fuel price or the vignette is a one-line
 // change, not a hunt through JSX.
-import type { DetailEngine } from "../types";
+import type { CatalogConfig, UnitService } from "@/app/catalog/lib/types";
+import { drivetrainLabel } from "@/app/catalog/lib/configDisplay";
+import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { reliabilityTone, type RelTone } from "./engineCompare";
 
 // ---- Constants ----------------------------------------------------------------------------
@@ -14,17 +21,16 @@ export const MIN_ANNUAL_KM = 5000;
 export const MAX_ANNUAL_KM = 50000;
 export const ANNUAL_KM_STEP = 1000;
 
-// € per unit (litre, or kWh for electric). Average pump/home-charging prices -- update these
-// when prices move; nothing else in the app reads them.
+// € per unit (litre, kg for CNG, kWh for electric). Petrol/diesel set by Martin 2026-10-27;
+// update these when prices move -- nothing else in the app reads them.
 export const FUEL_PRICE_EUR: Record<string, number> = {
-  petrol: 1.6,
-  diesel: 1.55,
+  petrol: 1.85,
+  diesel: 1.95,
   lpg: 0.8,
-  cng: 1.4, // €/kg, consumption for CNG is kg/100 km
-  electric: 0.25, // €/kWh, home-charging mix
+  cng: 1.4,
+  electric: 0.25, // home-charging mix
 };
-// Fallback for a fuel type not in the map (e.g. a hybrid tagged oddly) -- petrol is the
-// conservative middle choice.
+// Fallback for a fuel type not in the map -- petrol, the most common in the catalog.
 const FALLBACK_FUEL = "petrol";
 
 export const TIRE_SET_COST_EUR = 400; // one set of 4 mid-range tyres, fitted
@@ -32,14 +38,15 @@ export const TIRE_SET_LIFE_KM = 40000;
 export const TIRE_SWAP_COST_EUR = 30; // one seasonal swap (summer <-> winter)
 export const TIRE_SWAPS_PER_YEAR = 2;
 
-// Unexpected-repairs reserve, keyed by the same 3-tone fold engineCompare already uses for the
-// 5-word reliability scale (Excellent/Good -> good, Below Average/Poor -> poor). An UNRATED
-// engine gets the "average" reserve: unknown is not the same as reliable, so it must not get
-// the cheapest figure, but it isn't evidence of a bad engine either.
+// Unexpected-repairs reserve. The BASE comes from the engine's reliability (the 3-tone fold
+// engineCompare already uses: Excellent/Good -> good, Below Average/Poor -> poor). The gearbox
+// and AWD system each ADD to it by their own rating -- a poor gearbox (DQ200: mechatronic
+// €900-1 500, dry clutch €700-1 200 per its own note) is real money on top of the engine.
+// UNRATED = average figure: unknown is not the same as reliable, so never the cheapest one.
 export const REPAIR_RESERVE_EUR: Record<RelTone, number> = { good: 200, average: 500, poor: 800, unknown: 500 };
-// The reserve scales with mileage (more km = more wear), but clamped: a car parked most of the
-// year still ages (rubber, batteries, corrosion), and a 50 000 km/year driver doesn't triple
-// their risk of a single big failure. ±50 % around the 15 000 km baseline.
+export const UNIT_RESERVE_UPLIFT_EUR: Record<RelTone, number> = { good: 0, average: 100, poor: 250, unknown: 100 };
+// The reserve scales with mileage (more km = more wear), clamped ±50 % around 15 000 km/year:
+// a car parked most of the year still ages, and 50 000 km/year doesn't triple the risk.
 const RESERVE_SCALE_MIN = 0.5;
 const RESERVE_SCALE_MAX = 1.5;
 
@@ -58,23 +65,37 @@ export function insuranceEstimate(powerKw: number): number {
 
 export const DEPRECIATION_RATE = 0.1; // 10 % of the purchase price per year
 
+// Official combined figures under-read real driving; +15 % is the typical gap.
+export const REAL_WORLD_FACTOR = 1.15;
+export function realWorldConsumption(official: number | null): number | null {
+  return official == null ? null : Math.round(official * REAL_WORLD_FACTOR * 10) / 10;
+}
+
 // ---- Input / output -----------------------------------------------------------------------
+// A gearbox or AWD system as the calculator needs it: its rating (for the repair reserve) and
+// its one scheduled fluid service.
+export interface TcoUnit {
+  label: string;
+  reliabilityRating: number | null;
+  service: UnitService;
+}
+
 export interface TcoInput {
   priceEur: number | null;
   fuelType: string;
-  // REAL-world consumption per 100 km in the fuel's unit (l, kg or kWh). If only the official
-  // combined figure is known, pass it through realWorldConsumption() first.
+  // REAL-world consumption per 100 km in the fuel's unit (l, kg or kWh).
   consumptionPer100: number | null;
   powerKw: number;
-  // 1..5 catalog rating, or null when unrated.
-  reliabilityRating: number | null;
-  yearlyServiceEur: number | null;
-  // Timing belt kit job; leave null for chain engines (no fixed interval -> not prorated).
-  timingBeltCostEur: number | null;
-  timingBeltIntervalKm: number | null;
+  engineReliabilityRating: number | null;
+  // Engine routine servicing per year (oil, filters, plugs) -- catalog_engines yearly_maintenance.
+  engineYearlyServiceEur: number | null;
+  // Timing belt kit job; null for chain engines (no fixed interval -> nothing to prorate).
+  timingBelt: UnitService | null;
+  gearbox: TcoUnit;
+  drivetrain: TcoUnit | null; // null = 2WD, no AWD service line at all
 }
 
-export type TcoKey = "fuel" | "maintenance" | "tires" | "repairs" | "fixed" | "insurance" | "depreciation";
+export type TcoKey = "fuel" | "engine" | "gearbox" | "drivetrain" | "tires" | "repairs" | "fixed" | "insurance" | "depreciation";
 
 export interface TcoLine {
   key: TcoKey;
@@ -92,14 +113,39 @@ export interface TcoResult {
   incomplete: boolean;
 }
 
-// Official WLTP/NEDC combined figures under-read real driving; +15 % is the typical gap for
-// combustion engines. Applied only when the caller has nothing better.
-export const REAL_WORLD_FACTOR = 1.15;
-export function realWorldConsumption(official: number | null): number | null {
-  return official == null ? null : Math.round(official * REAL_WORLD_FACTOR * 10) / 10;
+const eur = (n: number) => `€${Math.round(n).toLocaleString("en-US").replace(/,/g, " ")}`;
+const kmText = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} km`;
+const mid = (a: number | null, b: number | null): number | null =>
+  a == null && b == null ? null : (((a ?? b) as number) + ((b ?? a) as number)) / 2;
+
+// A recurring job spread over the year: by km driven, or by its time limit when that comes
+// first (a 60k km / 3-year Haldex service at 10 000 km/year is due on time, not on km) -- so the
+// larger of the two. null when the price or both intervals are unknown.
+export function proratedYearly(s: UnitService, annualKm: number): number | null {
+  const cost = mid(s.costEurMin, s.costEurMax);
+  if (cost == null || (s.intervalKm == null && s.intervalYears == null)) return null;
+  const byKm = s.intervalKm ? (cost / s.intervalKm) * annualKm : 0;
+  const byTime = s.intervalYears ? cost / s.intervalYears : 0;
+  return Math.max(byKm, byTime);
 }
 
-const eur = (n: number) => `€${Math.round(n).toLocaleString("en-US").replace(/,/g, " ")}`;
+function intervalText(s: UnitService): string {
+  const parts = [s.intervalKm != null ? kmText(s.intervalKm) : null, s.intervalYears != null ? `${s.intervalYears} years` : null].filter(Boolean);
+  return parts.length ? `every ${parts.join(" / ")}` : "";
+}
+
+function unitServiceLine(key: "gearbox" | "drivetrain", label: string, u: TcoUnit, annualKm: number): TcoLine {
+  const yearly = proratedYearly(u.service, annualKm);
+  const range = u.service.costEurMin != null ? `${eur(u.service.costEurMin)}–${eur(u.service.costEurMax ?? u.service.costEurMin)}` : null;
+  return {
+    key,
+    label,
+    yearly,
+    detail: yearly != null
+      ? `${u.label}: fluid service ${range} ${intervalText(u.service)}`
+      : `${u.label}: no service price yet`,
+  };
+}
 
 // ---- The calculation ----------------------------------------------------------------------
 export function calcTco(car: TcoInput, annualKm: number): TcoResult {
@@ -107,23 +153,20 @@ export function calcTco(car: TcoInput, annualKm: number): TcoResult {
   const fuelPrice = FUEL_PRICE_EUR[fuelKey];
   const unit = fuelKey === "electric" ? "kWh" : fuelKey === "cng" ? "kg" : "l";
 
-  // Fuel: (km / 100) × consumption × price.
   const fuel = car.consumptionPer100 != null ? (annualKm / 100) * car.consumptionPer100 * fuelPrice : null;
 
-  // Maintenance: base yearly service + the timing-belt job prorated per km driven. Only
-  // prorated when BOTH cost and interval are known (a cost with no interval = chain engine).
-  const beltPerYear =
-    car.timingBeltCostEur != null && car.timingBeltIntervalKm
-      ? (car.timingBeltCostEur / car.timingBeltIntervalKm) * annualKm
-      : 0;
-  const maintenance = car.yearlyServiceEur != null ? car.yearlyServiceEur + beltPerYear : null;
+  const belt = car.timingBelt ? proratedYearly(car.timingBelt, annualKm) ?? 0 : 0;
+  const engine = car.engineYearlyServiceEur != null ? car.engineYearlyServiceEur + belt : null;
 
-  // Tyres: wear prorated per km + the fixed seasonal swaps.
   const tires = (TIRE_SET_COST_EUR / TIRE_SET_LIFE_KM) * annualKm + TIRE_SWAP_COST_EUR * TIRE_SWAPS_PER_YEAR;
 
-  const tone = reliabilityTone(car.reliabilityRating);
   const scale = Math.min(RESERVE_SCALE_MAX, Math.max(RESERVE_SCALE_MIN, annualKm / DEFAULT_ANNUAL_KM));
-  const repairs = REPAIR_RESERVE_EUR[tone] * scale;
+  const eTone = reliabilityTone(car.engineReliabilityRating);
+  const gTone = reliabilityTone(car.gearbox.reliabilityRating);
+  const dTone = car.drivetrain ? reliabilityTone(car.drivetrain.reliabilityRating) : null;
+  const repairs =
+    (REPAIR_RESERVE_EUR[eTone] + UNIT_RESERVE_UPLIFT_EUR[gTone] + (dTone ? UNIT_RESERVE_UPLIFT_EUR[dTone] : 0)) * scale;
+  const toneWord = (t: RelTone) => (t === "unknown" ? "not rated" : t);
 
   const fixed = VIGNETTE_EUR + INSPECTION_EUR / INSPECTION_EVERY_YEARS;
   const insurance = insuranceEstimate(car.powerKw);
@@ -135,30 +178,32 @@ export function calcTco(car: TcoInput, annualKm: number): TcoResult {
       label: "Fuel",
       yearly: fuel,
       detail: car.consumptionPer100 != null
-        ? `${car.consumptionPer100} ${unit}/100 km × €${fuelPrice.toFixed(2)}/${unit}`
+        ? `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`
         : "No consumption data",
     },
     {
-      key: "maintenance",
-      label: "Maintenance",
-      yearly: maintenance,
-      detail: car.yearlyServiceEur == null
+      key: "engine",
+      label: "Engine servicing",
+      yearly: engine,
+      detail: car.engineYearlyServiceEur == null
         ? "No service cost data"
-        : beltPerYear > 0
-          ? `Servicing ${eur(car.yearlyServiceEur)} + timing belt ${eur(beltPerYear)} (prorated)`
-          : `Servicing ${eur(car.yearlyServiceEur)}`,
+        : belt > 0
+          ? `Oil, filters, plugs ${eur(car.engineYearlyServiceEur)} + timing belt ${eur(belt)} (prorated)`
+          : `Oil, filters, plugs ${eur(car.engineYearlyServiceEur)}`,
     },
+    unitServiceLine("gearbox", "Gearbox service", car.gearbox, annualKm),
+    ...(car.drivetrain ? [unitServiceLine("drivetrain", "AWD service", car.drivetrain, annualKm)] : []),
     {
       key: "tires",
       label: "Tyres & seasonal swaps",
       yearly: tires,
-      detail: `${eur(TIRE_SET_COST_EUR)} set per ${(TIRE_SET_LIFE_KM / 1000).toFixed(0)} 000 km + ${TIRE_SWAPS_PER_YEAR}× swap`,
+      detail: `${eur(TIRE_SET_COST_EUR)} set per ${kmText(TIRE_SET_LIFE_KM)} + ${TIRE_SWAPS_PER_YEAR}× swap`,
     },
     {
       key: "repairs",
       label: "Unexpected repairs reserve",
       yearly: repairs,
-      detail: tone === "unknown" ? "Engine not rated, average reserve assumed" : `Based on ${tone} reliability`,
+      detail: `Engine ${toneWord(eTone)} · gearbox ${toneWord(gTone)}${dTone ? ` · AWD ${toneWord(dTone)}` : ""}`,
     },
     {
       key: "fixed",
@@ -179,23 +224,67 @@ export function calcTco(car: TcoInput, annualKm: number): TcoResult {
   return { lines, yearlyTotal, monthlyTotal: yearlyTotal / 12, incomplete: lines.some((l) => l.yearly == null) };
 }
 
-// ---- Adapter for the Engines tab ----------------------------------------------------------
-// Builds a TcoInput from one DetailEngine + the phase's market price (midpoint of the
-// price_range_min/max shown in the car header; 0/0 = unknown -> null, never €0).
-// Consumption: midpoint of the official combined range, lifted by REAL_WORLD_FACTOR.
-// Timing belt: only for belt engines -- a chain job has no interval, so it isn't prorated.
-const mid = (a: number | null, b: number | null) => (a == null && b == null ? null : (((a ?? b) as number) + ((b ?? a) as number)) / 2);
-export function tcoInputFromEngine(e: DetailEngine, priceMin: number, priceMax: number): TcoInput {
-  const m = e.maintenance;
-  const isBelt = e.timing_type === "belt";
-  return {
-    priceEur: priceMin > 0 || priceMax > 0 ? mid(priceMin || null, priceMax || null) : null,
-    fuelType: e.fuel_type || FALLBACK_FUEL,
-    consumptionPer100: realWorldConsumption(e.consumption ? (e.consumption.min + e.consumption.max) / 2 : null),
-    powerKw: e.power_kw,
-    reliabilityRating: e.reliability_rating,
-    yearlyServiceEur: mid(m.yearlyMaintenanceEurMin, m.yearlyMaintenanceEurMax),
-    timingBeltCostEur: isBelt ? mid(m.timingServiceCostEurMin, m.timingServiceCostEurMax) : null,
-    timingBeltIntervalKm: isBelt ? e.timing_replacement_km : null,
-  };
+// ---- Configurations -> selectable options -------------------------------------------------
+// Body type doesn't change running costs, so configurations collapse to one option per real
+// (engine, gearbox, drivetrain) combination; `bodies` lists which bodies it covers. Consumption
+// is the mean of the official figures across those bodies, then lifted to real-world. Electric
+// engines use kWh/100 km; everything else (PHEV included) l/100 km.
+export interface TcoOption {
+  key: string;
+  label: string;
+  bodies: string[];
+  input: TcoInput;
+}
+
+export function tcoOptions(
+  configs: CatalogConfig[],
+  priceMin: number,
+  priceMax: number,
+  engineLabel: (c: CatalogConfig) => string,
+): TcoOption[] {
+  const price = priceMin > 0 || priceMax > 0 ? mid(priceMin || null, priceMax || null) : null;
+  const groups = new Map<string, CatalogConfig[]>();
+  for (const c of configs) {
+    const key = `${c.engine.id}|${c.gearbox.id}|${c.drivetrain?.id ?? "2wd"}`;
+    groups.set(key, [...(groups.get(key) ?? []), c]);
+  }
+  return [...groups.entries()].map(([key, list]) => {
+    const c = list[0];
+    const e = c.engine;
+    const electric = e.fuelType.toLowerCase() === "electric";
+    const vals = list
+      .map((x) => (electric ? x.energyConsumptionKwh100km : x.fuelConsumptionL100km))
+      .filter((v): v is number => v != null);
+    const official = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    const m = e.maintenance;
+    const isBelt = e.timingType === "belt";
+    return {
+      key,
+      label: `${engineLabel(c)} · ${gearboxHeaderLabel(c.gearbox.code, c.gearbox.speeds, c.gearbox.family)} · ${drivetrainLabel(c)}`,
+      bodies: [...new Set(list.map((x) => x.bodyName))],
+      input: {
+        priceEur: price,
+        fuelType: e.fuelType,
+        consumptionPer100: realWorldConsumption(official),
+        powerKw: e.powerKw,
+        engineReliabilityRating: e.reliabilityRating,
+        engineYearlyServiceEur: mid(m.yearlyMaintenanceEurMin, m.yearlyMaintenanceEurMax),
+        timingBelt: isBelt
+          ? { intervalKm: e.timingReplacementKm, intervalYears: m.timingReplacementYears, costEurMin: m.timingServiceCostEurMin, costEurMax: m.timingServiceCostEurMax }
+          : null,
+        gearbox: { label: c.gearbox.code, reliabilityRating: c.gearbox.reliabilityRating, service: c.gearbox.service },
+        drivetrain: c.drivetrain
+          ? { label: drivetrainLabel(c), reliabilityRating: c.drivetrain.reliabilityRating, service: c.drivetrain.service }
+          : null,
+      },
+    };
+  });
+}
+
+// Lines that have a figure, biggest first -- what the "where the money goes" bars show.
+export function rankedLines(r: TcoResult): (TcoLine & { yearly: number; share: number })[] {
+  return r.lines
+    .filter((l): l is TcoLine & { yearly: number } => l.yearly != null && l.yearly > 0)
+    .map((l) => ({ ...l, share: r.yearlyTotal > 0 ? l.yearly / r.yearlyTotal : 0 }))
+    .sort((a, b) => b.yearly - a.yearly);
 }

@@ -20,7 +20,6 @@ import { pickMainMedia } from "@/app/catalog/lib/media";
 import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
 import { CompareBar, EngineCompareView } from "./EngineCompare";
 import { MAX_COMPARE } from "./lib/engineCompare";
-import { tcoInputFromEngine } from "./lib/tco";
 import TcoCalculator from "./TcoCalculator";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
@@ -297,7 +296,7 @@ function GearboxAccordion({ gearbox, gapsMode, isOpen, onToggle }: { gearbox: De
 // `selected`/`onSelectToggle` drive the engine comparison (EngineCompare.tsx): a checkbox in
 // the header, kept out of the card's own click-to-expand (stopPropagation), disabled once the
 // comparison is full unless it's one of the already-ticked engines.
-function EngineAccordion({ engine, priceMin, priceMax, gapsMode, isOpen, onToggle, selected, selectDisabled, onSelectToggle }: { engine: DetailEngine; priceMin: number; priceMax: number; gapsMode: boolean; isOpen: boolean; onToggle: () => void; selected: boolean; selectDisabled: boolean; onSelectToggle: () => void }) {
+function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectDisabled, onSelectToggle }: { engine: DetailEngine; gapsMode: boolean; isOpen: boolean; onToggle: () => void; selected: boolean; selectDisabled: boolean; onSelectToggle: () => void }) {
   const rc = engine.reliability !== "—" ? REL_COLORS[engine.reliability] || "#888" : null;
   const cylinders = cylindersLabel(engine.cylinders);
   // Maintenance window: same click-to-reveal tile + .maint-card as GearboxAccordion's
@@ -307,10 +306,6 @@ function EngineAccordion({ engine, priceMin, priceMax, gapsMode, isOpen, onToggl
   const [maintOpen, setMaintOpen] = useState(false);
   const maintRows = maintenanceRows(engine.maintenance, engine.timing_type, engine.timing_replacement_km);
   const yearly = yearlyMaintenanceLabel(engine.maintenance);
-  // TCO calculator: same click-to-reveal tile pattern, mounted per engine since consumption,
-  // servicing, timing belt and reliability all differ by engine; price is the phase's range.
-  const [tcoOpen, setTcoOpen] = useState(false);
-  const tcoInput = useMemo(() => tcoInputFromEngine(engine, priceMin, priceMax), [engine, priceMin, priceMax]);
 
   return (
     <div id={`engine-${engine.id}`} className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
@@ -407,19 +402,6 @@ function EngineAccordion({ engine, priceMin, priceMax, gapsMode, isOpen, onToggl
               <div className="maint-item" style={{ fontSize: ".68rem", color: "#6b6b72" }}>
                 Typical prices at an independent workshop in SK/CZ, parts + labour.
               </div>
-            </div>
-          )}
-          <div className="cgrid">
-            <div
-              className="cgrid-item cgrid-item-btn"
-              onClick={(e) => { e.stopPropagation(); setTcoOpen((v) => !v); }}
-            >
-              <div className="cgrid-val">{"💶"} Cost of ownership {tcoOpen ? "▴" : "▾"}</div>
-            </div>
-          </div>
-          {tcoOpen && (
-            <div className="maint-card" onClick={(e) => e.stopPropagation()}>
-              <TcoCalculator car={tcoInput} />
             </div>
           )}
           {engine.pros?.length > 0 && (<>
@@ -1021,6 +1003,8 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
   const tabs: TabDef[] = [];
   if (configs.length > 0) tabs.push({ id: "configurations", label: "Configurations", count: configs.length });
   if (filteredEngines.length > 0) tabs.push({ id: "engines", label: "Engines", count: filteredEngines.length });
+  // Cost of ownership is per configuration (engine + gearbox + AWD), so it sits next to them.
+  if (configs.length > 0) tabs.push({ id: "costs", label: "Costs" });
   if (gearboxGroups.length > 0) tabs.push({ id: "gearboxes", label: "Gearboxes", count: gearboxGroups.length });
   if (drivetrainGroups.length > 0) tabs.push({ id: "drivetrain", label: "Drivetrain System", count: drivetrainGroups.length });
   if ((detail?.dims.length ?? 0) > 0) tabs.push({ id: "dimensions", label: "Dimensions", count: detail!.dims.length });
@@ -1165,8 +1149,6 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                 )}
                 <EngineAccordion
                   engine={e}
-                  priceMin={carPriceMin(car)}
-                  priceMax={carPriceMax(car)}
                   gapsMode={gapsMode}
                   isOpen={!!openEngines[i] || i === focusEngineIdx}
                   onToggle={() => setOpenEngines((p) => ({ ...p, [i]: !p[i] }))}
@@ -1182,6 +1164,12 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         {activeTab === "configurations" && (
           <div className="mp-section">
             <ConfigRows configs={configs} onNavigate={handleConfigNavigate} />
+          </div>
+        )}
+
+        {activeTab === "costs" && (
+          <div className="mp-section">
+            <TcoCalculator configs={configs} priceMin={carPriceMin(car)} priceMax={carPriceMax(car)} />
           </div>
         )}
 

@@ -1,18 +1,24 @@
 "use client";
 
-// Total Cost of Ownership calculator: one mileage slider driving a per-category yearly
-// breakdown plus monthly/yearly totals. All math lives in ./lib/tco.ts (pure, tested); this
-// component only owns the slider state and recomputes via useMemo when it or the car changes.
-// Markup reuses this page's existing native classes (.sub-label, .tg, .cgrid-*) -- no new
-// styling was added with it.
+// Total Cost of Ownership calculator -- the "Costs" tab. Per CONFIGURATION (engine + gearbox +
+// drivetrain): a configuration picker and a mileage slider drive a yearly breakdown that is
+// also the chart -- one horizontal bar per category, biggest first, so "what costs me the most"
+// reads at a glance. A single series in a single hue (no legend needed; each bar is labelled
+// with its own name, € and share). All math lives in ./lib/tco.ts (pure, tested); this
+// component only owns the two pieces of UI state and recomputes via useMemo.
 
 import { useMemo, useState } from "react";
 
-import type { TcoInput } from "./lib/tco";
-import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco } from "./lib/tco";
+import type { CatalogConfig } from "@/app/catalog/lib/types";
+import type { TcoKey } from "./lib/tco";
+import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, rankedLines, tcoOptions } from "./lib/tco";
+import { FUEL_SORT_ORDER, dbTestEngineLabel } from "./ConfigRows";
 
 interface TcoCalculatorProps {
-  car: TcoInput;
+  configs: CatalogConfig[];
+  // The phase's market price range (header price) -- its midpoint is the depreciation base.
+  priceMin: number;
+  priceMax: number;
   // Wired later to the external insurance comparison (affiliate) portal. Until then the
   // button renders but does nothing -- deliberately a placeholder, not a fake quote.
   onInsuranceClick?: () => void;
@@ -20,18 +26,56 @@ interface TcoCalculatorProps {
 
 const fmtEur = (n: number) => `€${Math.round(n).toLocaleString("en-US").replace(/,/g, " ")}`;
 const fmtKm = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} km`;
+const pct = (share: number) => `${Math.round(share * 100)} %`;
 
-export default function TcoCalculator({ car, onInsuranceClick }: TcoCalculatorProps) {
+export default function TcoCalculator({ configs, priceMin, priceMax, onInsuranceClick }: TcoCalculatorProps) {
+  // Same order as the Configurations tab: fuel group, then smallest engine first.
+  const options = useMemo(() => {
+    const opts = tcoOptions(configs, priceMin, priceMax, dbTestEngineLabel);
+    const byKey = new Map(configs.map((c) => [`${c.engine.id}|${c.gearbox.id}|${c.drivetrain?.id ?? "2wd"}`, c]));
+    const rank = (k: string) => {
+      const e = byKey.get(k)!.engine;
+      return [FUEL_SORT_ORDER[e.fuelType.toLowerCase()] ?? 99, e.displacementCc ?? Infinity, e.powerKw] as const;
+    };
+    return opts.sort((a, b) => {
+      const [fa, da, pa] = rank(a.key);
+      const [fb, db, pb] = rank(b.key);
+      return fa - fb || da - db || pa - pb || a.label.localeCompare(b.label);
+    });
+  }, [configs, priceMin, priceMax]);
+
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [annualKm, setAnnualKm] = useState(DEFAULT_ANNUAL_KM);
-  const tco = useMemo(() => calcTco(car, annualKm), [car, annualKm]);
+
+  // Falls back to the first option when nothing is picked yet, or when the phase switcher
+  // swapped in a configuration list that no longer contains the old pick.
+  const option = options.find((o) => o.key === selectedKey) ?? options[0] ?? null;
+  const tco = useMemo(() => (option ? calcTco(option.input, annualKm) : null), [option, annualKm]);
+  const ranked = useMemo(() => (tco ? rankedLines(tco) : []), [tco]);
+
+  if (!option || !tco) return <p className="tg">No configurations to calculate.</p>;
+
+  const max = ranked[0]?.yearly ?? 0;
+  const missing = tco.lines.filter((l) => l.yearly == null);
+  const isInsurance = (k: TcoKey) => k === "insurance";
 
   return (
     <div className="tco">
-      <div className="sub-label">{"💶"} Total cost of ownership</div>
+      <label className="tco-field">
+        <span className="cgrid-label">Configuration</span>
+        <select value={option.key} onChange={(e) => setSelectedKey(e.target.value)}>
+          {options.map((o) => (
+            <option key={o.key} value={o.key}>{o.label}</option>
+          ))}
+        </select>
+        <span className="tg">{option.bodies.join(" · ")}</span>
+      </label>
 
-      <label className="tco-slider">
-        <span className="tg">Annual mileage</span>
-        <strong>{fmtKm(annualKm)} / year</strong>
+      <label className="tco-field">
+        <span className="tco-field-row">
+          <span className="cgrid-label">Annual mileage</span>
+          <strong>{fmtKm(annualKm)} / year</strong>
+        </span>
         <input
           type="range"
           min={MIN_ANNUAL_KM}
@@ -43,42 +87,59 @@ export default function TcoCalculator({ car, onInsuranceClick }: TcoCalculatorPr
         />
       </label>
 
-      <ul className="tco-lines">
-        {tco.lines.map((line) => (
-          <li key={line.key} className="tco-line">
-            <div>
-              <div className="cgrid-label">{line.label}</div>
-              <div className="tg">{line.detail}</div>
-              {line.key === "insurance" && (
-                <button type="button" className="tco-insurance-btn" onClick={onInsuranceClick}>
-                  [ Calculate exact insurance ]
-                </button>
-              )}
+      <div className="tco-totals">
+        <div>
+          <div className="cgrid-label">Monthly</div>
+          <div className="tco-total-val">{fmtEur(tco.monthlyTotal)}</div>
+        </div>
+        <div>
+          <div className="cgrid-label">Yearly</div>
+          <div className="tco-total-val">{fmtEur(tco.yearlyTotal)}</div>
+        </div>
+        {ranked[0] && (
+          <div>
+            <div className="cgrid-label">Biggest cost</div>
+            <div className="tco-total-val">{ranked[0].label} · {pct(ranked[0].share)}</div>
+          </div>
+        )}
+      </div>
+
+      <div className="sub-label">Where the money goes</div>
+      <ul className="tco-lines" aria-label="Yearly cost by category, biggest first">
+        {ranked.map((line) => (
+          <li key={line.key} className="tco-line" title={`${line.label}: ${fmtEur(line.yearly)} / year · ${pct(line.share)} of total`}>
+            <div className="tco-line-head">
+              <span className="tco-line-label">{line.label}</span>
+              <span className="tco-line-val">
+                {fmtEur(line.yearly)}<span className="tg"> / year · {pct(line.share)}</span>
+              </span>
             </div>
-            <div className="cgrid-val">
-              {line.yearly != null ? `${fmtEur(line.yearly)} / year` : <span className="tg">No data</span>}
+            <div className="tco-bar-track">
+              <div className="tco-bar" style={{ width: `${max > 0 ? (line.yearly / max) * 100 : 0}%` }} />
             </div>
+            <div className="tg">{line.detail}</div>
+            {isInsurance(line.key) && (
+              <button type="button" className="tco-insurance-btn" onClick={onInsuranceClick}>
+                [ Calculate exact insurance ]
+              </button>
+            )}
           </li>
         ))}
       </ul>
 
-      <div className="tco-totals">
-        <div>
-          <div className="cgrid-label">Monthly</div>
-          <div className="cgrid-val">{fmtEur(tco.monthlyTotal)}</div>
+      {missing.length > 0 && (
+        <div className="tco-missing">
+          <div className="cgrid-label">Not included in the total (no data yet)</div>
+          {missing.map((l) => (
+            <div key={l.key} className="tg">{l.label} · {l.detail}</div>
+          ))}
         </div>
-        <div>
-          <div className="cgrid-label">Yearly</div>
-          <div className="cgrid-val">{fmtEur(tco.yearlyTotal)}</div>
-        </div>
-      </div>
-
-      {tco.incomplete && (
-        <p className="tg">Some categories have no data and are not included in the total.</p>
       )}
+
       <p className="tg">
-        Estimate only: average SK/CZ fuel prices, mid-range tyres and a reliability-based repair
-        reserve. Depreciation assumes 10 % of the purchase price per year.
+        Estimate only: average SK/CZ fuel prices, real-world consumption (official +15 %),
+        mid-range tyres, workshop service prices and a repair reserve from the engine, gearbox
+        and AWD reliability ratings. Depreciation assumes 10 % of the purchase price per year.
       </p>
     </div>
   );

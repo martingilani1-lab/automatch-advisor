@@ -1,7 +1,7 @@
 // Display helpers for an engine's maintenance window (catalog_engines maintenance columns,
 // 20261027140000) -- shared by /db-test's engine card + comparison and anything on /catalog
 // that wants the same rows, so intervals and prices read identically everywhere.
-import type { EngineMaintenance } from "./types";
+import type { EngineMaintenance, UnitService } from "./types";
 
 export const EMPTY_ENGINE_MAINTENANCE: EngineMaintenance = {
   oilChangeIntervalKm: null,
@@ -21,6 +21,10 @@ export const EMPTY_ENGINE_MAINTENANCE: EngineMaintenance = {
   yearlyMaintenanceEurMax: null,
   note: null,
 };
+
+// Gearbox / AWD-system counterpart (UnitService, 20261027160000) -- the default whenever a
+// unit has no service row yet, or the columns don't exist live.
+export const EMPTY_UNIT_SERVICE: UnitService = { intervalKm: null, intervalYears: null, costEurMin: null, costEurMax: null };
 
 // "15 000 km" -- thin-space-free, plain space thousands separator (SK/CZ convention, and it
 // matches how intervals were written in the fill list).

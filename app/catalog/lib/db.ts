@@ -7,12 +7,14 @@ import type {
   CatalogMediaItem,
   CatalogTrim,
   EngineMaintenance,
+  UnitService,
   PhaseBundle,
 } from "./types";
 // Page-agnostic reference-table shape -- /db-test's CarDetail.tsx already imports this same
 // type from here rather than duplicating it; this follows that precedent instead of adding a
 // third copy.
 import type { SafetyFeature } from "@/app/prehlad/types";
+import { EMPTY_UNIT_SERVICE } from "./engineMaintenance";
 
 // No `slug` column exists anywhere in the catalog_ schema (checked every migration) --
 // catalog_brands.name / catalog_models.name / catalog_phases.generation_code /
@@ -260,6 +262,21 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
   // nothing in this bundle currently consumes drivetrain-level faults.
   const engineIds = [...new Set(configRows.map((c: any) => c.catalog_engines?.id).filter(Boolean))];
   const unitIds = [...new Set(configRows.map((c: any) => c.transmission_units?.id).filter(Boolean))];
+  const drivetrainIds = [...new Set(configRows.map((c: any) => c.drivetrain_systems?.id).filter(Boolean))];
+
+  // Gearbox / AWD service interval + cost (20261027160000), fetched separately from the main
+  // config select ON PURPOSE: those columns may not exist live yet, and naming them in the
+  // embedded select would 500 the whole page. Same "missing -> no rows" degrade as
+  // catalog_phase_unit_notes above: no .error check, just `.data || []`.
+  const SERVICE_COLS = "id, service_interval_km, service_interval_years, service_cost_eur_min, service_cost_eur_max";
+  const [unitServiceRes, drivetrainServiceRes] = await Promise.all([
+    unitIds.length ? supabase.from("transmission_units").select(SERVICE_COLS).in("id", unitIds) : Promise.resolve({ data: [] as any[] }),
+    drivetrainIds.length ? supabase.from("drivetrain_systems").select(SERVICE_COLS).in("id", drivetrainIds) : Promise.resolve({ data: [] as any[] }),
+  ]);
+  const serviceById = new Map<string, UnitService>();
+  for (const r of [...(unitServiceRes.data || []), ...(drivetrainServiceRes.data || [])] as any[]) {
+    serviceById.set(r.id, unitService(r));
+  }
 
   const orParts: string[] = [`phase_id.eq.${phaseId}`];
   if (engineIds.length) orParts.push(`engine_id.in.(${engineIds.join(",")})`);
@@ -282,7 +299,8 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
     faultRows,
     tireSizeRows,
     mediaRes.data || [],
-    phaseUnitNotesRes.data || []
+    phaseUnitNotesRes.data || [],
+    serviceById
   );
 }
 
@@ -297,7 +315,8 @@ function transformBundle(
   faultRows: any[],
   tireSizeRows: any[],
   mediaRows: any[],
-  phaseUnitNoteRows: any[]
+  phaseUnitNoteRows: any[],
+  serviceById: Map<string, UnitService>
 ): PhaseBundle {
   const noteByUnit = new Map<string, string>(phaseUnitNoteRows.map((n) => [n.unit_id, n.note]));
   const bodyDimensions: CatalogBodyDimensions[] = bodyDimRows.map((d) => ({
@@ -358,6 +377,7 @@ function transformBundle(
       cons: c.transmission_units.cons ?? [],
       phaseNote: noteByUnit.get(c.transmission_units.id) ?? null,
       maintenanceNote: c.transmission_units.maintenance_note,
+      service: serviceById.get(c.transmission_units.id) ?? EMPTY_UNIT_SERVICE,
     },
     drivetrain: c.drivetrain_systems
       ? {
@@ -372,6 +392,7 @@ function transformBundle(
           reliabilityRating: c.drivetrain_systems.reliability_rating,
           pros: c.drivetrain_systems.pros ?? [],
           cons: c.drivetrain_systems.cons ?? [],
+          service: serviceById.get(c.drivetrain_systems.id) ?? EMPTY_UNIT_SERVICE,
         }
       : null,
     acceleration0To100: c.acceleration_0_100,
@@ -474,5 +495,17 @@ function engineMaintenance(e: any): EngineMaintenance {
     yearlyMaintenanceEurMin: num(e.yearly_maintenance_eur_min),
     yearlyMaintenanceEurMax: num(e.yearly_maintenance_eur_max),
     note: e.maintenance_note ?? null,
+  };
+}
+
+// Raw transmission_units / drivetrain_systems service_* row -> UnitService (Number() since
+// smallint/integer can arrive as strings through some PostgREST paths, same as engineMaintenance).
+function unitService(r: any): UnitService {
+  const n = (v: unknown) => (v == null ? null : Number(v));
+  return {
+    intervalKm: n(r.service_interval_km),
+    intervalYears: n(r.service_interval_years),
+    costEurMin: n(r.service_cost_eur_min),
+    costEurMax: n(r.service_cost_eur_max),
   };
 }

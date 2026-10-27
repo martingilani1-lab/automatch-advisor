@@ -33,7 +33,8 @@ function hasEmbeddedPower(name: string): boolean {
 // Configurations rows only: no "(X hp)" suffix, and sorted by displacement (smallest to
 // biggest) within each fuel group instead of by power. /catalog's ConfigurationsTable.tsx
 // still imports the originals, untouched.
-function dbTestEngineLabel(c: CatalogConfig): string {
+// Exported so the Costs tab (TcoCalculator.tsx) labels configurations the same way.
+export function dbTestEngineLabel(c: CatalogConfig): string {
   const name = c.engine.displayName ?? c.engine.code;
   return hasEmbeddedPower(name) ? name : `${name} ${c.engine.powerKw} kW`;
 }

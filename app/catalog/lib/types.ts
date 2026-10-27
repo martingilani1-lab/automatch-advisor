@@ -46,6 +46,16 @@ export interface CatalogEngine {
   maintenance: EngineMaintenance;
 }
 
+// One scheduled fluid service of a gearbox or AWD system (transmission_units /
+// drivetrain_systems service_* columns, 20261027160000). All null until those columns exist
+// live and are filled -- the loader degrades to EMPTY_UNIT_SERVICE rather than failing.
+export interface UnitService {
+  intervalKm: number | null;
+  intervalYears: number | null;
+  costEurMin: number | null;
+  costEurMax: number | null;
+}
+
 export interface CatalogGearbox {
   id: string;
   code: string;
@@ -61,6 +71,7 @@ export interface CatalogGearbox {
   // Same DQ200 risk." on this specific car, distinct from reliabilityNote's unit-wide text.
   // null until that table exists live and/or has a row for this phase+unit.
   phaseNote: string | null;
+  service: UnitService;
 }
 
 export interface CatalogDrivetrain {
@@ -77,6 +88,7 @@ export interface CatalogDrivetrain {
   reliabilityRating: number | null;
   pros: string[];
   cons: string[];
+  service: UnitService;
 }
 
 export interface CatalogTireSize {

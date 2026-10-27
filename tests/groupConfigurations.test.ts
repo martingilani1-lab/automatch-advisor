@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { groupByGearbox, groupConfigurations } from "@/app/catalog/lib/groupConfigurations";
 import type { CatalogConfig, CatalogEngine, CatalogGearbox } from "@/app/catalog/lib/types";
-import { EMPTY_ENGINE_MAINTENANCE } from "@/app/catalog/lib/engineMaintenance";
+import { EMPTY_ENGINE_MAINTENANCE, EMPTY_UNIT_SERVICE } from "@/app/catalog/lib/engineMaintenance";
 
 function makeEngine(id: string, code: string): CatalogEngine {
   return {
@@ -17,6 +17,7 @@ function makeGearbox(id: string, code: string): CatalogGearbox {
   return {
     id, code, family: "dct_dry", maker: null, speeds: 7, reliabilityNote: null,
     maintenanceNote: null, reliabilityRating: null, pros: [], cons: [], phaseNote: null,
+    service: EMPTY_UNIT_SERVICE,
   };
 }
 
