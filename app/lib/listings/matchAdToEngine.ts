@@ -17,6 +17,7 @@
 
 import type { CatalogConfig } from "@/app/catalog/lib/types";
 import type { AdFuel, AdTransmission, ExtractedAd } from "./adExtraction";
+import { engineNamesConflict, parseEngineName } from "./engineName";
 
 export const POWER_TOLERANCE_KW = 2;
 
@@ -26,7 +27,13 @@ export const POWER_TOLERANCE_KW = 2;
 // and a DSG is still ONE answer, not an ambiguity.
 export interface EngineCandidate {
   engineId: string;
-  label: string; // for logs / review UI, e.g. "2.0 TDI (CRLB) 110 kW"
+  label: string; // for logs / review UI, e.g. "2.0 TDI (CRBC) 110 kW"
+  // catalog_engines.display_name ("2.0 TDI 110kW") -- compared with an engine name read from
+  // the ad ("2.0 TDI"); null/unparseable never excludes a candidate.
+  engineName?: string | null;
+  // The catalog phases this engine was offered in (merged across phases) -- lets a UI link the
+  // match to the right car page.
+  phaseIds?: string[];
   powerKw: number;
   fuel: AdFuel; // our fuel_type/hybrid_type mapped onto the ad vocabulary
   transmissions: AdTransmission[];
@@ -41,7 +48,8 @@ export type MatchReason =
   | "ambiguous_power" // several engines share that kW in the stated year/fuel
   | "ambiguous_no_power" // no kW and several engines fit
   | "no_power_match" // ad's kW matches no engine of this model (wrong model? typo?)
-  | "no_candidates"; // nothing survives fuel/year/gearbox filtering
+  | "no_candidates" // nothing survives fuel/year/gearbox filtering
+  | "model_not_found"; // the ad's model isn't in our catalog (set by /api/match-ad, never here)
 
 export interface EngineMatch {
   matchedEngineId: string | null;
@@ -67,6 +75,14 @@ function fuelMatches(adFuel: AdFuel | null, c: EngineCandidate): boolean {
   return adFuel == null || adFuel === c.fuel;
 }
 
+// Ad engine name ("2.0 TDI") vs the candidate's display name: excluded only on a clear
+// conflict (different size, or diesel vs petrol). Unreadable on either side -> kept.
+function engineNameMatches(adEngine: string | null | undefined, c: EngineCandidate): boolean {
+  const a = parseEngineName(adEngine);
+  const b = parseEngineName(c.engineName);
+  return !a || !b || !engineNamesConflict(a, b);
+}
+
 function transmissionMatches(adTx: AdTransmission | null, c: EngineCandidate): boolean {
   return adTx == null || c.transmissions.includes(adTx);
 }
@@ -90,10 +106,11 @@ function dedupeByEngine(list: EngineCandidate[]): EngineCandidate[] {
   for (const c of list) {
     const prev = byId.get(c.engineId);
     if (!prev) {
-      byId.set(c.engineId, { ...c, transmissions: [...c.transmissions] });
+      byId.set(c.engineId, { ...c, transmissions: [...c.transmissions], phaseIds: [...(c.phaseIds ?? [])] });
       continue;
     }
     prev.transmissions = [...new Set([...prev.transmissions, ...c.transmissions])];
+    prev.phaseIds = [...new Set([...(prev.phaseIds ?? []), ...(c.phaseIds ?? [])])];
     prev.yearFrom = prev.yearFrom == null || c.yearFrom == null ? null : Math.min(prev.yearFrom, c.yearFrom);
     prev.yearTo = prev.yearTo == null || c.yearTo == null ? null : Math.max(prev.yearTo, c.yearTo);
   }
@@ -102,12 +119,18 @@ function dedupeByEngine(list: EngineCandidate[]): EngineCandidate[] {
 
 // ---- The matcher --------------------------------------------------------------------------
 
-export function matchAdToEngine(ad: ExtractedAd, databaseEngines: EngineCandidate[]): EngineMatch {
-  // 1. Narrow by what the ad states (fuel, gearbox, year). Filtering happens per phase/config
+// `engine_name` is optional: the rule-based reader (adReader.ts) fills it; the LLM schema
+// keeps the six spec'd fields only.
+export function matchAdToEngine(ad: ExtractedAd & { engine_name?: string | null }, databaseEngines: EngineCandidate[]): EngineMatch {
+  // 1. Narrow by what the ad states (fuel, gearbox, year, engine name). Filtering happens per phase/config
   //    row BEFORE merging, so a gearbox or year that only one phase had is respected.
   const narrowed = dedupeByEngine(
     databaseEngines.filter(
-      (c) => fuelMatches(ad.fuel, c) && transmissionMatches(ad.transmission, c) && yearMatches(ad.year, c)
+      (c) =>
+        fuelMatches(ad.fuel, c) &&
+        transmissionMatches(ad.transmission, c) &&
+        yearMatches(ad.year, c) &&
+        engineNameMatches(ad.engine_name, c)
     )
   );
   if (narrowed.length === 0) {
@@ -167,12 +190,15 @@ export function candidatesFromConfigs(
   configs: CatalogConfig[],
   yearFrom: number | null,
   yearTo: number | null,
+  phaseId: string | null = null,
   labelOf: (c: CatalogConfig) => string = (c) => `${c.engine.displayName ?? c.engine.code} (${c.engine.code}) ${c.engine.powerKw} kW`,
 ): EngineCandidate[] {
   return dedupeByEngine(
     configs.map((c) => ({
       engineId: c.engine.id,
       label: labelOf(c),
+      engineName: c.engine.displayName,
+      phaseIds: phaseId ? [phaseId] : [],
       powerKw: c.engine.powerKw,
       fuel: adFuelOf(c.engine.fuelType, c.engine.hybridType),
       transmissions: [adTransmissionOf(c.gearbox.family)],
