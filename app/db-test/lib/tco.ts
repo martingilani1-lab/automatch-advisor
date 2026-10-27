@@ -11,9 +11,11 @@
 // data. They are collected in one place so updating a fuel price or the vignette is a one-line
 // change, not a hunt through JSX.
 import type { CatalogConfig, UnitService } from "@/app/catalog/lib/types";
+import type { CarData } from "@/app/lib/carFields";
 import { drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { reliabilityTone, type RelTone } from "./engineCompare";
+import { calculateAnnualDepreciation } from "./depreciation";
 
 // ---- Constants ----------------------------------------------------------------------------
 export const DEFAULT_ANNUAL_KM = 15000;
@@ -63,7 +65,10 @@ export function insuranceEstimate(powerKw: number): number {
   return 180;
 }
 
-export const DEPRECIATION_RATE = 0.1; // 10 % of the purchase price per year
+// Depreciation follows the car's AGE (calculateAnnualDepreciation, ./depreciation.ts: 15 / 10 /
+// 5 % by age band, flat €200 floor from 14 years). Only when the age is unknown does it fall
+// back to this flat rate.
+export const DEPRECIATION_RATE = 0.1;
 
 // Official combined figures under-read real driving; +15 % is the typical gap.
 export const REAL_WORLD_FACTOR = 1.15;
@@ -82,6 +87,9 @@ export interface TcoUnit {
 
 export interface TcoInput {
   priceEur: number | null;
+  // Representative year of manufacture (the middle of the phase's production years) -- drives
+  // the depreciation curve. null = unknown -> flat DEPRECIATION_RATE.
+  manufactureYear: number | null;
   fuelType: string;
   // REAL-world consumption per 100 km in the fuel's unit (l, kg or kWh).
   consumptionPer100: number | null;
@@ -148,7 +156,7 @@ function unitServiceLine(key: "gearbox" | "drivetrain", label: string, u: TcoUni
 }
 
 // ---- The calculation ----------------------------------------------------------------------
-export function calcTco(car: TcoInput, annualKm: number): TcoResult {
+export function calcTco(car: TcoInput, annualKm: number, currentYear = new Date().getFullYear()): TcoResult {
   const fuelKey = car.fuelType.toLowerCase() in FUEL_PRICE_EUR ? car.fuelType.toLowerCase() : FALLBACK_FUEL;
   const fuelPrice = FUEL_PRICE_EUR[fuelKey];
   const unit = fuelKey === "electric" ? "kWh" : fuelKey === "cng" ? "kg" : "l";
@@ -170,7 +178,16 @@ export function calcTco(car: TcoInput, annualKm: number): TcoResult {
 
   const fixed = VIGNETTE_EUR + INSPECTION_EUR / INSPECTION_EVERY_YEARS;
   const insurance = insuranceEstimate(car.powerKw);
-  const depreciation = car.priceEur != null ? car.priceEur * DEPRECIATION_RATE : null;
+  const age = car.manufactureYear != null ? Math.max(0, currentYear - car.manufactureYear) : null;
+  const depreciation =
+    car.priceEur == null ? null : car.manufactureYear != null
+      ? calculateAnnualDepreciation(car.priceEur, car.manufactureYear, currentYear)
+      : car.priceEur * DEPRECIATION_RATE;
+  const depreciationDetail =
+    car.priceEur == null ? "No price data"
+      : age == null ? `${DEPRECIATION_RATE * 100} % of ${eur(car.priceEur)} (age unknown)`
+        : age >= 14 ? `Price floor: flat ${eur(depreciation as number)}/year (~${age} years old)`
+          : `${Math.round(((depreciation as number) / car.priceEur) * 100)} % of ${eur(car.priceEur)} (~${age} years old)`;
 
   const lines: TcoLine[] = [
     {
@@ -216,7 +233,7 @@ export function calcTco(car: TcoInput, annualKm: number): TcoResult {
       key: "depreciation",
       label: "Depreciation",
       yearly: depreciation,
-      detail: car.priceEur != null ? `${DEPRECIATION_RATE * 100} % of ${eur(car.priceEur)}` : "No price data",
+      detail: depreciationDetail,
     },
   ];
 
@@ -241,6 +258,7 @@ export function tcoOptions(
   priceMin: number,
   priceMax: number,
   engineLabel: (c: CatalogConfig) => string,
+  manufactureYear: number | null = null,
 ): TcoOption[] {
   const price = priceMin > 0 || priceMax > 0 ? mid(priceMin || null, priceMax || null) : null;
   const groups = new Map<string, CatalogConfig[]>();
@@ -265,6 +283,7 @@ export function tcoOptions(
       bodies: [...new Set(list.map((x) => x.bodyName))],
       input: {
         priceEur: price,
+        manufactureYear,
         fuelType: e.fuelType,
         consumptionPer100: realWorldConsumption(official),
         powerKw: e.powerKw,
@@ -301,4 +320,14 @@ export function pickCheapest(results: (TcoResult | null)[]): number | null {
   if (results.length < 2 || results.some((r) => r == null || r.incomplete)) return null;
   const totals = (results as TcoResult[]).map((r, i) => ({ i, t: r.yearlyTotal })).sort((a, b) => a.t - b.t);
   return totals[1].t - totals[0].t >= CHEAPEST_MARGIN_EUR ? totals[0].i : null;
+}
+
+// The year a phase's cars are treated as built in, for depreciation: the middle of its
+// production years ("2001–2005" -> 2003, rounded down). A phase still in production counts up
+// to the current year. null when no year is known.
+export function representativeYear(car: CarData, currentYear = new Date().getFullYear()): number | null {
+  const from = Number(car.years?.match(/\d{4}/)?.[0]);
+  if (!from) return null;
+  const to = car.yearTo ?? currentYear;
+  return Math.floor((from + Math.max(from, to)) / 2);
 }

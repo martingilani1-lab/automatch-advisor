@@ -20,6 +20,8 @@ interface TcoCalculatorProps {
   // The phase's market price range (header price) -- its midpoint is the depreciation base.
   priceMin: number;
   priceMax: number;
+  // Representative year of manufacture (middle of the phase's years) for the depreciation curve.
+  manufactureYear: number | null;
   // Wired later to the external insurance comparison (affiliate) portal. Until then the
   // button renders but does nothing -- deliberately a placeholder, not a fake quote.
   onInsuranceClick?: () => void;
@@ -35,9 +37,9 @@ const fmtEur = (n: number) => `€${Math.round(n).toLocaleString("en-US").replac
 const fmtKm = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} km`;
 const pct = (share: number) => `${Math.round(share * 100)} %`;
 
-export default function TcoCalculator({ configs, priceMin, priceMax, onInsuranceClick, onAddToCompare, comparedKeys = [], compareCount = 0 }: TcoCalculatorProps) {
+export default function TcoCalculator({ configs, priceMin, priceMax, manufactureYear, onInsuranceClick, onAddToCompare, comparedKeys = [], compareCount = 0 }: TcoCalculatorProps) {
   // Same order as the Configurations tab: fuel group, then smallest engine first.
-  const options = useMemo(() => buildTcoOptions(configs, priceMin, priceMax), [configs, priceMin, priceMax]);
+  const options = useMemo(() => buildTcoOptions(configs, priceMin, priceMax, manufactureYear), [configs, priceMin, priceMax, manufactureYear]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [annualKm, setAnnualKm] = useState(DEFAULT_ANNUAL_KM);
@@ -149,7 +151,7 @@ export default function TcoCalculator({ configs, priceMin, priceMax, onInsurance
       <p className="tg">
         Estimate only: average SK/CZ fuel prices, real-world consumption (official +15 %),
         mid-range tyres, workshop service prices and a repair reserve from the engine, gearbox
-        and AWD reliability ratings. Depreciation assumes 10 % of the purchase price per year.
+        and AWD reliability ratings. Depreciation follows the car&apos;s age (middle of its model years): 15 % a year up to 3 years, 10 % to 8, 5 % to 13, then a flat €200.
       </p>
     </div>
   );

@@ -8,7 +8,7 @@ const svc = (km: number | null, yrs: number | null, min: number | null, max: num
 
 // 1.0 TSI-ish petrol, 6 l real-world, good engine, VW 02J-like manual, FWD.
 const car: TcoInput = {
-  priceEur: 10000, fuelType: "petrol", consumptionPer100: 6, powerKw: 81,
+  priceEur: 10000, manufactureYear: 2020, fuelType: "petrol", consumptionPer100: 6, powerKw: 81,
   engineReliabilityRating: 4, engineYearlyServiceEur: 200,
   timingBelt: svc(120000, null, 400, 560),
   gearbox: { label: "VW 02J", reliabilityRating: 4, service: svc(60000, null, 40, 80) },
@@ -18,7 +18,7 @@ const line = (r: ReturnType<typeof calcTco>, k: string) => r.lines.find((l) => l
 
 describe("calcTco", () => {
   it("computes each category at 15 000 km", () => {
-    const r = calcTco(car, 15000);
+    const r = calcTco(car, 15000, 2026);
     expect(line(r, "fuel")).toBeCloseTo(150 * 6 * 1.85); // 1665
     expect(line(r, "engine")).toBeCloseTo(200 + 60); // belt €480 / 120k × 15k
     expect(line(r, "gearbox")).toBeCloseTo(15); // €60 / 60k × 15k
@@ -94,5 +94,13 @@ describe("pickCheapest", () => {
   });
   it("needs at least two vehicles", () => {
     expect(pickCheapest([res(5000)])).toBeNull();
+  });
+});
+
+describe("depreciation in calcTco", () => {
+  it("follows the age curve and falls back to 10 % only when the age is unknown", () => {
+    expect(line(calcTco({ ...car, manufactureYear: 2024 }, 15000, 2026), "depreciation")).toBe(1500); // age 2 -> 15 %
+    expect(line(calcTco({ ...car, manufactureYear: 2003 }, 15000, 2026), "depreciation")).toBe(200); // Bora-age -> floor
+    expect(line(calcTco({ ...car, manufactureYear: null }, 15000, 2026), "depreciation")).toBe(1000);
   });
 });

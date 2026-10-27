@@ -21,6 +21,7 @@ import type { DetailData } from "./types";
 import type { TcoKey, TcoOption, TcoResult } from "./lib/tco";
 import { ANNUAL_KM_STEP, DEFAULT_ANNUAL_KM, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, pickCheapest, rankedLines } from "./lib/tco";
 import { buildTcoOptions } from "./lib/tcoOptions";
+import { representativeYear } from "./lib/tco";
 import { suggestSimilarCars, type Suggestion } from "./lib/costCompareSuggest";
 
 export const MAX_COST_COMPARE = 3;
@@ -175,7 +176,7 @@ export function CostCompareView({ entries, onChange, onClose, cars, details, loa
       entries.map((entry) => {
         const car = cars.find((c) => c.id === entry.phaseId) ?? null;
         const detail = details[entry.phaseId];
-        const options = car && detail ? buildTcoOptions(detail.configs, carPriceMin(car), carPriceMax(car)) : [];
+        const options = car && detail ? buildTcoOptions(detail.configs, carPriceMin(car), carPriceMax(car), representativeYear(car)) : [];
         const option = options.find((o) => o.key === entry.configKey) ?? options[0] ?? null;
         return {
           entry,
@@ -341,7 +342,7 @@ export function CostCompareView({ entries, onChange, onClose, cars, details, loa
           each cost across the vehicles. &ldquo;Lowest cost&rdquo; is shown only when every vehicle has complete
           data and the difference is at least €60 a year. Same estimate as each car&apos;s Costs tab:
           average SK/CZ fuel prices, real-world consumption, workshop service prices, a repair reserve
-          from the reliability ratings, and 10 % yearly depreciation of the mid market price.
+          from the reliability ratings, and depreciation by the car&apos;s age (middle of its model years): 15 % up to 3 years, 10 % to 8, 5 % to 13, then a flat €200.
         </p>
       </div>
     </div>

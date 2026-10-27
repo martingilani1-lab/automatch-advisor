@@ -24,3 +24,13 @@ describe("calculateAnnualDepreciation", () => {
     expect(calculateAnnualDepreciation(10000, 2030)).toBe(1500); // future year -> treated as new
   });
 });
+
+describe("representativeYear", () => {
+  it("takes the middle of the phase's years, current year for a running phase", async () => {
+    const { representativeYear } = await import("@/app/db-test/lib/tco");
+    const car = (years: string, yearTo?: number) => ({ years, yearTo }) as unknown as import("@/app/lib/carFields").CarData;
+    expect(representativeYear(car("2001–2005", 2005))).toBe(2003);
+    expect(representativeYear(car("2020–", undefined), 2026)).toBe(2023);
+    expect(representativeYear(car("", undefined))).toBeNull();
+  });
+});

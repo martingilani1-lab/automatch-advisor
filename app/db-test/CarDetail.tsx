@@ -21,6 +21,7 @@ import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
 import { CompareBar, EngineCompareView } from "./EngineCompare";
 import { MAX_COMPARE } from "./lib/engineCompare";
 import TcoCalculator from "./TcoCalculator";
+import { representativeYear } from "./lib/tco";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -1178,6 +1179,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
               configs={configs}
               priceMin={carPriceMin(car)}
               priceMax={carPriceMax(car)}
+              manufactureYear={representativeYear(car)}
               onAddToCompare={onAddCostCompare}
               comparedKeys={costComparedKeys}
               compareCount={costCompareCount}
