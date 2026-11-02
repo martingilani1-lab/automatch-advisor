@@ -49,7 +49,7 @@ export type MatchReason =
   | "ambiguous_no_power" // no kW and several engines fit
   | "no_power_match" // ad's kW matches no engine of this model (wrong model? typo?)
   | "no_candidates" // nothing survives fuel/year/gearbox filtering
-  | "model_not_found"; // the ad's model isn't in our catalog (set by /api/match-ad, never here)
+  | "model_not_found"; // the ad's model isn't in our catalog (for a caller that resolves models first; never set here)
 
 export interface EngineMatch {
   matchedEngineId: string | null;

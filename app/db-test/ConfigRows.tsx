@@ -8,8 +8,6 @@ import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTab
 interface ConfigRowsProps {
   configs: CatalogConfig[];
   onNavigate: (target: ConfigNavTarget) => void;
-  // "Search real vehicles" -- opens the Ads tab searching portals for this row's engine.
-  onSearchAds?: (config: CatalogConfig) => void;
 }
 
 // One color per field, reusing the exact drivetrain/consumption hues the car-list widget's
@@ -96,7 +94,7 @@ export function fuelGroupLabel(fuelType: string): string {
 // the same clickable-tile pattern GearboxAccordion's "Maintenance" toggle already uses)
 // instead of the Tailwind catalog-* table, which looked visually foreign dropped into this
 // page's card/pill design.
-export default function ConfigRows({ configs, onNavigate, onSearchAds }: ConfigRowsProps) {
+export default function ConfigRows({ configs, onNavigate }: ConfigRowsProps) {
   if (configs.length === 0) return null;
   const sorted = dbTestSortConfigs(configs);
 
@@ -168,11 +166,6 @@ export default function ConfigRows({ configs, onNavigate, onSearchAds }: ConfigR
                 <div className="cgrid-val">{consumptionLabel(c)}</div>
               </div>
             </div>
-            {onSearchAds && (
-              <button type="button" className="tco-compare-btn" style={{ margin: "8px 0 0" }} onClick={() => onSearchAds(c)}>
-                {"🔎"} Search real vehicles
-              </button>
-            )}
           </div>
         </div>
       ))}
