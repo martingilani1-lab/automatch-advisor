@@ -696,6 +696,7 @@ export default function HomePage() {
             <button className="btn-go" disabled={!dbLoaded} onClick={() => setPhase("quiz")}>Find My Car →</button>
             <Link href="/prehlad" className="btn-ghost">Browse & Compare</Link>
             <Link href="/db-test" className="btn-ghost">DB test</Link>
+            <Link href="/garage" className="btn-ghost">My Garage</Link>
           </div>
         </div>
       )}

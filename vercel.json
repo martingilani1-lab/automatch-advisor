@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/garage/reminders", "schedule": "0 6 * * *" }
+  ]
+}

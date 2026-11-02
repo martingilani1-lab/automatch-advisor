@@ -520,3 +520,27 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
 .db-test-page .cfuel-tag.match{background:rgba(255,254,252,.15);color:#fffefc;border-color:rgba(255,254,252,.4)}
 .db-test-page .filter-opt input[type="checkbox"]{accent-color:#fffefc}
 .db-test-page .spin{border-top-color:#fffefc}
+
+/* My Garage (app/garage). Same dark card palette as the rest of the site; status colours reuse
+   the reliability tones (green ok / orange soon / red overdue / grey unknown). */
+.garage-card{background:#1c1c1e;border:1px solid #2a2a2e;border-radius:10px;padding:14px;margin-bottom:12px}
+.garage-title{color:#f0f0f0;font-weight:700;font-size:1rem;line-height:1.3}
+.garage-input{width:100%;background:#202024;color:#f0f0f0;border:1px solid #2a2a2e;border-radius:6px;padding:9px 10px;font-size:.84rem;margin:4px 0;font-family:inherit}
+.garage-input:focus,.tco-cmp-select:focus{outline:none;border-color:#60a5fa}
+.garage-btn{width:100%;margin:8px 0 4px;border:1px solid rgba(96,165,250,.4);background:rgba(96,165,250,.12);color:#60a5fa;border-radius:8px;padding:10px 14px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit}
+.garage-btn:disabled{opacity:.45;cursor:default}
+.garage-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:4px 0}
+.garage-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+.garage-tabs{display:flex;gap:6px;margin:8px 0}
+.garage-tabs button,.garage-actions button{flex:1;background:#202024;border:1px solid #2a2a2e;color:#9999aa;border-radius:6px;padding:7px 8px;font-size:.76rem;cursor:pointer;font-family:inherit}
+.garage-tabs button.active,.garage-actions button.active{border-color:#60a5fa;color:#60a5fa}
+.garage-actions{display:flex;gap:6px;margin:12px 0 8px;flex-wrap:wrap}
+.garage-car-head{width:100%;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:none;border:0;padding:0;text-align:left;cursor:pointer;font-family:inherit;color:inherit}
+.garage-chips{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.garage-due{display:flex;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.05)}
+.garage-due:first-of-type{border-top:0}
+.garage-due-head{display:flex;justify-content:space-between;gap:8px;font-size:.84rem}
+.garage-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.garage-hist{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);font-size:.82rem}
+@media (max-width:380px){.garage-grid2{grid-template-columns:1fr}}
+
