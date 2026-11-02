@@ -4,6 +4,7 @@
 // table), so it's dropped here rather than carried over empty — see CarDetail.tsx's Safety tab.
 
 import type { CatalogConfig, CatalogMediaItem, CatalogTrim, EngineMaintenance } from "@/app/catalog/lib/types";
+import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
 
 // A fault carries its own severity (catalog_component_faults.severity: 'critical' | 'moderate'
 // | 'minor' | null) through to display, so the engine/gearbox fault lists can sort by it and
@@ -164,6 +165,8 @@ export interface DetailData {
   // Same -- PhaseBundle.media passed through unchanged so CarDetail's hero photo can reuse
   // app/catalog/lib/media.ts's pickMainMedia() exactly as /catalog's CatalogHeader does.
   media: CatalogMediaItem[];
+  // Tier-1 (model-level) tags of this phase -- configs carry their own tier-2 tags.
+  phaseTags: ModelLevelTagSlug[];
 }
 
 // One phase's full DetailData, tagged with the phase metadata the switcher needs -- POST

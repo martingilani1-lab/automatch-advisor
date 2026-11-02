@@ -1,3 +1,5 @@
+import type { ConfigurationLevelTagSlug, ModelLevelTagSlug } from "./tags";
+
 // camelCase shapes returned by lib/db.ts. Raw snake_case Supabase rows never cross this
 // boundary into a component prop type (same remap-discipline as buildCar() in
 // app/api/cars/route.ts for the legacy schema).
@@ -118,6 +120,9 @@ export interface CatalogConfig {
   evRangeWltpKm: number | null;
   maxChargingKwDc: number | null;
   tireSizes: CatalogTireSize[];
+  // Tier-2 tags of this exact configuration (catalog_configuration_tags) -- [] until tagged or
+  // while that table doesn't exist yet. See app/catalog/lib/tags.ts.
+  tags: ConfigurationLevelTagSlug[];
 }
 
 export interface CatalogBodyDimensions {
@@ -214,4 +219,6 @@ export interface PhaseBundle {
   trims: CatalogTrim[];
   faults: CatalogFault[];
   media: CatalogMediaItem[];
+  // Tier-1 (model-level) tags of this phase (catalog_phase_tags); [] until tagged.
+  tags: ModelLevelTagSlug[];
 }

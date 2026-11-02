@@ -488,6 +488,7 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       // db-test/types.ts.
       configs: bundle.configs,
       media: bundle.media,
+      phaseTags: bundle.tags,
     };
 }
 

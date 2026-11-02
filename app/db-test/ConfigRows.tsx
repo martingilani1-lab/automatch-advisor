@@ -1,6 +1,9 @@
 import { IconManualGearbox, IconAutomaticGearbox, IconCar, IconCar4wd, IconGasStation } from "@tabler/icons-react";
 
 import type { CatalogConfig } from "@/app/catalog/lib/types";
+import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
+import { getTagsForConfiguration } from "@/app/catalog/lib/tags";
+import TagBadge from "./TagBadge";
 import { consumptionLabel, drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { gearboxTypeLabel } from "@/app/catalog/lib/gearboxLabel";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
@@ -8,6 +11,11 @@ import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTab
 interface ConfigRowsProps {
   configs: CatalogConfig[];
   onNavigate: (target: ConfigNavTarget) => void;
+  // For each row's merged tags (model + configuration). The row itself only SHOWS the
+  // configuration's own tags -- the model ones are in the page header already, repeating them
+  // on every row would bury what makes this configuration different.
+  phaseId?: string;
+  phaseTags?: ModelLevelTagSlug[];
 }
 
 // One color per field, reusing the exact drivetrain/consumption hues the car-list widget's
@@ -94,7 +102,7 @@ export function fuelGroupLabel(fuelType: string): string {
 // the same clickable-tile pattern GearboxAccordion's "Maintenance" toggle already uses)
 // instead of the Tailwind catalog-* table, which looked visually foreign dropped into this
 // page's card/pill design.
-export default function ConfigRows({ configs, onNavigate }: ConfigRowsProps) {
+export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTags = [] }: ConfigRowsProps) {
   if (configs.length === 0) return null;
   const sorted = dbTestSortConfigs(configs);
 
@@ -166,6 +174,13 @@ export default function ConfigRows({ configs, onNavigate }: ConfigRowsProps) {
                 <div className="cgrid-val">{consumptionLabel(c)}</div>
               </div>
             </div>
+            {c.tags.length > 0 && (
+              <div className="tag-row">
+                {getTagsForConfiguration({ id: phaseId, tags: phaseTags }, c)
+                  .filter((t) => t.source !== "model")
+                  .map((t) => <TagBadge key={t.slug} tag={t} />)}
+              </div>
+            )}
           </div>
         </div>
       ))}

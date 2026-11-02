@@ -15,6 +15,8 @@ import type {
 // third copy.
 import type { SafetyFeature } from "@/app/prehlad/types";
 import { EMPTY_UNIT_SERVICE } from "./engineMaintenance";
+import type { ConfigurationLevelTagSlug, ModelLevelTagSlug } from "./tags";
+import { isConfigurationLevel, isModelLevel, isTagSlug } from "./tags";
 
 // No `slug` column exists anywhere in the catalog_ schema (checked every migration) --
 // catalog_brands.name / catalog_models.name / catalog_phases.generation_code /
@@ -273,6 +275,19 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
     unitIds.length ? supabase.from("transmission_units").select(SERVICE_COLS).in("id", unitIds) : Promise.resolve({ data: [] as any[] }),
     drivetrainIds.length ? supabase.from("drivetrain_systems").select(SERVICE_COLS).in("id", drivetrainIds) : Promise.resolve({ data: [] as any[] }),
   ]);
+  // Two-tier tags (20261102230000) -- separate tolerant queries for the same reason as the
+  // service columns: the tables may not exist yet, and a missing table just means "no tags".
+  const [phaseTagsRes, configTagsRes] = await Promise.all([
+    supabase.from("catalog_phase_tags").select("tag_slug").eq("phase_id", phaseId),
+    configIds.length ? supabase.from("catalog_configuration_tags").select("configuration_id, tag_slug").in("configuration_id", configIds) : Promise.resolve({ data: [] as any[] }),
+  ]);
+  const phaseTags = ((phaseTagsRes.data || []) as any[]).map((r) => r.tag_slug as string).filter(isTagSlug).filter(isModelLevel);
+  const tagsByConfig = new Map<string, ConfigurationLevelTagSlug[]>();
+  for (const r of (configTagsRes.data || []) as any[]) {
+    if (!isTagSlug(r.tag_slug) || !isConfigurationLevel(r.tag_slug)) continue;
+    tagsByConfig.set(r.configuration_id, [...(tagsByConfig.get(r.configuration_id) ?? []), r.tag_slug]);
+  }
+
   const serviceById = new Map<string, UnitService>();
   for (const r of [...(unitServiceRes.data || []), ...(drivetrainServiceRes.data || [])] as any[]) {
     serviceById.set(r.id, unitService(r));
@@ -300,7 +315,9 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
     tireSizeRows,
     mediaRes.data || [],
     phaseUnitNotesRes.data || [],
-    serviceById
+    serviceById,
+    phaseTags,
+    tagsByConfig
   );
 }
 
@@ -316,7 +333,9 @@ function transformBundle(
   tireSizeRows: any[],
   mediaRows: any[],
   phaseUnitNoteRows: any[],
-  serviceById: Map<string, UnitService>
+  serviceById: Map<string, UnitService>,
+  phaseTags: ModelLevelTagSlug[],
+  tagsByConfig: Map<string, ConfigurationLevelTagSlug[]>
 ): PhaseBundle {
   const noteByUnit = new Map<string, string>(phaseUnitNoteRows.map((n) => [n.unit_id, n.note]));
   const bodyDimensions: CatalogBodyDimensions[] = bodyDimRows.map((d) => ({
@@ -405,6 +424,7 @@ function transformBundle(
     evRangeWltpKm: c.ev_range_wltp_km,
     maxChargingKwDc: c.max_charging_kw_dc,
     tireSizes: tireSizesByConfig.get(c.id) ?? [],
+    tags: tagsByConfig.get(c.id) ?? [],
   }));
 
   const featuresByTrim = new Map<string, { feature: string; isOptional: boolean; featureGroup: string | null; safetyFeatureSlug: string | null }[]>();
@@ -471,6 +491,7 @@ function transformBundle(
     trims,
     faults,
     media,
+    tags: phaseTags,
   };
 }
 

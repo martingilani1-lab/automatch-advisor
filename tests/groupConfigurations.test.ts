@@ -30,7 +30,7 @@ function makeConfig(opts: {
     acceleration0To100: null, topSpeedKmh: null, fuelConsumptionCombined: null,
     fuelConsumptionL100km: null, energyConsumptionKwh100km: null,
     co2EmissionsGKm: null, batteryCapacityNetKwh: null, evRangeWltpKm: null,
-    maxChargingKwDc: null, tireSizes: [],
+    maxChargingKwDc: null, tireSizes: [], tags: [],
   };
 }
 

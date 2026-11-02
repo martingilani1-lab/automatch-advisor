@@ -18,6 +18,8 @@ import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTab
 import CarHero from "@/app/catalog/components/CarHero";
 import { pickMainMedia } from "@/app/catalog/lib/media";
 import ConfigRows, { FUEL_SORT_ORDER, fuelGroupLabel } from "./ConfigRows";
+import TagBadge from "./TagBadge";
+import { resolveTags } from "@/app/catalog/lib/tags";
 import { CompareBar, EngineCompareView } from "./EngineCompare";
 import { MAX_COMPARE } from "./lib/engineCompare";
 import TcoCalculator from "./TcoCalculator";
@@ -1068,6 +1070,11 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
         </div>
         {car.phaseLabel && <div className="cphase">{car.phaseLabel}</div>}
         <div className="cgen">{originLine(car)}</div>
+        {/* Tier-1 tags: true of every configuration of this car. Each configuration's own
+            (tier-2) tags show on its row in the Configurations tab. */}
+        {(detail?.phaseTags.length ?? 0) > 0 && (
+          <div className="tag-row">{resolveTags(detail!.phaseTags, "model").map((t) => <TagBadge key={t.slug} tag={t} />)}</div>
+        )}
         <div className="row-tags" style={{ marginTop: 8 }}>
           {/* Every distinct body this phase is offered in (car.bodyNames, the same field
               CarRow.tsx's list row already shows all of), not just the single primaryBody
@@ -1169,7 +1176,7 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
         {activeTab === "configurations" && (
           <div className="mp-section">
-            <ConfigRows configs={configs} onNavigate={handleConfigNavigate} />
+            <ConfigRows configs={configs} onNavigate={handleConfigNavigate} phaseId={car.id} phaseTags={detail?.phaseTags ?? []} />
           </div>
         )}
 
