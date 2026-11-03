@@ -1,7 +1,8 @@
 {
   "_comment": "Baseline of transmission_units/drivetrain_systems groups that share (maker, family, speeds) / (type, maker) but were reviewed and confirmed DISTINCT -- not duplicates -- by Martin after the Part 1 reference-data audit (2026-10-08). validate-template.mjs's gearbox/drivetrain near-duplicate safety net (maker non-null groups only) treats any group matching one of these code-sets as already-reviewed and skips it; a NEW group not listed here is an ERROR requiring the same review before being added here. Codes are stored sorted so membership comparison doesn't depend on live query order.",
   "transmission_units": [
-    ["VW 02J", "VW 02K"]
+    ["VW 02J", "VW 02K"],
+    ["VW 02M", "VW MQ200-6F", "VW MQ250", "VW MQ281", "VW MQ350"]
   ],
   "drivetrain_systems": [
     ["haldex_gen4", "haldex_gen5"],
