@@ -7,10 +7,10 @@
 -- Only NULL columns are filled; nothing hand-authored is overwritten (each SET is guarded by
 -- the row still being empty, and the block rolls back unless exactly 1 row per table changes).
 --
--- OPEN -- interval: Martin gives the Haldex Gen 4 fluid change as every 60 000 km / 3 years;
--- the live row says 40 000 km and its maintenance_note says "~40-50k km". The interval line is
--- commented out until Martin decides which stands (60k is the VAG schedule; 40-50k is the
--- enthusiast advice already in the note).
+-- Interval deliberately stays 40 000 km (Martin, 2026-11-03): VAG's official 60 000 km / 3 years
+-- is too long -- the Gen 4 pump's small mesh strainer clogs with clutch friction material, and
+-- stretched fluid changes are a primary cause of premature pump death. 3 years is kept as the
+-- time limit.
 --
 -- UPDATE of existing data: human-run only, in a FRESH SQL editor tab.
 
@@ -35,8 +35,7 @@ BEGIN
   UPDATE public.drivetrain_systems
      SET service_cost_eur_min   = 100,
          service_cost_eur_max   = 100,
-         service_interval_years = 3
-         -- , service_interval_km = 60000   -- OPEN, see header
+         service_interval_years = 3   -- service_interval_km stays 40000, see header
    WHERE code = 'haldex_gen4'
      AND service_cost_eur_min IS NULL AND service_cost_eur_max IS NULL AND service_interval_years IS NULL;
   GET DIAGNOSTICS n = ROW_COUNT;
