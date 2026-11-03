@@ -29,6 +29,19 @@
 --     existing row -> separate human-run file 20261103101000. Its two new faults are additive
 --     and live here.
 --   Era (Martin): BXE, BKD and BSE were all still sold in the early facelift (2009-2010).
+--   CREATE engines, round 2 (Martin, 2026-11-03) -- the DPF versions sold alongside BXE/BKD:
+--     BLS 1.9 TDI PD 77 kW  1896 cc 250 Nm Euro4 belt 150 000 km
+--     BMM 2.0 TDI PD 8V 103 kW 1968 cc 320 Nm Euro4 belt 150 000 km
+--     Near-duplicate check (CLAUDE.md rule 1c): BLS matches BXE and BSW, BMM matches BKD on all
+--     six key fields. distinct_reason -- BLS: factory DPF (and its own bottom-end failure mode);
+--     BMM: 8-valve head (BKD is 16V) + factory DPF. Belt 150k vs 120k on BXE/BKD is deliberate:
+--     VAG extended the interval for DPF-equipped PD engines built from 2007 (Martin). Their higher
+--     yearly maintenance (EUR 300-550 / 350-600 vs 180-260) is also deliberate: DPF upkeep plus
+--     the codes' own flaws.
+--   BSF: mechanically identical to BSE (no secondary-air pump) -> an alt_code on BSE, not a new
+--     engine; that is an UPDATE of BSE -> human-run file 20261103101000.
+--   1.6 MPI + Aisin 09G 6-speed automatic: still sold in the early facelift (Martin).
+--   BMM "Scout" 4x4 collapses into the Combi 4x4 row, like every other Scout.
 --     Near-duplicate check: none matches a live engine on displacement/power/torque/fuel/
 --     emission/timing (CHGA differs from BSE in fuel + emission; CCZA from CZPC in torque).
 --   Gearboxes (Martin): 5-speed manual -> VW MQ200; 6-speed manual -> VW MQ250 only for 1.2 TSI,
@@ -68,7 +81,15 @@ VALUES
   ('CCZA'::text, '2.0 TSI RS (CCZA) — 147 kW'::text,    1984::integer, 147::integer, 'petrol'::text, 280::integer, 'L4'::text, 'Euro5'::text, 'chain'::text,
    3::smallint, 4.6::numeric, 15000::integer, NULL::integer, 350::integer, 600::integer,
    ARRAY['High tuning potential', 'Strong torque delivery']::text[],
-   ARRAY['Timing chain tensioner risk', 'Prone to burning oil']::text[])
+   ARRAY['Timing chain tensioner risk', 'Prone to burning oil']::text[]),
+  ('BLS'::text,  '1.9 TDI PD (BLS) — 77 kW'::text,      1896::integer,  77::integer, 'diesel'::text, 250::integer, 'L4'::text, 'Euro4'::text, 'belt'::text,
+   2::smallint, 4.3::numeric, 15000::integer, 150000::integer, 300::integer, 550::integer,
+   ARRAY['Excellent fuel economy', 'Strong mid-range torque delivery']::text[],
+   ARRAY['The DPF severely compromised the engine''s previously high reliability', 'Fatal bottom-end flaws']::text[]),
+  ('BMM'::text,  '2.0 TDI PD 8V (BMM) — 103 kW'::text,  1968::integer, 103::integer, 'diesel'::text, 320::integer, 'L4'::text, 'Euro4'::text, 'belt'::text,
+   3::smallint, 4.3::numeric, 15000::integer, 150000::integer, 350::integer, 600::integer,
+   ARRAY['Solid torque delivery', 'Avoids the cylinder head cracking of the 16V BKD engine']::text[],
+   ARRAY['Noticeably rougher idle than newer common-rail units', 'DPF requires frequent highway driving to survive']::text[])
 ON CONFLICT (code, power_kw) DO NOTHING;
 
 -- ---- Engine faults (component_type 'engine'; additive, skipped if the same text exists) ------
@@ -84,7 +105,14 @@ WITH f(engine_code, power_kw, fault, severity) AS (VALUES
   ('CCZA',       147,          'PCV valve failure',                                                             'minor'),
   ('CCZA',       147,          'Carbon buildup on intake valves',                                               'moderate'),
   ('CDAA',       118,          'Timing chain tensioner failure causing engine death',                           'critical'),
-  ('CDAA',       118,          'Leaking water pump',                                                            'moderate')
+  ('CDAA',       118,          'Leaking water pump',                                                            'moderate'),
+  ('BLS',         77,          'Connecting rod bearing failure leading to engine block puncture',               'critical'),
+  ('BLS',         77,          'DPF clogging',                                                                  'moderate'),
+  ('BLS',         77,          'Exhaust pressure sensor failure',                                               'minor'),
+  ('BLS',         77,          'Premature camshaft and lifter wear',                                            'moderate'),
+  ('BMM',        103,          'DPF clogging and frequent regeneration issues',                                 'moderate'),
+  ('BMM',        103,          'Tandem fuel/vacuum pump leaks',                                                 'moderate'),
+  ('BMM',        103,          'Exhaust gas temperature sensor failure',                                        'minor')
 )
 INSERT INTO public.catalog_component_faults (component_type, engine_id, fault, severity)
 SELECT 'engine', e.id, f.fault, f.severity
@@ -95,12 +123,12 @@ DO $$
 DECLARE n int;
 BEGIN
   SELECT count(*) INTO n FROM public.catalog_engines
-   WHERE (code, power_kw) IN (('CGGA', 59), ('CHGA', 75), ('CEGA', 125), ('CCZA', 147));
-  IF n <> 4 THEN RAISE EXCEPTION 'Expected the 4 new engines, found % -- rolled back', n; END IF;
-  -- 12 listed faults resolve to 12 rows (CDAA keeps its existing 1 -> 3 in total).
+   WHERE (code, power_kw) IN (('CGGA', 59), ('CHGA', 75), ('CEGA', 125), ('CCZA', 147), ('BLS', 77), ('BMM', 103));
+  IF n <> 6 THEN RAISE EXCEPTION 'Expected the 6 new engines, found % -- rolled back', n; END IF;
+  -- 19 listed faults resolve to 19 rows (CDAA keeps its existing 1 -> 20 in total).
   SELECT count(*) INTO n FROM public.catalog_component_faults x JOIN public.catalog_engines e ON e.id = x.engine_id
-   WHERE (e.code, e.power_kw) IN (('CGGA', 59), ('CHGA', 75), ('CEGA', 125), ('CCZA', 147), ('CDAA', 118));
-  IF n <> 13 THEN RAISE EXCEPTION 'Expected 13 faults on CGGA/CHGA/CEGA/CCZA/CDAA, found % -- rolled back', n; END IF;
+   WHERE (e.code, e.power_kw) IN (('CGGA', 59), ('CHGA', 75), ('CEGA', 125), ('CCZA', 147), ('CDAA', 118), ('BLS', 77), ('BMM', 103));
+  IF n <> 20 THEN RAISE EXCEPTION 'Expected 20 faults on CGGA/CHGA/CEGA/CCZA/CDAA/BLS/BMM, found % -- rolled back', n; END IF;
 END $$;
 
 -- ---- Configurations ------------------------------------------------------------------------
@@ -110,6 +138,8 @@ WITH v(engine_code, power_kw, body, unit_code, drivetrain_code, consumption) AS 
   ('CGGA',        59,          'Estate',         'VW MQ200',       NULL,            6.4),
   ('BSE',         75,          'Liftback',       'VW MQ200',       NULL,            NULL),
   ('BSE',         75,          'Estate',         'VW MQ200',       NULL,            NULL),
+  ('BSE',         75,          'Liftback',       'Aisin 09G (TF-60SN)', NULL,       NULL),
+  ('BSE',         75,          'Estate',         'Aisin 09G (TF-60SN)', NULL,       NULL),
   ('CHGA',        75,          'Liftback',       'VW MQ200',       NULL,            9.2),  -- LPG figure
   ('CHGA',        75,          'Estate',         'VW MQ200',       NULL,            9.2),
   ('CBZB',        77,          'Liftback',       'VW MQ250',       NULL,            NULL),  -- live already, skipped
@@ -136,6 +166,11 @@ WITH v(engine_code, power_kw, body, unit_code, drivetrain_code, consumption) AS 
   ('BXE',         77,          'Liftback',       'VW DQ250',       NULL,            NULL),
   ('BXE',         77,          'Estate',         'VW DQ250',       NULL,            NULL),
   ('BXE',         77,          'Estate',         'VW MQ350',       'haldex_gen4',   NULL),
+  ('BLS',         77,          'Liftback',       'VW MQ200',       NULL,            NULL),
+  ('BLS',         77,          'Estate',         'VW MQ200',       NULL,            NULL),
+  ('BLS',         77,          'Liftback',       'VW DQ250',       NULL,            NULL),
+  ('BLS',         77,          'Estate',         'VW DQ250',       NULL,            NULL),
+  ('BLS',         77,          'Estate',         'VW MQ350',       'haldex_gen4',   NULL),
   ('CAYC',        77,          'Liftback',       'VW MQ200',       NULL,            NULL),  -- live already, skipped
   ('CAYC',        77,          'Estate',         'VW MQ200',       NULL,            NULL),
   ('CAYC',        77,          'Liftback',       'VW DQ200',       NULL,            NULL),  -- live already, skipped
@@ -145,6 +180,11 @@ WITH v(engine_code, power_kw, body, unit_code, drivetrain_code, consumption) AS 
   ('BKD',        103,          'Liftback',       'VW DQ250',       NULL,            NULL),
   ('BKD',        103,          'Estate',         'VW DQ250',       NULL,            NULL),
   ('BKD',        103,          'Estate',         'VW MQ350',       'haldex_gen4',   NULL),
+  ('BMM',        103,          'Liftback',       'VW MQ350',       NULL,            NULL),
+  ('BMM',        103,          'Estate',         'VW MQ350',       NULL,            NULL),
+  ('BMM',        103,          'Liftback',       'VW DQ250',       NULL,            NULL),
+  ('BMM',        103,          'Estate',         'VW DQ250',       NULL,            NULL),
+  ('BMM',        103,          'Estate',         'VW MQ350',       'haldex_gen4',   NULL),  -- incl. Scout
   ('CFHC',       103,          'Liftback',       'VW MQ350',       NULL,            NULL),
   ('CFHC',       103,          'Estate',         'VW MQ350',       NULL,            NULL),
   ('CFHC',       103,          'Liftback',       'VW DQ250',       NULL,            NULL),
@@ -180,7 +220,7 @@ WHERE NOT EXISTS (
 );
 
 -- Every listed engine/gearbox/drivetrain/body must have resolved -- a silent JOIN miss would
--- drop a configuration. 48 listed rows (43 new + 5 already live) -> all must resolve.
+-- drop a configuration. 60 listed rows (55 new + 5 already live) + the live CAYC 4x4 row = 61.
 DO $$
 DECLARE n int;
 BEGIN
@@ -189,8 +229,8 @@ BEGIN
   JOIN public.catalog_phases p ON p.id = c.phase_id
   JOIN public.catalog_models m ON m.id = p.model_id
   WHERE m.name = 'Octavia' AND p.generation_code = '1Z' AND p.phase_label = 'Facelift';
-  IF n <> 49 THEN
-    RAISE EXCEPTION 'Octavia 1Z Facelift should have 49 configurations after this seed, has % -- rolled back', n;
+  IF n <> 61 THEN
+    RAISE EXCEPTION 'Octavia 1Z Facelift should have 61 configurations after this seed, has % -- rolled back', n;
   END IF;
 END $$;
 
