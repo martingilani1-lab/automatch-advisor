@@ -47,7 +47,11 @@ for (const [name, rows] of [["phases.csv", phases], ["dimensions.csv", dims], ["
 }
 
 const gearboxCodes = [...new Set(trans.map(t => t.unit_code).filter(Boolean))];
-const dtCodes = ["FWD", ...new Set(drivetrains.map(d => d.drivetrain_code).filter(Boolean))];
+// "FWD" is always offered as the no-AWD baseline; "RWD" (the other 2WD sentinel, driven_axle
+// 'rear', 2026-11-04) only when drivetrains.csv lists it, so the front-drive majority isn't
+// handed a column of impossible combinations to delete. Neither is a drivetrain_systems code.
+const listedDt = new Set(drivetrains.map(d => d.drivetrain_code).filter(Boolean));
+const dtCodes = ["FWD", ...(listedDt.has("RWD") ? ["RWD"] : []), ...[...listedDt].filter(d => d !== "FWD" && d !== "RWD")];
 const engineRows = engines.filter(e => e.code && e.power_kw).map(e => [e.code, e.power_kw]);
 
 const skipped = [];

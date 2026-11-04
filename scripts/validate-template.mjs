@@ -63,6 +63,10 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "../node_modules/@supabase/supabase-js/dist/index.mjs";
+import {
+  ENGINE_FLAG_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS, DIM_EXTRA_FIELDS,
+  CONFIG_FACT_FIELDS, checkFieldValue,
+} from "./catalog-template-fields.mjs";
 
 function loadEnv() {
   const text = fs.readFileSync(".env.local", "utf8");
@@ -280,6 +284,64 @@ for (const p of phases) {
 // 4d: car.csv segment — mirrors catalog_models_segment_check.
 if (car && car.segment && !VOCAB["catalog_models.segment"].includes(car.segment)) {
   err("car.csv", car.__line, `segment '${car.segment}' is not in the frozen vocabulary (${VOCAB["catalog_models.segment"].join(", ")}) — the live catalog_models CHECK constraint will reject this`);
+}
+
+// 4e: dilemma fields (2026-11-04, catalog-template-fields.mjs) -- format and vocabulary on
+// engines / phases / dimensions, the strict diesel rule, and the optional config_facts.csv.
+for (const e of engines) {
+  for (const f of ENGINE_FLAG_FIELDS) {
+    const msg = checkFieldValue(f, e[f], VOCAB);
+    if (msg) err("engines.csv", e.__line, msg);
+  }
+  // catalog_engines_diesel_flags_check (20261104210000): a NEW diesel without both flags is
+  // rejected by the database -- catch it here instead of at seed-run time.
+  if (e.reuse_or_new === "NEW" && e.fuel_type === "diesel" && (!e.has_dpf || !e.has_adblue)) {
+    err("engines.csv", e.__line, `NEW diesel ${e.code} (${e.power_kw}kW) needs has_dpf and has_adblue (true / false) -- the live strict diesel rule rejects it otherwise`);
+  }
+}
+for (const ph of phases) {
+  for (const f of [...PHASE_EXTRA_FIELDS, ...PHASE_TEMPLATE_ONLY_FIELDS]) {
+    const msg = checkFieldValue(f, ph[f], VOCAB);
+    if (msg) err("phases.csv", ph.__line, msg);
+  }
+}
+for (const d of dims) {
+  for (const f of DIM_EXTRA_FIELDS) {
+    const msg = checkFieldValue(f, d[f], VOCAB);
+    if (msg) err("dimensions.csv", d.__line, msg);
+  }
+  if (d.seats_optional_max && d.seats_count && Number(d.seats_optional_max) <= Number(d.seats_count)) {
+    err("dimensions.csv", d.__line, `seats_optional_max (${d.seats_optional_max}) must be greater than seats_count (${d.seats_count}) -- leave it empty when there is no extra-seat option`);
+  }
+}
+{
+  const facts = readCsv(path.join(dir, "config_facts.csv"));
+  const cells = new Set();
+  for (const g of grids) {
+    const phaseLabel = g.file.replace(/^configs-/, "").replace(/\.csv$/, "");
+    for (const r of g.rows) for (const m of r.marks) if (m.x) cells.add(`${phaseLabel}|${r.engine_code}|${r.power_kw}|${m.b}|${m.g}|${m.d}`);
+  }
+  const phaseCycle = new Map(phases.map(ph => [ph.phase_label, ph.consumption_cycle || ""]));
+  const seen = new Set();
+  for (const f of facts) {
+    const key = `${f.phase_label}|${f.engine_code}|${f.power_kw}|${f.body_gearbox_drivetrain}`;
+    if (!cells.has(key)) err("config_facts.csv", f.__line, `${key} is not a marked 'x' cell in configs-${f.phase_label}.csv`);
+    if (seen.has(key)) err("config_facts.csv", f.__line, `${key} is listed twice`);
+    seen.add(key);
+    for (const field of CONFIG_FACT_FIELDS) {
+      const msg = checkFieldValue(field, f[field] ?? "", VOCAB);
+      if (msg) err("config_facts.csv", f.__line, msg);
+    }
+    if (!f.secondary_fuel_type !== !f.secondary_consumption_l100km) {
+      err("config_facts.csv", f.__line, "secondary_fuel_type and secondary_consumption_l100km go together -- both or neither (live CHECK)");
+    }
+    if (f.towing_braked_kg && f.towing_unbraked_kg && Number(f.towing_unbraked_kg) > Number(f.towing_braked_kg)) {
+      err("config_facts.csv", f.__line, "towing_unbraked_kg exceeds towing_braked_kg (live CHECK)");
+    }
+    if ((f.fuel_consumption_l100km || f.energy_consumption_kwh100km) && !f.consumption_cycle && !phaseCycle.get(f.phase_label)) {
+      warn("config_facts.csv", f.__line, `consumption figure without a test cycle -- set consumption_cycle here or on phase '${f.phase_label}' in phases.csv (NEDC and WLTP figures must not be compared as equals)`);
+    }
+  }
 }
 
 // 5: NCAP/int columns that would hit the VALUES-CTE text-cast issue

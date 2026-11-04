@@ -20,31 +20,36 @@ by anything except the helper scripts' own header-skipping, which ignores them e
 
 0. **(Optional, recommended whenever this car shares phase attributes, dimensions, or a
    config matrix with a sibling phase or platform-mate car)** Write a markdown intake
-   document (`INTAKE.md`'s section format, A–I) instead of filling 1–10 by hand, and run
+   document (`INTAKE.md`'s section format, A–J) instead of filling 1–10 by hand, and run
    `node scripts/intake-to-template.mjs <doc.md> <this-dir>` — it generates everything
    through item 10 below (including the config grid) in one pass, with every `INHERIT`
    directive already resolved against the document and the live DB. Missing/ambiguous
    source → STOP, nothing written. Skip to item 11 (`validate-template.mjs`) afterward.
 1. `car.csv` — brand, model, segment, origin.
 2. `phases.csv` — one row per phase: facelift boundary, platform code, NCAP, prices,
-   mileage, resale, seats, towing.
-3. `dimensions.csv` — one row per phase × body: dimensions, weight, boot, GVW, payload,
-   fuel tank.
-4. `engines.csv` — every engine, marked REUSE or NEW.
+   mileage, resale, towing, chassis type, default consumption test cycle.
+3. `dimensions.csv` — one row per phase × body: dimensions, base weight, boot, GVW, payload,
+   fuel tank, seats; towing loads, off-road angles, ISOFIX / optional seats / loading sill.
+4. `engines.csv` — every engine, marked REUSE or NEW. A NEW diesel needs `has_dpf` and
+   `has_adblue` (true/false).
 5. `transmissions.csv` — every gearbox this car uses, by real `unit_code`. No REUSE/NEW here
    — `transmission_units` is shared reference data, not seeded per-car; every `unit_code`
    must resolve live (see "Reuse vs new" below) or the import STOPS.
 6. `drivetrains.csv` — optional, one row per AWD/4x4 system this car uses beyond plain FWD
-   (column: `drivetrain_code`, e.g. `haldex_gen1`). Skip the file entirely for an FWD-only
-   car. Used by `gen-config-grid.mjs` (below) to include AWD columns in the grid.
+   (column: `drivetrain_code`, e.g. `haldex_gen1`), plus the literal `RWD` for a
+   rear-wheel-drive car. Skip the file entirely for an FWD-only car. Used by `gen-config-grid.mjs` (below) to include AWD columns in the grid.
 7. **Run `node scripts/gen-config-grid.mjs`** to generate `configs-<phase_label>.csv` — one
    file per row in `phases.csv`, columns pre-built from steps 3–6 (see "Config grid" below).
 8. Mark the config grid(s).
+8b. `config_facts.csv` (optional) — per-configuration facts: official consumption + its test
+    cycle (NEDC/WLTP), bi-fuel second fuel, city/highway figures, towing, the configuration's
+    own curb weight, EV charging. One row per marked cell that has any of them; validated
+    against the grid in step 11.
 9. `trims.csv`, then `trim_features.csv`.
 10. `faults.csv`.
 11. **Run `node scripts/validate-template.mjs`** — catches structural problems before you
     generate SQL from any of this (see "Scripts" below).
-12. `performance-per-config-DEFERRED.csv`, `tires-DEFERRED.csv`, `media-DEFERRED.csv` —
+12. `tires-DEFERRED.csv`, `media-DEFERRED.csv` —
     optional, fill in only when real figures/images exist. Every column these tables need
     already exists in the schema; these files are here so nothing is forgotten later, not
     because they're required for a first import.

@@ -1,9 +1,9 @@
 # Car intake document
 
-One markdown document, sections **A through I**, that `scripts/intake-to-template.mjs`
+One markdown document, sections **A through J** (J optional), that `scripts/intake-to-template.mjs`
 parses directly into the machine-format CSVs (`car.csv`, `phases.csv`, `dimensions.csv`,
 `engines.csv`, `transmissions.csv`, `drivetrains.csv`, `configs-<phase>.csv`, `trims.csv`,
-`trim_features.csv`, `faults.csv`) and resolves every `INHERIT` directive in the same pass.
+`trim_features.csv`, `faults.csv`, and `config_facts.csv` when section J is present) and resolves every `INHERIT` directive in the same pass.
 This is the format the parser actually accepts — not an aspirational sketch — verified
 against the real worked example in §10 below.
 
@@ -14,7 +14,7 @@ same CSV shape; nothing downstream cares which one produced it. The markdown pat
 recommended whenever this car shares phase attributes, dimensions, or a config matrix with a
 sibling phase or platform-mate car — that's exactly what `INHERIT` is for.
 
-Section headers in the document must be literally `## A.` through `## I.` (the parser splits
+Section headers in the document must be literally `## A.` through `## J.` (the parser splits
 on the letter, not the title text after it — the title words below are just for readability).
 
 ## A. CAR
@@ -72,6 +72,8 @@ line (see §9):
 | typical_mileage_range | 80000 - 220000 km |
 | resale_value_rating | holds_well |
 | towing_capacity_kg | 1800 |
+| chassis_type | monocoque |
+| consumption_cycle | NEDC |
 
 ### Facelift
 | field | value |
@@ -87,6 +89,11 @@ gets normalized to the live convention (`"<N> - <M> km"`) automatically — you 
 shorthand like `150k-300k` and the parser expands it. `resale_value_rating` must be one of
 the live frozen values (`holds_well`,`average`,`depreciates_fast`) — checked against
 `scripts/catalog-vocabularies.json`.
+
+`chassis_type` (`monocoque` | `ladder_frame`) inherits with the other phase attributes.
+`consumption_cycle` (`NEDC` | `WLTP`) is NOT a database column: it's the default test cycle for
+every section-J figure of that phase that doesn't name its own, and deliberately does **not**
+inherit — a facelift is exactly where NEDC turned into WLTP.
 
 ## C. BODIES × PHASE
 
@@ -122,6 +129,14 @@ this section — it survives into `dimensions.csv` as a `# NEW BODY: <name>` lea
 so `validate-template.mjs` (which never sees this document, only the CSV) honors the same
 declaration. `seats_count` lives HERE, not on a phase — it varies by body, not just by phase
 (a TT Coupe seats 4, the Roadster seats 2).
+
+Optional extra columns (any subset, by header name, all inheritable): `nose_weight_kg`,
+`roof_load_kg` (towing loads); `approach_angle_deg`, `departure_angle_deg`,
+`breakover_angle_deg`, `wading_depth_mm` (off-road geometry); `isofix_count`,
+`isofix_front_passenger` (`true`/`false`), `seats_optional_max` (7 on a 5+2 Kodiaq — must be
+greater than `seats_count`), `boot_capacity_7_seats_liters`, `boot_sill_height_mm` (family).
+`curb_weight_kg` here is the body's **base** (lightest) weight — a configuration's own weight
+goes in section J.
 
 ## D. ENGINES
 
@@ -171,6 +186,13 @@ Notes:
 - Engines that genuinely differ by emissions generation (Euro 2 → Euro 3) or hardware
   revision are separate rows with distinct primary codes — `alt_codes` is only for the
   *same physical unit at the same power*.
+- `has_dpf`, `has_gpf`, `has_adblue` (`true` / `false`, optional columns): **a NEW diesel must
+  have `has_dpf` and `has_adblue`** — STOP otherwise; the live
+  `catalog_engines_diesel_flags_check` rejects a diesel with either one empty. A diesel
+  without a DPF is a selling point, so `false` is real data, never a default. `has_gpf` is
+  optional (petrol particulate filter).
+- `hybrid_type`: `MHEV` (mild — no electric-only driving), `HEV` (full self-charging hybrid,
+  e.g. Yaris Hybrid), `PHEV` (plug-in).
 - `hybrid_type` `MHEV` covers both 12V and 48V mild hybrid systems — the voltage isn't a
   separate axis in this schema; if it matters for a specific engine, say so in
   `display_name` or a fault/note, not by inventing a new `hybrid_type` value.
@@ -232,7 +254,12 @@ gearboxes — shared reference data, never created inline). **`FWD` is the impli
 system" default** — list it here if you want a human-readable reminder that the car has a
 FWD variant, but the parser always drops it before writing `drivetrains.csv` (it's never a
 real `drivetrain_systems` row, and `drivetrains.csv`'s own convention is to omit it entirely
-for an FWD-only car). You can equally just omit this whole section for an FWD-only car.
+for an FWD-only car). You can equally just omit this whole section for an FWD-only car. **`RWD`** is the second
+2WD marker (a BMW 320d, a RWD pickup): same treatment as `FWD` — never a `drivetrain_systems`
+row, usable directly in section G. `driven_axle` is derived from it (`FWD` → front, `RWD` →
+rear, any AWD system code → all). Off-road hardware (low range, diff locks, `part_time`
+type) lives on the `drivetrain_systems` row itself — a new 4x4 system is its own reviewed
+migration before the car's intake, like a new gearbox.
 
 ## G. CONFIG MATRIX
 
@@ -328,6 +355,34 @@ drivetrain fault is a STOP (there's no component-level category, only vehicle-le
 `severity` must be `critical`/`moderate`/`minor` — checked by this script now
 (`scripts/catalog-vocabularies.json`, same mechanism as `emission_standard`, see §D), a
 STOP here rather than waiting for `validate-template.mjs` to catch it.
+
+## J. CONFIG FACTS (optional)
+
+One table, one row per configuration that has any per-configuration fact. Identity columns
+`phase`, `engine` (`CODE@kW`), `gearbox`, `drivetrain`, `body` must name a combination
+section G declares (after `INHERIT`) — a row that doesn't, or appears twice, is a STOP. Fact
+columns are any subset of, by header name: `fuel_consumption_l100km`,
+`energy_consumption_kwh100km`, `consumption_cycle`, `secondary_fuel_type`,
+`secondary_consumption_l100km`, `fuel_consumption_urban_l100km`,
+`fuel_consumption_extra_urban_l100km`, `towing_braked_kg`, `towing_unbraked_kg`,
+`curb_weight_kg`, `acceleration_0_100`, `top_speed_kmh`, `co2_emissions_g_km`,
+`battery_capacity_net_kwh`, `ev_range_wltp_km`, `max_charging_kw_dc`, `max_charging_kw_ac`,
+`has_heat_pump` (the one list lives in `scripts/catalog-template-fields.mjs`).
+
+```markdown
+## J. CONFIG FACTS
+| phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | consumption_cycle | towing_braked_kg | towing_unbraked_kg | curb_weight_kg |
+|---|---|---|---|---|---|---|---|---|---|
+| Pre-facelift | CVNA@110kW | DL382 | FWD | Estate | 5.5 | NULL | 1600 | 750 | 1535 |
+```
+
+- `fuel_consumption_l100km` is the **primary** fuel's official combined figure (= the engine's
+  `fuel_type`: the LPG/CNG figure on a factory LPG/CNG car — what the cost calculator prices).
+  A bi-fuel car adds `secondary_fuel_type` (`petrol` / `lpg` / `cng`) **and**
+  `secondary_consumption_l100km` — both or neither (STOP, mirrors the live CHECK).
+- `consumption_cycle` `NULL` → the phase's own default from section B.
+- `towing_unbraked_kg` must not exceed `towing_braked_kg` (STOP, mirrors the live CHECK).
+- `NULL` = unknown, as everywhere — never estimate a figure.
 
 ---
 

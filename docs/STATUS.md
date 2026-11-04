@@ -4,13 +4,14 @@ Read this first when picking up catalog_ schema / car-import work. Keep it curre
 end of each session — this is a living snapshot, not a historical record (git history is
 the record; see CLAUDE.md "Adding a new car / model — RULES").
 
-Last updated: 2026-10-08. Audi A4 (B9) seeded and live (`20261008122941_seed_audi_a4_b9.sql`,
-confirmed via `batch-verify` PASS) — the first MLB Evo platform car in the catalog, and the
-first car imported end-to-end via the new markdown `intake-to-template.mjs` path rather than
-hand-filled CSVs. RLS is enabled with public-read policies on all 17 catalog tables the
-Supabase advisor flagged (confirmed live: `rls_on = true`, 1 select policy each), and
-`catalog_engines.DXDB` (1.5 eTSI 110kW) now has `hybrid_type = 'MHEV'` confirmed live —
-both closed, details folded out of Open items below.
+Last updated: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, Facelift 61 +
+Scout 5 configurations) and the "dilemma" schema landed: driven axle, HEV / CNG, bi-fuel second
+fuel, NEDC/WLTP test cycle, towing + curb weight per configuration, off-road hardware on
+drivetrain systems, ladder-frame chassis, ISOFIX / optional seats / loading sill, DPF / GPF /
+AdBlue (strict for diesels: every live diesel filled, `catalog_engines_diesel_flags_check`
+validated), and the "Estate Cross" / "Hatchback Cross" body types. The import template carries
+all of it (see "The pipeline" below). Open: `20261104230000` (vocabulary drift-check lookup fix)
+must run before the next car import.
 
 ## Catalog state (live counts)
 
@@ -20,15 +21,15 @@ both closed, details folded out of Open items below.
 | models | 35 |
 | generations (distinct model + generation_code) | 50 |
 | phases (pre-facelift/facelift rows) | 88 |
-| configs (`catalog_vehicle_configurations`) | 1550 |
-| engines (`catalog_engines`) | 131 |
-| transmission units (`transmission_units`) | 76 (18 actually referenced by a live config) |
-| body types | 11 |
+| configs (`catalog_vehicle_configurations`) | 1653 |
+| engines (`catalog_engines`) | 143 |
+| transmission units (`transmission_units`) | 77 (19 actually referenced by a live config) |
+| body types | 13 |
 | drivetrain systems | 25 |
-| trims | 297 |
-| trim features | 957 |
-| component faults | 41 |
-| phase×body dimension rows | 143 |
+| trims | 299 |
+| trim features | 1696 |
+| component faults | 839 |
+| phase×body dimension rows | 145 |
 
 Platform distribution (88 phases): MQB 32, MQB-A0 16, MQB Evo 18, PQ34 16, PQ35 2, PQ26 2,
 MLB Evo 2. MLB Evo is new this snapshot — Audi A4 (B9)'s 2 phases (Pre-facelift/Facelift),
@@ -47,7 +48,7 @@ One car at a time (or several, via the batch scripts), always in this order:
 
 1. **Intake** — two paths, both converge on the same `scripts/cars/<slug>/*.csv` shape;
    nothing downstream cares which one produced its input.
-   - **1a (markdown path):** write an A–I markdown intake doc (see
+   - **1a (markdown path):** write an A–J markdown intake doc (see
      `scripts/new-car-template/INTAKE.md`) and run
      `node scripts/intake-to-template.mjs <doc.md> scripts/cars/<slug>/` — fills every CSV,
      including `configs-<phase>.csv`, and resolves every `INHERIT` directive (phase
@@ -72,7 +73,10 @@ One car at a time (or several, via the batch scripts), always in this order:
    there is no CREATE path for transmissions.
 4. **`node scripts/validate-template.mjs <dir>`** — structural checks before generating
    SQL: config rows reference real engines/gearboxes, fault severities sane, orphan
-   engines, all-NULL columns flagged (the VALUES-CTE cast trap), body types vs live.
+   engines, all-NULL columns flagged (the VALUES-CTE cast trap), body types vs live, the
+   dilemma fields' format / vocabulary (`scripts/catalog-template-fields.mjs`), NEW diesels
+   carrying DPF + AdBlue, and `config_facts.csv` rows matching a marked grid cell (bi-fuel
+   pair and braked ≥ unbraked mirror the live CHECKs).
 5. **`node scripts/generate-seed.mjs <dir>`** (or `batch-seed.mjs` for several cars at
    once) — generates the review-only seed `.sql` into `supabase/migrations/`. Casts every
    VALUES-CTE literal explicitly, guards every destructive step, asserts post-condition

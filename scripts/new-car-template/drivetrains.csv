@@ -2,4 +2,10 @@
 # included automatically by gen-config-grid.mjs). Leave this file empty/absent for an
 # FWD-only car. drivetrain_code must match an existing drivetrain_systems.code (e.g.
 # haldex_gen1) - check the live DB, don't guess a code.
+# RWD: a rear-wheel-drive car (BMW, Mercedes, a RWD pickup) lists the literal RWD here - it is
+# the second 2WD marker (driven_axle 'rear'), never a drivetrain_systems row, and makes
+# gen-config-grid.mjs offer RWD columns. FWD -> driven_axle 'front', an AWD system -> 'all'.
+# A part-time 4x4 / low range / diff locks live ON the drivetrain_systems row (has_low_range,
+# center/rear/front_diff_lock) - shared reference data: a new system is its own reviewed
+# migration before this car's import, never created here.
 drivetrain_code

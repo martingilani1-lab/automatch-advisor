@@ -15,6 +15,9 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "../node_modules/@supabase/supabase-js/dist/index.mjs";
+import {
+  ENGINE_FLAG_FIELDS, PHASE_EXTRA_FIELDS, DIM_EXTRA_FIELDS, CONFIG_FACT_FIELDS, FIELD_TYPES, drivenAxleOf,
+} from "./catalog-template-fields.mjs";
 
 // Column lists: SINGLE SOURCE OF TRUTH per table. Each constant below is used BOTH to
 // build the corresponding "insert into TABLE (...)" column list further down AND by the
@@ -32,12 +35,14 @@ const PHASES_COLS = [
   "ncap_pedestrian_pct", "ncap_safety_assist_pct", "avg_market_price_eur",
   "price_range_min_eur", "price_range_max_eur", "typical_mileage_range",
   "resale_value_rating", "towing_capacity_kg",
+  ...PHASE_EXTRA_FIELDS,
 ];
 const BODY_TYPES_COLS = ["name"];
 const ENGINES_COLS = [
   "code", "alt_codes", "display_name", "displacement_cc", "power_kw", "fuel_type", "torque_nm",
   "cylinders", "emission_standard", "timing_type", "engine_oil_capacity_liters",
   "timing_replacement_km", "hybrid_type",
+  ...ENGINE_FLAG_FIELDS,
 ];
 // transmission_units is reference data (not seeded per-car — see CLAUDE.md "a gearbox with
 // no unit STOPS the import"), but its columns are still checked live here since every
@@ -48,8 +53,12 @@ const DIMENSIONS_COLS = [
   "phase_id", "body_type_id", "length_mm", "width_mm", "height_mm", "ground_clearance_mm",
   "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg",
   "payload_kg", "fuel_tank_capacity_liters", "seats_count",
+  ...DIM_EXTRA_FIELDS,
 ];
-const CONFIGS_COLS = ["phase_id", "body_type_id", "engine_id", "unit_id", "drivetrain_id"];
+// driven_axle is derived from the grid's drivetrain column (drivenAxleOf); the fact columns come
+// from the optional config_facts.csv (catalog-template-fields.mjs), consumption_cycle falling
+// back to the phase's own default in phases.csv.
+const CONFIGS_COLS = ["phase_id", "body_type_id", "engine_id", "unit_id", "drivetrain_id", "driven_axle", ...CONFIG_FACT_FIELDS];
 const TRIMS_COLS = ["phase_id", "name", "tier"];
 const TRIM_FEATURES_COLS = ["trim_id", "feature", "is_optional"];
 // catalog_component_faults has FOUR separate INSERTs (engine / transmission / drivetrain /
@@ -196,6 +205,15 @@ const sTxt = v => (v === "" || v == null) ? "null::text" : `'${esc(v)}'::text`;
 // interpolated directly.
 const genCodeSql = gc => (gc === "" || gc == null) ? "cp.generation_code is null" : `cp.generation_code = '${esc(gc)}'`;
 const genCodeLabel = gc => (gc === "" || gc == null) ? "no generation code" : gc;
+// Typed literal for a catalog-template-fields.mjs column -- always cast (the all-NULL VALUES-CTE
+// type-inference bug), booleans emitted as SQL true/false.
+const typedLit = (field, v) => {
+  const type = FIELD_TYPES[field] || "text";
+  if (v === "" || v == null) return `null::${type}`;
+  if (type === "boolean") return `${v === "true"}::boolean`;
+  if (type === "text") return `'${esc(v)}'::text`;
+  return `${v}::${type}`;
+};
 const arrLit = alt => alt ? `'{${alt.split("|").map(s => s.trim()).filter(Boolean).map(esc).join(",")}}'` : "'{}'";
 const setEq = (a, b) => {
   const sa = new Set(a || []), sb = new Set(b || []);
@@ -221,6 +239,10 @@ async function main() {
   const trims = readCsv(path.join(dir, "trims.csv"));
   const trimFeatures = readCsv(path.join(dir, "trim_features.csv"));
   const faults = readCsv(path.join(dir, "faults.csv"));
+  // Optional (2026-11-04): per-configuration facts, keyed like the grid cells.
+  const factsPath = path.join(dir, "config_facts.csv");
+  const configFacts = fs.existsSync(factsPath) ? readCsv(factsPath) : [];
+  const factByKey = new Map(configFacts.map(f => [`${f.phase_label}|${f.engine_code}|${f.power_kw}|${f.body_gearbox_drivetrain}`, f]));
 
   if (!car || !car.brand || !car.model) {
     console.error(`${dir}: car.csv is empty or missing brand/model — nothing to generate.`);
@@ -396,16 +418,16 @@ async function main() {
     "select m.id, v.generation_code, v.phase_label, v.year_from, v.year_to, v.display_name, v.platform_code,",
     "  v.safety_rating, v.ncap_year, v.ncap_adult_pct, v.ncap_child_pct, v.ncap_pedestrian_pct, v.ncap_safety_assist_pct,",
     "  v.avg_market_price_eur, v.price_range_min_eur, v.price_range_max_eur, v.typical_mileage_range,",
-    "  v.resale_value_rating, v.towing_capacity_kg",
+    `  v.resale_value_rating, v.towing_capacity_kg${PHASE_EXTRA_FIELDS.map(f => `, v.${f}`).join("")}`,
     "from (",
     "  values"
   );
-  p(phases.map(ph => `    (${sTxt(ph.generation_code)}, ${sTxt(ph.phase_label)}, ${nInt(ph.year_from)}, ${nInt(ph.year_to)}, ${sTxt(ph.display_name)}, ${sTxt(ph.platform_code)}, ${nInt(ph.safety_rating)}, ${nInt(ph.ncap_year)}, ${nInt(ph.ncap_adult_pct)}, ${nInt(ph.ncap_child_pct)}, ${nInt(ph.ncap_pedestrian_pct)}, ${nInt(ph.ncap_safety_assist_pct)}, ${nInt(ph.avg_market_price_eur)}, ${nInt(ph.price_range_min_eur)}, ${nInt(ph.price_range_max_eur)}, ${sTxt(ph.typical_mileage_range)}, ${sTxt(ph.resale_value_rating)}, ${nInt(ph.towing_capacity_kg)})`).join(",\n"));
+  p(phases.map(ph => `    (${sTxt(ph.generation_code)}, ${sTxt(ph.phase_label)}, ${nInt(ph.year_from)}, ${nInt(ph.year_to)}, ${sTxt(ph.display_name)}, ${sTxt(ph.platform_code)}, ${nInt(ph.safety_rating)}, ${nInt(ph.ncap_year)}, ${nInt(ph.ncap_adult_pct)}, ${nInt(ph.ncap_child_pct)}, ${nInt(ph.ncap_pedestrian_pct)}, ${nInt(ph.ncap_safety_assist_pct)}, ${nInt(ph.avg_market_price_eur)}, ${nInt(ph.price_range_min_eur)}, ${nInt(ph.price_range_max_eur)}, ${sTxt(ph.typical_mileage_range)}, ${sTxt(ph.resale_value_rating)}, ${nInt(ph.towing_capacity_kg)}${PHASE_EXTRA_FIELDS.map(f => `, ${typedLit(f, ph[f])}`).join("")})`).join(",\n"));
   p(
     ") as v(generation_code, phase_label, year_from, year_to, display_name, platform_code,",
     "  safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,",
     "  avg_market_price_eur, price_range_min_eur, price_range_max_eur, typical_mileage_range,",
-    "  resale_value_rating, towing_capacity_kg)",
+    `  resale_value_rating, towing_capacity_kg${PHASE_EXTRA_FIELDS.map(f => `, ${f}`).join("")})`,
     `join catalog_models m on m.name = '${esc(car.model)}'`,
     `join catalog_brands cb on cb.id = m.brand_id and cb.name = '${esc(car.brand)}'`,
     "where not exists (",
@@ -426,7 +448,7 @@ async function main() {
   if (newEngines.length) {
     header("ENGINES", `${newEngines.length} NEW row(s). Plain INSERT ... VALUES (not a VALUES-CTE), so no casting issue.`);
     p(`insert into catalog_engines (${ENGINES_COLS.join(", ")})`, "values");
-    p(newEngines.map(e => `  ('${esc(e.code)}', ${arrLit(e.alt_codes)}, ${sOrNull(e.display_name)}, ${nOrNull(e.displacement_cc)}, ${e.power_kw}, '${esc(e.fuel_type)}', ${nOrNull(e.torque_nm)}, ${sOrNull(e.cylinders)}, ${sOrNull(e.emission_standard)}, ${sOrNull(e.timing_type)}, ${nOrNull(e.engine_oil_capacity_liters)}, ${nOrNull(e.timing_replacement_km)}, ${sOrNull(e.hybrid_type)})`).join(",\n"));
+    p(newEngines.map(e => `  ('${esc(e.code)}', ${arrLit(e.alt_codes)}, ${sOrNull(e.display_name)}, ${nOrNull(e.displacement_cc)}, ${e.power_kw}, '${esc(e.fuel_type)}', ${nOrNull(e.torque_nm)}, ${sOrNull(e.cylinders)}, ${sOrNull(e.emission_standard)}, ${sOrNull(e.timing_type)}, ${nOrNull(e.engine_oil_capacity_liters)}, ${nOrNull(e.timing_replacement_km)}, ${sOrNull(e.hybrid_type)}${ENGINE_FLAG_FIELDS.map(f => `, ${typedLit(f, e[f])}`).join("")})`).join(",\n"));
     p("on conflict (code, power_kw) do nothing;", "");
   } else {
     header("ENGINES", "none — all engines this car uses are REUSE, resolved by code+power_kw at config-insert time.");
@@ -440,7 +462,7 @@ async function main() {
   // ---- 7. phase_body_dimensions ----
   header("PHASE_BODY_DIMENSIONS", `${dims.length} row(s), one per (phase x body).`);
   p(`with dim_values (phase_label, body_type, ${DIMENSIONS_COLS.slice(2).join(", ")}) as (`, "  values");
-  p(dims.map(d => `    (${sTxt(d.phase_label)}, ${sTxt(d.body_type)}, ${nInt(d.length_mm)}, ${nInt(d.width_mm)}, ${nInt(d.height_mm)}, ${nInt(d.ground_clearance_mm)}, ${nInt(d.curb_weight_kg)}, ${nInt(d.boot_capacity_liters)}, ${nInt(d.boot_max_liters)}, ${nInt(d.gross_vehicle_weight_kg)}, ${nInt(d.payload_kg)}, ${nNum(d.fuel_tank_capacity_liters)}, ${nInt(d.seats_count)})`).join(",\n"));
+  p(dims.map(d => `    (${sTxt(d.phase_label)}, ${sTxt(d.body_type)}, ${nInt(d.length_mm)}, ${nInt(d.width_mm)}, ${nInt(d.height_mm)}, ${nInt(d.ground_clearance_mm)}, ${nInt(d.curb_weight_kg)}, ${nInt(d.boot_capacity_liters)}, ${nInt(d.boot_max_liters)}, ${nInt(d.gross_vehicle_weight_kg)}, ${nInt(d.payload_kg)}, ${nNum(d.fuel_tank_capacity_liters)}, ${nInt(d.seats_count)}${DIM_EXTRA_FIELDS.map(f => `, ${typedLit(f, d[f])}`).join("")})`).join(",\n"));
   p(
     "),",
     "phase_lookup as (",
@@ -451,7 +473,7 @@ async function main() {
     `  where cb.name = '${esc(car.brand)}' and cm.name = '${esc(car.model)}' and ${genCodeSql(genCode)}`,
     ")",
     `insert into phase_body_dimensions (${DIMENSIONS_COLS.join(", ")})`,
-    "select p.id, bt.id, v.length_mm, v.width_mm, v.height_mm, v.ground_clearance_mm, v.curb_weight_kg, v.boot_capacity_liters, v.boot_max_liters, v.gross_vehicle_weight_kg, v.payload_kg, v.fuel_tank_capacity_liters, v.seats_count",
+    `select p.id, bt.id, v.length_mm, v.width_mm, v.height_mm, v.ground_clearance_mm, v.curb_weight_kg, v.boot_capacity_liters, v.boot_max_liters, v.gross_vehicle_weight_kg, v.payload_kg, v.fuel_tank_capacity_liters, v.seats_count${DIM_EXTRA_FIELDS.map(f => `, v.${f}`).join("")}`,
     "from dim_values v",
     "join phase_lookup p on p.phase_label = v.phase_label",
     "join catalog_body_types bt on bt.name = v.body_type",
@@ -482,17 +504,24 @@ async function main() {
     "  dt_lookup as (",
     `    select id, code from drivetrain_systems${usedDrivetrains.length ? ` where code in (${usedDrivetrains.map(d => `'${esc(d)}'`).join(", ")})` : " where false"}`,
     "  ),",
-    "  configs (phase_label, body_name, engine_code, engine_power_kw, unit_code, dt_code) as (",
+    `  configs (phase_label, body_name, engine_code, engine_power_kw, unit_code, dt_code, driven_axle, ${CONFIG_FACT_FIELDS.join(", ")}) as (`,
     "    values"
   );
+  const phaseByLabel = new Map(phases.map(ph => [ph.phase_label, ph]));
   p(configs.map(c => {
     const dt = (c.d && c.d !== "FWD" && c.d !== "RWD") ? `'${esc(c.d)}'::text` : "null::text";
-    return `      ('${esc(c.phase_label)}'::text, '${esc(c.b)}'::text, '${esc(c.engine_code)}'::text, ${c.power_kw}::integer, '${esc(c.g)}'::text, ${dt})`;
+    const fact = factByKey.get(`${c.phase_label}|${c.engine_code}|${c.power_kw}|${c.b}|${c.g}|${c.d}`) || {};
+    // consumption_cycle: the configuration's own value wins, else the phase default, and only
+    // when there is a consumption figure for it to describe.
+    const hasFigure = (fact.fuel_consumption_l100km || fact.energy_consumption_kwh100km || "") !== "";
+    const cycle = fact.consumption_cycle || (hasFigure ? (phaseByLabel.get(c.phase_label)?.consumption_cycle || "") : "");
+    const factLits = CONFIG_FACT_FIELDS.map(f => typedLit(f, f === "consumption_cycle" ? cycle : fact[f]));
+    return `      ('${esc(c.phase_label)}'::text, '${esc(c.b)}'::text, '${esc(c.engine_code)}'::text, ${c.power_kw}::integer, '${esc(c.g)}'::text, ${dt}, '${drivenAxleOf(c.d)}'::text, ${factLits.join(", ")})`;
   }).join(",\n"));
   p(
     "  )",
     `insert into catalog_vehicle_configurations (${CONFIGS_COLS.join(", ")})`,
-    "select p.id, b.id, e.id, u.id, d.id",
+    `select p.id, b.id, e.id, u.id, d.id, c.driven_axle, ${CONFIG_FACT_FIELDS.map(f => `c.${f}`).join(", ")}`,
     "from configs c",
     "join phase_lookup p on p.phase_label = c.phase_label",
     "join body_lookup b on b.name = c.body_name",

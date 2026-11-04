@@ -1,0 +1,18 @@
+# OPTIONAL. Per-CONFIGURATION facts - anything that differs by engine x gearbox x drivetrain x body.
+# One row per configuration that has at least one of them; it must match a marked 'x' cell in a
+# configs-*.csv grid: phase_label + the same column header (BODY|GEARBOX|DRIVETRAIN) + engine_code
+# + power_kw. Leave the file with just its header when there is nothing per configuration.
+# Empty cell = genuinely unknown (NULL) - never estimate consumption, weights, towing or EV data.
+#   fuel_consumption_l100km     official combined figure for the PRIMARY fuel (= the engine's
+#                               fuel_type; the LPG/CNG figure on a factory LPG/CNG car)
+#   energy_consumption_kwh100km electric / plug-in energy use
+#   consumption_cycle           NEDC | WLTP - blank = the phase's default from phases.csv
+#   secondary_fuel_type         petrol | lpg | cng - bi-fuel cars only, together with:
+#   secondary_consumption_l100km  the second fuel's official figure (both or neither)
+#   fuel_consumption_urban_l100km / fuel_consumption_extra_urban_l100km   city / highway figures
+#   towing_braked_kg / towing_unbraked_kg   homologated trailer limits (unbraked <= braked)
+#   curb_weight_kg              this configuration's own weight (dimensions.csv holds the base)
+#   has_heat_pump               true | false (EV / PHEV winter range)
+# driven_axle is NOT a column: it comes from the grid's drivetrain (FWD -> front, RWD -> rear,
+# an AWD system -> all).
+phase_label,body_gearbox_drivetrain,engine_code,power_kw,fuel_consumption_l100km,energy_consumption_kwh100km,consumption_cycle,secondary_fuel_type,secondary_consumption_l100km,fuel_consumption_urban_l100km,fuel_consumption_extra_urban_l100km,towing_braked_kg,towing_unbraked_kg,curb_weight_kg,acceleration_0_100,top_speed_kmh,co2_emissions_g_km,battery_capacity_net_kwh,ev_range_wltp_km,max_charging_kw_dc,max_charging_kw_ac,has_heat_pump

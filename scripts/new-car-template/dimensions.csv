@@ -4,5 +4,13 @@
 # exist yet, and flag it as NEW in your notes).
 # seats_count lives HERE, not on phases.csv - it's per (phase x body): e.g. a Coupe/Roadster
 # pair of the same phase can (and often does) have different seat counts.
+# Towing loads: nose_weight_kg (tow-ball vertical load), roof_load_kg.
+# Off-road geometry: approach_angle_deg, departure_angle_deg, breakover_angle_deg, wading_depth_mm.
+# Family: isofix_count (all ISOFIX positions, front passenger included), isofix_front_passenger
+#   (true | false), seats_optional_max (highest seat count available as an OPTION - 7 on a 5+2
+#   Kodiaq; blank if no extra-seat option), boot_capacity_7_seats_liters (boot with every seat row
+#   up), boot_sill_height_mm (loading lip above the ground).
+# curb_weight_kg here is the body's BASE (lightest) weight; a configuration's own weight goes in
+#   config_facts.csv.
 # Empty cell = genuinely unknown (NULL) - never invent a dimension.
-phase_label,body_type,length_mm,width_mm,height_mm,ground_clearance_mm,curb_weight_kg,boot_capacity_liters,boot_max_liters,gross_vehicle_weight_kg,payload_kg,fuel_tank_capacity_liters,seats_count
+phase_label,body_type,length_mm,width_mm,height_mm,ground_clearance_mm,curb_weight_kg,boot_capacity_liters,boot_max_liters,gross_vehicle_weight_kg,payload_kg,fuel_tank_capacity_liters,seats_count,nose_weight_kg,roof_load_kg,approach_angle_deg,departure_angle_deg,breakover_angle_deg,wading_depth_mm,isofix_count,isofix_front_passenger,seats_optional_max,boot_capacity_7_seats_liters,boot_sill_height_mm

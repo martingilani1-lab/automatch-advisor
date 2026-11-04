@@ -96,6 +96,10 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "../node_modules/@supabase/supabase-js/dist/index.mjs";
+import {
+  ENGINE_FLAG_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS, DIM_EXTRA_FIELDS,
+  CONFIG_FACT_FIELDS, checkFieldValue,
+} from "./catalog-template-fields.mjs";
 
 // ============================================================================
 // Shared helpers -- duplicated locally rather than imported from another script, matching
@@ -198,7 +202,8 @@ function mapNullTokens(row) {
 // ============================================================================
 
 function tokenizeSections(text) {
-  const matches = [...text.matchAll(/^##\s+([A-I])\.\s*(.*)$/gm)];
+  // J. CONFIG FACTS (optional, 2026-11-04) is the newest section -- per-configuration facts.
+  const matches = [...text.matchAll(/^##\s+([A-J])\.\s*(.*)$/gm)];
   const sections = {};
   for (let i = 0; i < matches.length; i++) {
     const letter = matches[i][1];
@@ -338,6 +343,9 @@ const ENGINE_FIELDS = [
   "code", "alt_codes", "display_name", "displacement_cc", "power_kw", "fuel_type",
   "torque_nm", "cylinders", "emission_standard", "timing_type", "engine_oil_capacity_liters",
   "timing_replacement_km", "hybrid_type",
+  // DPF / GPF / AdBlue (catalog-template-fields.mjs). REQUIRED for a NEW diesel -- see the
+  // post-liveResolve check in main().
+  ...ENGINE_FLAG_FIELDS,
 ];
 
 const REUSE_SHORTHAND_RE = /^REUSE\s+(\S+)@(\d+)\s*kW\s*$/i;
@@ -404,7 +412,9 @@ function parseSectionE(text) {
 // every single car that has FWD at all.
 function parseSectionF(text) {
   const { rows } = parseMdTable(text.split("\n"));
-  return rows.map(r => r.drivetrain).filter(d => d && d !== "FWD").map(d => ({ drivetrain_code: d }));
+  // "RWD" is the second no-AWD-system sentinel (driven_axle 'rear', 2026-11-04), same
+  // treatment as "FWD": a marker, never a drivetrain_systems row.
+  return rows.map(r => r.drivetrain).filter(d => d && d !== "FWD" && d !== "RWD").map(d => ({ drivetrain_code: d }));
 }
 
 // Merges rows sharing the same (engine_code, power_kw) into one -- the document's G section
@@ -532,6 +542,65 @@ function parseSectionI(text) {
   }));
 }
 
+// J. CONFIG FACTS (optional) -- one table row per configuration that has any per-
+// configuration fact (consumption, test cycle, bi-fuel, city/highway, towing, own curb weight,
+// performance, EV charging). Identity columns: phase, engine (CODE@kW, same as the REUSE
+// shorthand), gearbox, drivetrain, body -- they must match a combination section G declares
+// (checked in validateConfigFacts). Fact columns: CONFIG_FACT_FIELDS, by header name, any
+// subset; NULL / empty = unknown.
+const ENGINE_REF_RE = /^(\S+)@(\d+)\s*kW$/i;
+function parseSectionJ(text) {
+  const { rows } = parseMdTable(text.split("\n"));
+  const facts = [];
+  const problems = [];
+  for (const raw of rows.map(mapNullTokens)) {
+    const m = (raw.engine || "").trim().match(ENGINE_REF_RE);
+    if (!m) {
+      problems.push(`J. CONFIG FACTS: engine '${raw.engine}' must be written CODE@kW (e.g. CVNA@110kW)`);
+      continue;
+    }
+    const row = {
+      phase_label: (raw.phase || "").trim(),
+      engine_code: m[1],
+      power_kw: m[2],
+      body_gearbox_drivetrain: `${(raw.body || "").trim()}|${(raw.gearbox || "").trim()}|${(raw.drivetrain || "").trim()}`,
+    };
+    for (const f of CONFIG_FACT_FIELDS) row[f] = raw[f] ?? "";
+    const unknown = Object.keys(raw).filter(k => !["phase", "engine", "gearbox", "drivetrain", "body", ...CONFIG_FACT_FIELDS].includes(k));
+    if (unknown.length) problems.push(`J. CONFIG FACTS: unknown column(s) ${unknown.join(", ")} -- allowed: ${CONFIG_FACT_FIELDS.join(", ")}`);
+    facts.push(row);
+  }
+  return { facts, problems };
+}
+
+// Every J row must point at a real combination from section G (after INHERIT), at most once,
+// and its values must be well-formed. Same rules validate-template.mjs applies to
+// config_facts.csv -- the bi-fuel pair and braked >= unbraked mirror the live CHECKs.
+function validateConfigFacts(doc, problems) {
+  const combos = new Set();
+  for (const [phaseLabel, rows] of Object.entries(doc.configsByPhase)) {
+    for (const r of rows) for (const c of r.combos) combos.add(`${phaseLabel}|${r.engine_code}|${r.power_kw}|${c.body}|${c.gearbox}|${c.drivetrain}`);
+  }
+  const seen = new Set();
+  for (const f of doc.configFacts) {
+    const key = `${f.phase_label}|${f.engine_code}|${f.power_kw}|${f.body_gearbox_drivetrain}`;
+    const where = `J. CONFIG FACTS (${f.phase_label} ${f.engine_code}@${f.power_kw}kW ${f.body_gearbox_drivetrain})`;
+    if (!combos.has(key)) problems.push(`${where}: no such combination in section G`);
+    if (seen.has(key)) problems.push(`${where}: listed twice`);
+    seen.add(key);
+    for (const field of CONFIG_FACT_FIELDS) {
+      const msg = checkFieldValue(field, f[field], VOCAB);
+      if (msg) problems.push(`${where}: ${msg}`);
+    }
+    if ((f.secondary_fuel_type === "") !== (f.secondary_consumption_l100km === "")) {
+      problems.push(`${where}: secondary_fuel_type and secondary_consumption_l100km go together -- both or neither`);
+    }
+    if (f.towing_braked_kg !== "" && f.towing_unbraked_kg !== "" && Number(f.towing_unbraked_kg) > Number(f.towing_braked_kg)) {
+      problems.push(`${where}: towing_unbraked_kg exceeds towing_braked_kg`);
+    }
+  }
+}
+
 function resolveFaults(faults, engines, phases, problems) {
   return faults.map(f => {
     if (f.severity && !VOCAB["catalog_component_faults.severity"].includes(f.severity)) {
@@ -583,9 +652,11 @@ function normalizeMileageRange(v) {
 // INHERIT resolution
 // ============================================================================
 
-const PHASE_ATTR_FIELDS = ["safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct", "towing_capacity_kg"];
+// chassis_type inherits like the NCAP block (a facelift keeps its predecessor's structure);
+// consumption_cycle deliberately does NOT -- a facelift is exactly where NEDC turned into WLTP.
+const PHASE_ATTR_FIELDS = ["safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct", "towing_capacity_kg", ...PHASE_EXTRA_FIELDS];
 const PHASE_NEVER_INHERIT = ["price_range_min_eur", "price_range_max_eur", "avg_market_price_eur", "typical_mileage_range", "resale_value_rating"];
-const DIM_FIELDS = ["length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "seats_count", "gross_vehicle_weight_kg", "payload_kg", "fuel_tank_capacity_liters"];
+const DIM_FIELDS = ["length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "seats_count", "gross_vehicle_weight_kg", "payload_kg", "fuel_tank_capacity_liters", ...DIM_EXTRA_FIELDS];
 
 function resolvePhaseAttributes(directive, doc, problems, fills) {
   const target = doc.phases.find(p => p.phase_label === directive.context.targetPhase);
@@ -717,7 +788,7 @@ function resolveConfigs(directive, doc, problems, fills) {
 // copied phase's combos wouldn't exist yet to check.
 function validateConfigDictionaryUsage(doc, problems) {
   const declaredGearboxes = new Set(doc.transUnits.map(t => t.unit_code));
-  const declaredDrivetrains = new Set(["FWD", ...doc.drivetrains.map(d => d.drivetrain_code)]);
+  const declaredDrivetrains = new Set(["FWD", "RWD", ...doc.drivetrains.map(d => d.drivetrain_code)]);
   // One finding per distinct (phase, engine, bad value), not per combo -- a bullet's
   // cross-product (bodies x gearboxes x drivetrains) can repeat the same bad gearbox or
   // drivetrain across several bodies, which is the same single mistake, not several.
@@ -736,7 +807,7 @@ function validateConfigDictionaryUsage(doc, problems) {
           const key = `dt|${phaseLabel}|${r.engine_code}|${r.power_kw}|${c.drivetrain}`;
           if (!seen.has(key)) {
             seen.add(key);
-            problems.push(`G. CONFIG MATRIX (${phaseLabel}): drivetrain '${c.drivetrain}' used by ${r.engine_code} (${r.power_kw}kW) is not declared in section F (or "FWD") -- typo, or F is missing a row`);
+            problems.push(`G. CONFIG MATRIX (${phaseLabel}): drivetrain '${c.drivetrain}' used by ${r.engine_code} (${r.power_kw}kW) is not declared in section F (or "FWD" / "RWD") -- typo, or F is missing a row`);
           }
         }
       }
@@ -769,6 +840,25 @@ function validateVocabularies(doc, problems) {
   for (const p of doc.phases) {
     if (p.resale_value_rating && !VOCAB["catalog_phases.resale_value_rating"].includes(p.resale_value_rating)) {
       problems.push(`B. PHASES (${p.phase_label}): resale_value_rating '${p.resale_value_rating}' is not in the frozen vocabulary (${VOCAB["catalog_phases.resale_value_rating"].join(", ")})`);
+    }
+  }
+  // Dilemma fields (catalog-template-fields.mjs): format + vocabulary.
+  for (const e of doc.engines) {
+    for (const f of ENGINE_FLAG_FIELDS) {
+      const msg = checkFieldValue(f, e[f], VOCAB);
+      if (msg) problems.push(`D. ENGINES: engine ${e.code} (${e.power_kw}kW) ${msg}`);
+    }
+  }
+  for (const p of doc.phases) {
+    for (const f of [...PHASE_EXTRA_FIELDS, ...PHASE_TEMPLATE_ONLY_FIELDS]) {
+      const msg = checkFieldValue(f, p[f], VOCAB);
+      if (msg) problems.push(`B. PHASES (${p.phase_label}): ${msg}`);
+    }
+  }
+  for (const d of doc.dims) {
+    for (const f of DIM_EXTRA_FIELDS) {
+      const msg = checkFieldValue(f, d[f], VOCAB);
+      if (msg) problems.push(`C. BODIES x PHASE (${d.phase_label} / ${d.body_type}): ${msg}`);
     }
   }
   if (doc.car.segment && !VOCAB["catalog_models.segment"].includes(doc.car.segment)) {
@@ -978,19 +1068,21 @@ async function main() {
   const { configsByPhase, inherits: gInherits, problems: gProblems } = sections.G ? parseSectionG(sections.G) : { configsByPhase: {}, inherits: [], problems: [] };
   const { trims, trimFeatures } = sections.H ? parseSectionH(sections.H) : { trims: [], trimFeatures: [] };
   const faultsRaw = sections.I ? parseSectionI(sections.I) : [];
+  const { facts: configFacts, problems: jProblems } = sections.J ? parseSectionJ(sections.J) : { facts: [], problems: [] };
 
-  problems.push(...gProblems);
+  problems.push(...gProblems, ...jProblems);
 
   for (const p of phases) {
     if (p.typical_mileage_range) p.typical_mileage_range = normalizeMileageRange(p.typical_mileage_range);
   }
 
-  const doc = { car, phases, dims, engines, reuseRefs, transUnits, drivetrains, configsByPhase, trims, trimFeatures, newBodies, allInherits: [...bInherits, ...cInherits, ...gInherits] };
+  const doc = { car, phases, dims, engines, reuseRefs, transUnits, drivetrains, configsByPhase, trims, trimFeatures, configFacts, newBodies, allInherits: [...bInherits, ...cInherits, ...gInherits] };
 
   resolveInherits(doc, problems, fills);
 
   validateConfigDictionaryUsage(doc, problems);
   validateVocabularies(doc, problems);
+  validateConfigFacts(doc, problems);
 
   const faults = resolveFaults(faultsRaw, engines, phases, problems);
 
@@ -1001,6 +1093,14 @@ async function main() {
   } catch (err) {
     console.error("[intake-to-template] live DB resolution failed:", err.message || err);
     process.exit(1);
+  }
+
+  // A NEW diesel must say whether it has a DPF and AdBlue -- catalog_engines_diesel_flags_check
+  // (20261104210000) rejects the seed otherwise. Only knowable after liveResolve decided NEW.
+  for (const e of doc.engines) {
+    if (e.reuse_or_new === "NEW" && e.fuel_type === "diesel" && (e.has_dpf === "" || e.has_dpf == null || e.has_adblue === "" || e.has_adblue == null)) {
+      problems.push(`D. ENGINES: NEW diesel ${e.code} (${e.power_kw}kW) needs has_dpf and has_adblue (true / false) -- the live strict diesel rule rejects it otherwise`);
+    }
   }
 
   if (problems.length) {
@@ -1044,13 +1144,13 @@ function writeOutput(outDir, doc, faults) {
 
   writeCsv(outDir, "car.csv", ["brand", "brand_country", "model", "segment", "origin_country"], [doc.car]);
   writeCsv(outDir, "phases.csv",
-    ["generation_code", "phase_label", "year_from", "year_to", "display_name", "platform_code", "safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct", "avg_market_price_eur", "price_range_min_eur", "price_range_max_eur", "typical_mileage_range", "resale_value_rating", "towing_capacity_kg"],
+    ["generation_code", "phase_label", "year_from", "year_to", "display_name", "platform_code", "safety_rating", "ncap_year", "ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct", "avg_market_price_eur", "price_range_min_eur", "price_range_max_eur", "typical_mileage_range", "resale_value_rating", "towing_capacity_kg", ...PHASE_EXTRA_FIELDS, ...PHASE_TEMPLATE_ONLY_FIELDS],
     doc.phases);
   // "# NEW BODY: <name>" leading comments survive into the CSV so validate-template.mjs --
   // which only ever sees the CSV, never this document -- can recognize the same explicit
   // "this is deliberately new, not a typo" declaration downstream.
   writeCsv(outDir, "dimensions.csv",
-    ["phase_label", "body_type", "length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg", "payload_kg", "fuel_tank_capacity_liters", "seats_count"],
+    ["phase_label", "body_type", "length_mm", "width_mm", "height_mm", "ground_clearance_mm", "curb_weight_kg", "boot_capacity_liters", "boot_max_liters", "gross_vehicle_weight_kg", "payload_kg", "fuel_tank_capacity_liters", "seats_count", ...DIM_EXTRA_FIELDS],
     doc.dims,
     [...doc.newBodies].map(b => `# NEW BODY: ${b}`));
   writeCsv(outDir, "engines.csv", ["reuse_or_new", ...ENGINE_FIELDS], doc.engines);
@@ -1059,6 +1159,9 @@ function writeOutput(outDir, doc, faults) {
   writeCsv(outDir, "trims.csv", ["phase_label", "name", "tier"], doc.trims);
   writeCsv(outDir, "trim_features.csv", ["phase_label", "trim_name", "feature", "is_optional"], doc.trimFeatures);
   writeCsv(outDir, "faults.csv", ["component_type", "target_code", "target_power_kw", "fault", "severity", "category"], faults);
+  if (doc.configFacts.length) {
+    writeCsv(outDir, "config_facts.csv", ["phase_label", "body_gearbox_drivetrain", "engine_code", "power_kw", ...CONFIG_FACT_FIELDS], doc.configFacts);
+  }
 
   for (const [phaseLabel, rows] of Object.entries(doc.configsByPhase)) {
     const bodyGbDt = [...new Set(rows.flatMap(r => r.combos.map(c => `${c.body}|${c.gearbox}|${c.drivetrain}`)))];
