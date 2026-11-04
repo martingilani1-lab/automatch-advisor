@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getGenerationBundlesByPhaseId } from "@/app/catalog/lib/db";
 import type { CatalogConfig, PhaseBundle } from "@/app/catalog/lib/types";
 import { groupByGearbox, groupConfigurations } from "@/app/catalog/lib/groupConfigurations";
-import { resolveBodyTile } from "@/app/db-test/lib/filters";
+import { resolveBodyTiles } from "@/app/db-test/lib/filters";
 import type {
   DetailData,
   DetailDrivetrainGroup,
@@ -77,12 +77,11 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
   // single value other call sites (the vehicle-page hero, pickMainImageUrl's body matching)
   // already depend on.
   const bodyNames = [...new Set(bodyDims.map((d) => d.catalog_body_types?.name).filter(Boolean))];
+  // flatMap: a "Cross" body type lands under more than one tile (see CATALOG_BODY_TILE_MAP).
   const categories = [...new Set(
-    bodyDims
-      .map((d) => resolveBodyTile(d.catalog_body_types?.name || ""))
-      .filter((t): t is string => t !== null)
+    bodyDims.flatMap((d) => resolveBodyTiles(d.catalog_body_types?.name || ""))
   )];
-  if (bodyDims.some((d) => resolveBodyTile(d.catalog_body_types?.name || "") === null)) {
+  if (bodyDims.some((d) => resolveBodyTiles(d.catalog_body_types?.name || "").length === 0)) {
     console.warn(`[/api/db-test] unmapped catalog_body_types name for phase ${phase.id}`);
   }
 

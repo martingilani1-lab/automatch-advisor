@@ -68,7 +68,7 @@ export default function DbTestView() {
   // ONE fetch on mount — /api/db-test (GET) returns one card per catalog_phases row, each
   // already tagged server-side with `categories: string[]` (same body-tile partition idea
   // as /api/cars, just resolved off catalog_body_types names instead of the legacy body_type
-  // enum — see resolveBodyTile in app/db-test/lib/filters.ts).
+  // enum — see resolveBodyTiles in app/db-test/lib/filters.ts).
   const [allCars, setAllCars] = useState<CarData[]>([]);
   const [loaded, setLoaded] = useState(false);
 

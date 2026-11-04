@@ -38,25 +38,31 @@ export type { FilterOption };
 // the catalog's own body-type names, which read as full phrases ("Sedan 4-door") rather than
 // the legacy schema's single-word enum ("sedan") -- a different source vocabulary mapped to
 // the same display tiles, not a copy of that map.
-const CATALOG_BODY_TILE_MAP: Record<string, string> = {
-  "Cabriolet 2-door": "coupe_convertible",
-  "Coupe 2-door": "coupe_convertible",
-  "Roadster 2-door": "coupe_convertible",
-  "Estate": "combi",
-  // Raised, cladded estates (Octavia Scout, Alltrack, allroad) -- their own body type for
-  // dimensions/consumption, but a buyer filtering for a combi expects to see them.
-  "Estate Cross": "combi",
-  "Hatchback 3-door": "hatchback",
-  "Hatchback 5-door": "hatchback",
-  "Liftback": "liftback",
-  "MPV 5-door": "minivan",
-  "Sedan 4-door": "sedan",
-  "SUV 5-door": "suv_crossover",
-  "SUV Coupe 5-door": "suv_crossover",
+//
+// One body type can sit under SEVERAL tiles (Martin, 2026-11-04): the "Cross" bodies are raised,
+// cladded versions of an estate / hatchback, so a buyer filtering for a combi OR for an SUV/
+// crossover should find them. Deliberate -- not a mapping mistake to "clean up" to one tile.
+const CATALOG_BODY_TILE_MAP: Record<string, string[]> = {
+  "Cabriolet 2-door": ["coupe_convertible"],
+  "Coupe 2-door": ["coupe_convertible"],
+  "Roadster 2-door": ["coupe_convertible"],
+  "Estate": ["combi"],
+  // Octavia Scout, Passat Alltrack, A4/A6 allroad, Leon X-Perience.
+  "Estate Cross": ["combi", "suv_crossover"],
+  "Hatchback 3-door": ["hatchback"],
+  "Hatchback 5-door": ["hatchback"],
+  // Yaris Cross, Sandero Stepway, Polo Cross.
+  "Hatchback Cross": ["hatchback", "suv_crossover"],
+  "Liftback": ["liftback"],
+  "MPV 5-door": ["minivan"],
+  "Sedan 4-door": ["sedan"],
+  "SUV 5-door": ["suv_crossover"],
+  "SUV Coupe 5-door": ["suv_crossover"],
 };
 
-export function resolveBodyTile(bodyTypeName: string): string | null {
-  return CATALOG_BODY_TILE_MAP[bodyTypeName] ?? null;
+// Empty array = an unmapped (new, not yet listed above) body-type name.
+export function resolveBodyTiles(bodyTypeName: string): string[] {
+  return CATALOG_BODY_TILE_MAP[bodyTypeName] ?? [];
 }
 
 // Gearbox -- transmission_units.family is already a clean, frozen vocabulary (confirmed
