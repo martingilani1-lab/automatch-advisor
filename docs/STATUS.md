@@ -8,10 +8,11 @@ Last updated: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, 
 Scout 5 configurations) and the "dilemma" schema landed: driven axle, HEV / CNG, bi-fuel second
 fuel, NEDC/WLTP test cycle, towing + curb weight per configuration, off-road hardware on
 drivetrain systems, ladder-frame chassis, ISOFIX / optional seats / loading sill, DPF / GPF /
-AdBlue (strict for diesels: every live diesel filled, `catalog_engines_diesel_flags_check`
-validated), and the "Estate Cross" / "Hatchback Cross" body types. The import template carries
-all of it (see "The pipeline" below). Open: `20261104230000` (vocabulary drift-check lookup fix)
-must run before the next car import.
+AdBlue (strict for new diesel rows via `catalog_engines_diesel_flags_check`), and the
+"Estate Cross" / "Hatchback Cross" body types. The import template carries all of it (see "The
+pipeline" below). Open, human-run: `20261104223000` (DPF / AdBlue for the 47 remaining diesels,
+then VALIDATE the strict rule for every row) and `20261104230000` (vocabulary drift-check lookup
+fix) -- both before the next car import.
 
 ## Catalog state (live counts)
 
