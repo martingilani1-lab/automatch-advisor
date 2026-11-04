@@ -43,6 +43,9 @@ const CATALOG_BODY_TILE_MAP: Record<string, string> = {
   "Coupe 2-door": "coupe_convertible",
   "Roadster 2-door": "coupe_convertible",
   "Estate": "combi",
+  // Raised, cladded estates (Octavia Scout, Alltrack, allroad) -- their own body type for
+  // dimensions/consumption, but a buyer filtering for a combi expects to see them.
+  "Estate Cross": "combi",
   "Hatchback 3-door": "hatchback",
   "Hatchback 5-door": "hatchback",
   "Liftback": "liftback",

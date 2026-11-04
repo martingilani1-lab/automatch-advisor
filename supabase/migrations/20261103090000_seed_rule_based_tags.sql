@@ -68,14 +68,14 @@ INSERT INTO public.catalog_configuration_tags (configuration_id, tag_slug)
 SELECT id, 'city_commuter' FROM c
  WHERE (body LIKE 'Hatchback%' OR (body = 'SUV 5-door' AND segment = 'B')) AND kw <= 81 AND fuel IN ('petrol', 'electric')
 UNION ALL SELECT id, 'highway_cruiser' FROM c
- WHERE fuel = 'diesel' AND kw >= 100 AND segment IN ('C', 'D') AND body IN ('Estate', 'Liftback', 'Sedan 4-door', 'SUV 5-door', 'MPV 5-door')
+ WHERE fuel = 'diesel' AND kw >= 100 AND segment IN ('C', 'D') AND body IN ('Estate', 'Estate Cross', 'Liftback', 'Sedan 4-door', 'SUV 5-door', 'MPV 5-door')
 UNION ALL SELECT id, 'roadtrip_camper' FROM c
- WHERE body IN ('Estate', 'SUV 5-door', 'MPV 5-door') AND boot >= 600
+ WHERE body IN ('Estate', 'Estate Cross', 'SUV 5-door', 'MPV 5-door') AND boot >= 600
 UNION ALL SELECT id, 'hot_hatch' FROM c
  WHERE body LIKE 'Hatchback%' AND fuel = 'petrol' AND coalesce(hybrid, '') <> 'PHEV'
    AND ((segment = 'B' AND kw >= 147) OR (segment = 'C' AND kw >= 162))
 UNION ALL SELECT id, 'sleeper' FROM c
- WHERE body IN ('Estate', 'Liftback', 'Sedan 4-door') AND kw >= 180 AND segment <> 'S'
+ WHERE body IN ('Estate', 'Estate Cross', 'Liftback', 'Sedan 4-door') AND kw >= 180 AND segment <> 'S'
    AND engine_name !~ '(^|\s)(RS\d?|R|S\d)(\s|$)'
 ON CONFLICT DO NOTHING;
 
