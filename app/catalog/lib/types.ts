@@ -51,7 +51,7 @@ export interface CatalogEngine {
   // (the 2006-2010 BXE/BLS split is exactly where that guess would be wrong).
   hasDpf: boolean | null;
   hasGpf: boolean | null;
-  hasScr: boolean | null;
+  hasAdblue: boolean | null;
 }
 
 // One scheduled fluid service of a gearbox or AWD system (transmission_units /

@@ -69,10 +69,10 @@ export interface DetailEngine {
   // Service intervals + typical SK/CZ workshop prices (catalog_engines maintenance columns) --
   // shown in the engine card's Maintenance tile and the comparison's yearly-cost row.
   maintenance: EngineMaintenance;
-  // Exhaust after-treatment (catalog_engines.has_dpf/has_gpf/has_scr) -- null = unknown.
+  // Exhaust after-treatment (catalog_engines.has_dpf/has_gpf/has_adblue) -- null = unknown.
   has_dpf: boolean | null;
   has_gpf: boolean | null;
-  has_scr: boolean | null;
+  has_adblue: boolean | null;
   // Official combined consumption across this engine's configurations on this phase (min/max,
   // so one gearbox/body spread shows as a range). From fuel_consumption_l100km, or
   // energy_consumption_kwh100km for electric -- the manufacturer figure, NOT a real-world one.

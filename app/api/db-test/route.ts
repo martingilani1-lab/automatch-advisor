@@ -380,7 +380,7 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
         maintenance: engine.maintenance,
         has_dpf: engine.hasDpf,
         has_gpf: engine.hasGpf,
-        has_scr: engine.hasScr,
+        has_adblue: engine.hasAdblue,
         consumption: engineConsumption(group.configs, engine.fuelType === "electric"),
         faults: bundle.faults
           .filter((f) => f.engineId === engine.id)

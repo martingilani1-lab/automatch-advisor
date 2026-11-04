@@ -174,23 +174,6 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
                 <div className="cgrid-val">{consumptionDetailLabel(c)}</div>
               </div>
             </div>
-            {/* Per-configuration dilemma facts (20261104200000-202000): towing, real weight,
-                city vs. motorway consumption. "—" = not recorded yet -- shown, not hidden, so
-                gaps stand out while the test cars are being built. */}
-            <div className="cgrid" style={{ marginTop: 6 }}>
-              <div className="cgrid-item">
-                <div className="cgrid-label">Towing braked / unbraked</div>
-                <div className="cgrid-val">{c.towingBrakedKg ?? "—"} / {c.towingUnbrakedKg ?? "—"} kg</div>
-              </div>
-              <div className="cgrid-item">
-                <div className="cgrid-label">Curb weight</div>
-                <div className="cgrid-val">{c.curbWeightKg != null ? `${c.curbWeightKg} kg` : "—"}</div>
-              </div>
-              <div className="cgrid-item">
-                <div className="cgrid-label">Urban / extra-urban</div>
-                <div className="cgrid-val">{c.fuelConsumptionUrbanL100km ?? "—"} / {c.fuelConsumptionExtraUrbanL100km ?? "—"} l</div>
-              </div>
-            </div>
             {c.tags.length > 0 && (
               <div className="tag-row">
                 {getTagsForConfiguration({ id: phaseId, tags: phaseTags }, c)

@@ -435,7 +435,8 @@ function transformBundle(
       maintenance: engineMaintenance(c.catalog_engines),
       hasDpf: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_dpf),
       hasGpf: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_gpf),
-      hasScr: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_scr),
+      // has_adblue was has_scr until 20261104210000 -- read either, so the page works on both sides of that rename.
+      hasAdblue: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_adblue ?? extras.engine.get(c.catalog_engines.id)?.has_scr),
     },
     gearbox: {
       id: c.transmission_units.id,
