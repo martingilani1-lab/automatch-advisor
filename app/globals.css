@@ -90,6 +90,16 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    /db-test and /prehlad) are untouched. */
 .cgrid-icon-cell{display:flex;justify-content:center}
 .cgrid-val{font-size:.82rem;font-weight:600;margin-top:2px}
+/* RangeWithBreakdown.tsx (/db-test Dimensions tab): a per-configuration metric shown as its
+   range, with an (i) that opens the per-configuration breakdown. The tip opens upward and is
+   centred on the icon; max-width + wrapping keep it inside a phone-width grid cell's area. */
+.range-info{position:relative;display:inline-flex;align-items:center;gap:4px}
+.range-info-btn{background:none;border:0;padding:0;color:#6b6b72;cursor:help;display:inline-flex;line-height:1}
+.range-info-btn:hover,.range-info-btn:focus-visible{color:#e8ff47;outline:none}
+.range-tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:30;
+  background:#2a2a2e;border:1px solid #3a3a40;border-radius:6px;padding:6px 8px;box-shadow:0 4px 14px #0008;
+  font-size:.68rem;font-weight:500;color:#ddd;text-align:left;white-space:nowrap;max-width:min(280px,80vw)}
+.range-tip-line{display:block;line-height:1.5;overflow:hidden;text-overflow:ellipsis}
 /* Maintenance tile — the only clickable cgrid-item (a toggle, not a plain
    stat), so it needs to visibly read as tappable unlike its neighbours. */
 .cgrid-item-btn{cursor:pointer;border:1px solid transparent;transition:border-color .12s,background .12s}

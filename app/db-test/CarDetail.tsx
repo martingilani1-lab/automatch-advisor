@@ -13,12 +13,14 @@ import { drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
 import { maintenanceRows, yearlyMaintenanceLabel } from "@/app/catalog/lib/engineMaintenance";
 import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, safetyEquipmentAvailability, safetyEquipmentAvailabilityLabel, distinctSafetyFeatureSlugs, trimFeatureCategory, TRIM_CATEGORY_ORDER, TRIM_CATEGORY_LABELS, type CompareRow, type ResolvedFeatureRow } from "@/app/catalog/lib/trimsDisplay";
-import type { CatalogTrim } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 import CarHero from "@/app/catalog/components/CarHero";
 import { pickMainMedia } from "@/app/catalog/lib/media";
 import ConfigRows, { FUEL_SORT_ORDER, dbTestEngineLabel, fuelGroupLabel } from "./ConfigRows";
+import RangeWithBreakdown from "./RangeWithBreakdown";
+import type { BreakdownItem } from "./RangeWithBreakdown";
 import TagBadge from "./TagBadge";
 import { resolveTags } from "@/app/catalog/lib/tags";
 import { CompareBar, EngineCompareView } from "./EngineCompare";
@@ -114,6 +116,25 @@ function withUnit(v: number | null, unit: string): string {
 // towing / off-road block is shown only for a car that carries one of its tags -- model-level
 // on the phase, or configuration-level on any configuration of that body -- instead of a wall
 // of "—" on every model.
+// Per-configuration values of one metric for RangeWithBreakdown's tooltip: each configuration
+// that has a value, labelled by its engine -- plus gearbox and AWD system only when that engine
+// carries more than one distinct value on this body (otherwise "1.8 TSI: 1520 kg" is enough and
+// the gearbox would just be noise).
+function breakdownOf(configs: CatalogConfig[], pick: (c: CatalogConfig) => number | null): BreakdownItem[] {
+  const withValue = configs.filter((c) => pick(c) != null);
+  const valuesByEngine = new Map<string, Set<number>>();
+  for (const c of withValue) {
+    const set = valuesByEngine.get(c.engine.id) ?? new Set<number>();
+    set.add(Number(pick(c)));
+    valuesByEngine.set(c.engine.id, set);
+  }
+  return withValue.map((c) => {
+    const varies = (valuesByEngine.get(c.engine.id)?.size ?? 0) > 1;
+    const detail = varies ? ` (${[gearboxTypeLabel(c.gearbox.family), c.drivetrain ? drivetrainLabel(c) : null].filter(Boolean).join(", ")})` : "";
+    return { label: `${dbTestEngineLabel(c)}${detail}`, value: Number(pick(c)) };
+  });
+}
+
 const FAMILY_SECTION_TAGS = ["family_ideal", "stroller_friendly", "isofix_3x", "seven_seater"];
 const TOWING_SECTION_TAGS = ["heavy_tower", "workhorse", "cargo_van"];
 const OFFROAD_SECTION_TAGS = ["true_offroad"];
@@ -1283,7 +1304,22 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
             one .cgrid block per body, same classes as every other tab's grid. */}
         {activeTab === "dimensions" && (
           <div className="mp-section">
-            {(detail?.dims ?? []).map((d, i) => (
+            {(detail?.dims ?? []).map((d, i) => {
+              // Configurations of THIS body: their tags decide which dilemma sections below are
+              // relevant, and their per-configuration facts (curb weight, towing, city/highway
+              // consumption) are shown as a range in the grid, with the per-configuration
+              // breakdown behind an (i) tooltip -- RangeWithBreakdown.tsx.
+              const bodyConfigs = (detail?.configs ?? []).filter((c) => c.bodyName === d.bodyName);
+              const tags = new Set<string>([...(detail?.phaseTags ?? []), ...bodyConfigs.flatMap((c) => c.tags)]);
+              const showFamily = FAMILY_SECTION_TAGS.some((t) => tags.has(t));
+              const showTowing = TOWING_SECTION_TAGS.some((t) => tags.has(t));
+              const showOffroad = OFFROAD_SECTION_TAGS.some((t) => tags.has(t));
+              const weight = breakdownOf(bodyConfigs, (c) => c.curbWeightKg);
+              const city = breakdownOf(bodyConfigs, (c) => c.fuelConsumptionUrbanL100km);
+              const highway = breakdownOf(bodyConfigs, (c) => c.fuelConsumptionExtraUrbanL100km);
+              const towBraked = breakdownOf(bodyConfigs, (c) => c.towingBrakedKg);
+              const towUnbraked = breakdownOf(bodyConfigs, (c) => c.towingUnbrakedKg);
+              return (
               <div key={i} style={{ marginBottom: 16 }}>
                 <div className="sub-label">{d.bodyName}</div>
                 <div className="cgrid">
@@ -1291,49 +1327,23 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                   <div className="cgrid-item"><div className="cgrid-label">Width</div><div className="cgrid-val">{d.width != null ? `${d.width}mm` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Height</div><div className="cgrid-val">{d.height != null ? `${d.height}mm` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Ground clearance</div><div className="cgrid-val">{d.groundClearance != null ? `${d.groundClearance}mm` : "—"}</div></div>
-                  <div className="cgrid-item"><div className="cgrid-label">Curb weight</div><div className="cgrid-val">{d.curbWeight != null ? `${d.curbWeight}kg` : "—"}</div></div>
+                  {/* Per-configuration weights win when recorded; otherwise the body's base weight. */}
+                  <div className="cgrid-item"><div className="cgrid-label">Curb weight</div><div className="cgrid-val">{weight.length > 0 ? <RangeWithBreakdown items={weight} unit="kg" /> : d.curbWeight != null ? `${d.curbWeight}kg` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Boot</div><div className="cgrid-val">{d.bootCapacity != null ? `${d.bootCapacity}L` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Boot (max)</div><div className="cgrid-val">{d.bootMax != null ? `${d.bootMax}L` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Gross vehicle weight</div><div className="cgrid-val">{d.grossVehicleWeight != null ? `${d.grossVehicleWeight}kg` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Payload</div><div className="cgrid-val">{d.payload != null ? `${d.payload}kg` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Fuel tank</div><div className="cgrid-val">{d.fuelTank != null ? `${d.fuelTank}L` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Seats</div><div className="cgrid-val">{d.seats ?? "—"}</div></div>
+                  {/* City / highway consumption only when at least one configuration has it. */}
+                  {city.length > 0 && (
+                    <div className="cgrid-item"><div className="cgrid-label">City consumption</div><div className="cgrid-val"><RangeWithBreakdown items={city} unit="l/100 km" /></div></div>
+                  )}
+                  {highway.length > 0 && (
+                    <div className="cgrid-item"><div className="cgrid-label">Highway consumption</div><div className="cgrid-val"><RangeWithBreakdown items={highway} unit="l/100 km" /></div></div>
+                  )}
                 </div>
-                {(() => {
-                  // Configurations of THIS body -- their own tags decide which of the dilemma
-                  // sections below are relevant, and their per-configuration facts (weight,
-                  // towing, urban consumption) are listed here, in Dimensions, not on the
-                  // Configurations rows.
-                  const bodyConfigs = (detail?.configs ?? []).filter((c) => c.bodyName === d.bodyName);
-                  const tags = new Set<string>([...(detail?.phaseTags ?? []), ...bodyConfigs.flatMap((c) => c.tags)]);
-                  const showFamily = FAMILY_SECTION_TAGS.some((t) => tags.has(t));
-                  const showTowing = TOWING_SECTION_TAGS.some((t) => tags.has(t));
-                  const showOffroad = OFFROAD_SECTION_TAGS.some((t) => tags.has(t));
-                  // Only configurations that actually carry one of these facts get a row.
-                  const perConfig = bodyConfigs.filter((c) =>
-                    c.curbWeightKg != null || c.fuelConsumptionUrbanL100km != null || c.fuelConsumptionExtraUrbanL100km != null ||
-                    (showTowing && (c.towingBrakedKg != null || c.towingUnbrakedKg != null)));
-                  return (<>
-                    {perConfig.length > 0 && (<>
-                      <div className="sub-label">By configuration</div>
-                      {perConfig.map((c) => (
-                        <div key={c.id} className="maint-item" style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                          <span>{dbTestEngineLabel(c)} · {drivetrainLabel(c)} · {gearboxTypeLabel(c.gearbox.family)}</span>
-                          <span style={{ color: "#9999aa" }}>
-                            {[
-                              c.curbWeightKg != null ? `${c.curbWeightKg} kg` : null,
-                              c.fuelConsumptionUrbanL100km != null || c.fuelConsumptionExtraUrbanL100km != null
-                                ? `city ${c.fuelConsumptionUrbanL100km ?? "?"} / highway ${c.fuelConsumptionExtraUrbanL100km ?? "?"} l`
-                                : null,
-                              showTowing && (c.towingBrakedKg != null || c.towingUnbrakedKg != null)
-                                ? `tows ${c.towingBrakedKg ?? "?"} / ${c.towingUnbrakedKg ?? "?"} kg`
-                                : null,
-                            ].filter(Boolean).join(" · ")}
-                          </span>
-                        </div>
-                      ))}
-                    </>)}
-                    {showFamily && (<>
+                {showFamily && (<>
                       <div className="sub-label">Family</div>
                       <div className="cgrid">
                         <div className="cgrid-item"><div className="cgrid-label">ISOFIX positions</div><div className="cgrid-val">{d.isofixCount ?? "—"}</div></div>
@@ -1346,7 +1356,15 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                     {showTowing && (<>
                       <div className="sub-label">Towing &amp; loads</div>
                       <div className="cgrid">
-                        <div className="cgrid-item"><div className="cgrid-label">Towing (phase max)</div><div className="cgrid-val">{withUnit(detail?.specs.towingCapacity ?? null, "kg")}</div></div>
+                        {/* Per-configuration towing when recorded; otherwise the phase's overall figure. */}
+                        {towBraked.length > 0 ? (
+                          <div className="cgrid-item"><div className="cgrid-label">Towing braked</div><div className="cgrid-val"><RangeWithBreakdown items={towBraked} unit="kg" /></div></div>
+                        ) : (
+                          <div className="cgrid-item"><div className="cgrid-label">Towing (phase max)</div><div className="cgrid-val">{withUnit(detail?.specs.towingCapacity ?? null, "kg")}</div></div>
+                        )}
+                        {towUnbraked.length > 0 && (
+                          <div className="cgrid-item"><div className="cgrid-label">Towing unbraked</div><div className="cgrid-val"><RangeWithBreakdown items={towUnbraked} unit="kg" /></div></div>
+                        )}
                         <div className="cgrid-item"><div className="cgrid-label">Nose weight</div><div className="cgrid-val">{withUnit(d.noseWeight, "kg")}</div></div>
                         <div className="cgrid-item"><div className="cgrid-label">Roof load</div><div className="cgrid-val">{withUnit(d.roofLoad, "kg")}</div></div>
                       </div>
@@ -1361,10 +1379,9 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                         <div className="cgrid-item"><div className="cgrid-label">Wading depth</div><div className="cgrid-val">{withUnit(d.wadingDepth, "mm")}</div></div>
                       </div>
                     </>)}
-                  </>);
-                })()}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
