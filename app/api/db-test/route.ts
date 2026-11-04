@@ -86,9 +86,13 @@ function buildCarFromCatalog(phase: any, bodyDims: any[], configs: any[], trims:
   }
 
   const fuelTypes = [...new Set(configs.map((c) => (c.catalog_engines?.fuel_type || "").toLowerCase()).filter(Boolean))];
-  const hasAWD = configs.some((c) => c.drivetrain_systems != null);
-  const hasFWD = configs.some((c) => c.drivetrain_systems == null);
-  const drivetrains = [...(hasAWD ? ["AWD"] : []), ...(hasFWD ? ["FWD"] : [])];
+  // driven_axle (20261104200000) decides FWD vs RWD; an AWD system row always means AWD. A
+  // 2WD row with no driven_axle yet (only before that migration has run -- it backfills every
+  // live row) keeps the old "FWD" reading so the filter doesn't go blank in the meantime.
+  const axleOf = (c: any): string =>
+    c.drivetrain_systems != null || c.driven_axle === "all" ? "AWD" : c.driven_axle === "rear" ? "RWD" : "FWD";
+  const drivetrains = (["AWD", "FWD", "RWD"] as const).filter((d) => configs.some((c) => axleOf(c) === d));
+  const hasAWD = drivetrains.includes("AWD");
 
   // fuel_consumption_combined is confirmed 0%-filled across all 1550 catalog_vehicle_
   // configurations rows (see app/catalog/lib/configDisplay.ts's own comment) -- a dead column
@@ -259,8 +263,10 @@ export async function GET() {
         catalog_models!inner(id, name, segment, origin_country, catalog_brands!inner(id, name))
       `),
       fetchAllRows<any>("phase_body_dimensions", "*, catalog_body_types(id, name)"),
+      // "*" rather than named columns: driven_axle (20261104200000) may not exist live yet, and
+      // naming it would fail the whole list -- "*" just omits it until then.
       fetchAllRows<any>("catalog_vehicle_configurations", `
-        id, phase_id, fuel_consumption_l100km, energy_consumption_kwh100km,
+        *,
         catalog_engines(id, power_kw, fuel_type, reliability_rating),
         transmission_units(id, family),
         drivetrain_systems(id)
@@ -372,6 +378,9 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
         hybrid_type: engine.hybridType,
         timing_replacement_km: engine.timingReplacementKm,
         maintenance: engine.maintenance,
+        has_dpf: engine.hasDpf,
+        has_gpf: engine.hasGpf,
+        has_scr: engine.hasScr,
         consumption: engineConsumption(group.configs, engine.fuelType === "electric"),
         faults: bundle.faults
           .filter((f) => f.engineId === engine.id)
@@ -427,6 +436,10 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
             maintenance_note: cfg.drivetrain.maintenanceNote,
             pros: cfg.drivetrain.pros,
             cons: cfg.drivetrain.cons,
+            hasLowRange: cfg.drivetrain.hasLowRange,
+            centerDiffLock: cfg.drivetrain.centerDiffLock,
+            rearDiffLock: cfg.drivetrain.rearDiffLock,
+            frontDiffLock: cfg.drivetrain.frontDiffLock,
           },
           variants: [cfg.gearbox.code],
         });
@@ -454,6 +467,7 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       ? {
           towingCapacity: bundle.towingCapacityKg,
           groundClearance: firstBody.groundClearanceMm,
+          chassisType: bundle.chassisType,
           length: firstBody.lengthMm,
           width: firstBody.widthMm,
           height: firstBody.heightMm,
@@ -477,6 +491,17 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       payload: d.payloadKg,
       fuelTank: d.fuelTankCapacityLiters,
       seats: d.seatsCount,
+      noseWeight: d.noseWeightKg,
+      roofLoad: d.roofLoadKg,
+      approachAngle: d.approachAngleDeg,
+      departureAngle: d.departureAngleDeg,
+      breakoverAngle: d.breakoverAngleDeg,
+      wadingDepth: d.wadingDepthMm,
+      isofixCount: d.isofixCount,
+      isofixFrontPassenger: d.isofixFrontPassenger,
+      seatsOptionalMax: d.seatsOptionalMax,
+      boot7Seats: d.bootCapacity7SeatsLiters,
+      bootSillHeight: d.bootSillHeightMm,
     }));
 
     return {
@@ -524,7 +549,7 @@ export async function POST(req: NextRequest) {
 
 function emptySpecs() {
   return {
-    towingCapacity: null, groundClearance: null, length: null, width: null,
+    towingCapacity: null, chassisType: null, groundClearance: null, length: null, width: null,
     height: null, weight: null, bootMax: null, resaleValue: null, bodyVariants: null,
   };
 }

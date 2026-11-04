@@ -46,6 +46,12 @@ export interface CatalogEngine {
   pros: string[];
   cons: string[];
   maintenance: EngineMaintenance;
+  // Exhaust after-treatment flags (20261104202000): diesel particulate filter, petrol
+  // particulate filter, SCR/AdBlue. null = unknown -- never derived from emission_standard
+  // (the 2006-2010 BXE/BLS split is exactly where that guess would be wrong).
+  hasDpf: boolean | null;
+  hasGpf: boolean | null;
+  hasScr: boolean | null;
 }
 
 // One scheduled fluid service of a gearbox or AWD system (transmission_units /
@@ -91,6 +97,12 @@ export interface CatalogDrivetrain {
   pros: string[];
   cons: string[];
   service: UnitService;
+  // Off-road hardware (20261104201000). Booleans on the SYSTEM = fitted as part of it;
+  // null = unknown, false = known absent (every road AWD system live today).
+  hasLowRange: boolean | null;
+  centerDiffLock: boolean | null;
+  rearDiffLock: boolean | null;
+  frontDiffLock: boolean | null;
 }
 
 export interface CatalogTireSize {
@@ -119,6 +131,27 @@ export interface CatalogConfig {
   batteryCapacityNetKwh: number | null;
   evRangeWltpKm: number | null;
   maxChargingKwDc: number | null;
+  // Dilemma-driven columns (20261104200000-202000). All null until those migrations have run
+  // live -- the loader reads them through a tolerant select("*"), never by name.
+  // 'front' | 'rear' | 'all' -- which axle is driven. drivetrain === null used to be read as
+  // "FWD"; it only ever meant "no AWD system", which is also true of a RWD BMW.
+  drivenAxle: string | null;
+  // Bi-fuel: fuelConsumptionL100km is the PRIMARY fuel (= engine.fuelType, e.g. the LPG figure
+  // the cost calculator prices); this is the other fuel's figure (petrol on an LPG car).
+  secondaryFuelType: string | null;
+  secondaryConsumptionL100km: number | null;
+  // 'NEDC' | 'WLTP' -- which test cycle fuelConsumptionL100km comes from. WLTP reads ~15-25 %
+  // higher for the same car, so figures of different cycles must not be compared as equals.
+  consumptionCycle: string | null;
+  fuelConsumptionUrbanL100km: number | null;
+  fuelConsumptionExtraUrbanL100km: number | null;
+  // Per-configuration towing + weight -- catalog_phases.towing_capacity_kg / the body's
+  // curbWeightKg are only the phase/body overview; these win wherever set.
+  towingBrakedKg: number | null;
+  towingUnbrakedKg: number | null;
+  curbWeightKg: number | null;
+  maxChargingKwAc: number | null;
+  hasHeatPump: boolean | null;
   tireSizes: CatalogTireSize[];
   // Tier-2 tags of this exact configuration (catalog_configuration_tags) -- [] until tagged or
   // while that table doesn't exist yet. See app/catalog/lib/tags.ts.
@@ -139,6 +172,19 @@ export interface CatalogBodyDimensions {
   payloadKg: number | null;
   fuelTankCapacityLiters: number | null;
   seatsCount: number | null;
+  // 20261104200500 / 201000 / 201500 -- null until those migrations run and the body is filled.
+  noseWeightKg: number | null;
+  roofLoadKg: number | null;
+  approachAngleDeg: number | null;
+  departureAngleDeg: number | null;
+  breakoverAngleDeg: number | null;
+  wadingDepthMm: number | null;
+  isofixCount: number | null;
+  isofixFrontPassenger: boolean | null;
+  // Highest seat count available as an OPTION (7 on a 5+2 Kodiaq); seatsCount stays standard.
+  seatsOptionalMax: number | null;
+  bootCapacity7SeatsLiters: number | null;
+  bootSillHeightMm: number | null;
 }
 
 export interface CatalogTrimFeature {
@@ -209,6 +255,8 @@ export interface PhaseBundle {
   ncapPedestrianPct: number | null;
   ncapSafetyAssistPct: number | null;
   towingCapacityKg: number | null;
+  // 'monocoque' | 'ladder_frame' (20261104201000) -- null until that migration runs.
+  chassisType: string | null;
   avgMarketPriceEur: number | null;
   priceRangeMinEur: number | null;
   priceRangeMaxEur: number | null;

@@ -288,6 +288,23 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
     tagsByConfig.set(r.configuration_id, [...(tagsByConfig.get(r.configuration_id) ?? []), r.tag_slug]);
   }
 
+  // Dilemma-driven columns (20261104200000-202000) -- fetched with select("*") ON PURPOSE, the
+  // same tolerant pattern as SERVICE_COLS above: until those migrations run live the columns
+  // simply aren't in the row (-> null below), whereas naming them in the main select would 500
+  // the whole page. No .error check, just `.data || []`.
+  const [configExtraRes, engineExtraRes, drivetrainExtraRes, phaseExtraRes] = await Promise.all([
+    configIds.length ? supabase.from("catalog_vehicle_configurations").select("*").in("id", configIds) : Promise.resolve({ data: [] as any[] }),
+    engineIds.length ? supabase.from("catalog_engines").select("*").in("id", engineIds) : Promise.resolve({ data: [] as any[] }),
+    drivetrainIds.length ? supabase.from("drivetrain_systems").select("*").in("id", drivetrainIds) : Promise.resolve({ data: [] as any[] }),
+    supabase.from("catalog_phases").select("*").eq("id", phaseId).maybeSingle(),
+  ]);
+  const extras: RowExtras = {
+    config: new Map(((configExtraRes.data || []) as any[]).map((r) => [r.id, r])),
+    engine: new Map(((engineExtraRes.data || []) as any[]).map((r) => [r.id, r])),
+    drivetrain: new Map(((drivetrainExtraRes.data || []) as any[]).map((r) => [r.id, r])),
+    phase: (phaseExtraRes.data as any) ?? {},
+  };
+
   const serviceById = new Map<string, UnitService>();
   for (const r of [...(unitServiceRes.data || []), ...(drivetrainServiceRes.data || [])] as any[]) {
     serviceById.set(r.id, unitService(r));
@@ -317,8 +334,29 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
     phaseUnitNotesRes.data || [],
     serviceById,
     phaseTags,
-    tagsByConfig
+    tagsByConfig,
+    extras
   );
+}
+
+// Full raw rows (select("*")) of the configurations / engines / drivetrain systems / phase,
+// keyed by id -- the source of every column the main embedded select does not name.
+interface RowExtras {
+  config: Map<string, any>;
+  engine: Map<string, any>;
+  drivetrain: Map<string, any>;
+  phase: any;
+}
+
+// undefined (column not live yet) and null (not filled) both read as null.
+function numOrNull(v: unknown): number | null {
+  return v == null ? null : Number(v);
+}
+function boolOrNull(v: unknown): boolean | null {
+  return v == null ? null : Boolean(v);
+}
+function strOrNull(v: unknown): string | null {
+  return v == null ? null : String(v);
 }
 
 function transformBundle(
@@ -335,7 +373,8 @@ function transformBundle(
   phaseUnitNoteRows: any[],
   serviceById: Map<string, UnitService>,
   phaseTags: ModelLevelTagSlug[],
-  tagsByConfig: Map<string, ConfigurationLevelTagSlug[]>
+  tagsByConfig: Map<string, ConfigurationLevelTagSlug[]>,
+  extras: RowExtras
 ): PhaseBundle {
   const noteByUnit = new Map<string, string>(phaseUnitNoteRows.map((n) => [n.unit_id, n.note]));
   const bodyDimensions: CatalogBodyDimensions[] = bodyDimRows.map((d) => ({
@@ -352,6 +391,17 @@ function transformBundle(
     payloadKg: d.payload_kg,
     fuelTankCapacityLiters: d.fuel_tank_capacity_liters,
     seatsCount: d.seats_count,
+    noseWeightKg: numOrNull(d.nose_weight_kg),
+    roofLoadKg: numOrNull(d.roof_load_kg),
+    approachAngleDeg: numOrNull(d.approach_angle_deg),
+    departureAngleDeg: numOrNull(d.departure_angle_deg),
+    breakoverAngleDeg: numOrNull(d.breakover_angle_deg),
+    wadingDepthMm: numOrNull(d.wading_depth_mm),
+    isofixCount: numOrNull(d.isofix_count),
+    isofixFrontPassenger: boolOrNull(d.isofix_front_passenger),
+    seatsOptionalMax: numOrNull(d.seats_optional_max),
+    bootCapacity7SeatsLiters: numOrNull(d.boot_capacity_7_seats_liters),
+    bootSillHeightMm: numOrNull(d.boot_sill_height_mm),
   }));
 
   const tireSizesByConfig = new Map<string, { tireSize: string; isStandard: boolean }[]>();
@@ -383,6 +433,9 @@ function transformBundle(
       pros: c.catalog_engines.pros ?? [],
       cons: c.catalog_engines.cons ?? [],
       maintenance: engineMaintenance(c.catalog_engines),
+      hasDpf: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_dpf),
+      hasGpf: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_gpf),
+      hasScr: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_scr),
     },
     gearbox: {
       id: c.transmission_units.id,
@@ -412,6 +465,10 @@ function transformBundle(
           pros: c.drivetrain_systems.pros ?? [],
           cons: c.drivetrain_systems.cons ?? [],
           service: serviceById.get(c.drivetrain_systems.id) ?? EMPTY_UNIT_SERVICE,
+          hasLowRange: boolOrNull(extras.drivetrain.get(c.drivetrain_systems.id)?.has_low_range),
+          centerDiffLock: boolOrNull(extras.drivetrain.get(c.drivetrain_systems.id)?.center_diff_lock),
+          rearDiffLock: boolOrNull(extras.drivetrain.get(c.drivetrain_systems.id)?.rear_diff_lock),
+          frontDiffLock: boolOrNull(extras.drivetrain.get(c.drivetrain_systems.id)?.front_diff_lock),
         }
       : null,
     acceleration0To100: c.acceleration_0_100,
@@ -423,6 +480,17 @@ function transformBundle(
     batteryCapacityNetKwh: c.battery_capacity_net_kwh,
     evRangeWltpKm: c.ev_range_wltp_km,
     maxChargingKwDc: c.max_charging_kw_dc,
+    drivenAxle: strOrNull(extras.config.get(c.id)?.driven_axle),
+    secondaryFuelType: strOrNull(extras.config.get(c.id)?.secondary_fuel_type),
+    secondaryConsumptionL100km: numOrNull(extras.config.get(c.id)?.secondary_consumption_l100km),
+    consumptionCycle: strOrNull(extras.config.get(c.id)?.consumption_cycle),
+    fuelConsumptionUrbanL100km: numOrNull(extras.config.get(c.id)?.fuel_consumption_urban_l100km),
+    fuelConsumptionExtraUrbanL100km: numOrNull(extras.config.get(c.id)?.fuel_consumption_extra_urban_l100km),
+    towingBrakedKg: numOrNull(extras.config.get(c.id)?.towing_braked_kg),
+    towingUnbrakedKg: numOrNull(extras.config.get(c.id)?.towing_unbraked_kg),
+    curbWeightKg: numOrNull(extras.config.get(c.id)?.curb_weight_kg),
+    maxChargingKwAc: numOrNull(extras.config.get(c.id)?.max_charging_kw_ac),
+    hasHeatPump: boolOrNull(extras.config.get(c.id)?.has_heat_pump),
     tireSizes: tireSizesByConfig.get(c.id) ?? [],
     tags: tagsByConfig.get(c.id) ?? [],
   }));
@@ -481,6 +549,7 @@ function transformBundle(
     ncapPedestrianPct: phaseRow.ncap_pedestrian_pct,
     ncapSafetyAssistPct: phaseRow.ncap_safety_assist_pct,
     towingCapacityKg: phaseRow.towing_capacity_kg,
+    chassisType: strOrNull(extras.phase.chassis_type),
     avgMarketPriceEur: phaseRow.avg_market_price_eur,
     priceRangeMinEur: phaseRow.price_range_min_eur,
     priceRangeMaxEur: phaseRow.price_range_max_eur,

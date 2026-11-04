@@ -10,6 +10,7 @@ function eng(over: Partial<DetailEngine> & { id: string }): DetailEngine {
     engine: over.id, fuel_type: "petrol", power_kw: 81, displacement_cc: 999, torque_nm: 200, cylinders: "L3",
     is_ev: false, reliability: "Good", reliability_rating: 4, timing_type: "belt", hybrid_type: null,
     timing_replacement_km: 120000, maintenance: EMPTY_ENGINE_MAINTENANCE,
+    has_dpf: null, has_gpf: null, has_scr: null,
     consumption: { min: 5.5, max: 5.5, unit: "l/100 km" }, faults: [], pros: [], cons: [], bodyNames: [],
     ...over,
   };

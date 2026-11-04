@@ -4,7 +4,7 @@ import type { CatalogConfig } from "@/app/catalog/lib/types";
 import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
 import { getTagsForConfiguration } from "@/app/catalog/lib/tags";
 import TagBadge from "./TagBadge";
-import { consumptionLabel, drivetrainLabel } from "@/app/catalog/lib/configDisplay";
+import { consumptionDetailLabel, drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { gearboxTypeLabel } from "@/app/catalog/lib/gearboxLabel";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 
@@ -164,14 +164,31 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
                   <div className="cgrid-icon-cell">
                     <IconCar4wd size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.drivetrain }} />
                   </div>
-                  <div className="cgrid-val">FWD</div>
+                  <div className="cgrid-val">{drivetrainLabel(c)}</div>
                 </div>
               )}
               <div className="cgrid-item">
                 <div className="cgrid-icon-cell">
                   <IconGasStation size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
                 </div>
-                <div className="cgrid-val">{consumptionLabel(c)}</div>
+                <div className="cgrid-val">{consumptionDetailLabel(c)}</div>
+              </div>
+            </div>
+            {/* Per-configuration dilemma facts (20261104200000-202000): towing, real weight,
+                city vs. motorway consumption. "—" = not recorded yet -- shown, not hidden, so
+                gaps stand out while the test cars are being built. */}
+            <div className="cgrid" style={{ marginTop: 6 }}>
+              <div className="cgrid-item">
+                <div className="cgrid-label">Towing braked / unbraked</div>
+                <div className="cgrid-val">{c.towingBrakedKg ?? "—"} / {c.towingUnbrakedKg ?? "—"} kg</div>
+              </div>
+              <div className="cgrid-item">
+                <div className="cgrid-label">Curb weight</div>
+                <div className="cgrid-val">{c.curbWeightKg != null ? `${c.curbWeightKg} kg` : "—"}</div>
+              </div>
+              <div className="cgrid-item">
+                <div className="cgrid-label">Urban / extra-urban</div>
+                <div className="cgrid-val">{c.fuelConsumptionUrbanL100km ?? "—"} / {c.fuelConsumptionExtraUrbanL100km ?? "—"} l</div>
               </div>
             </div>
             {c.tags.length > 0 && (

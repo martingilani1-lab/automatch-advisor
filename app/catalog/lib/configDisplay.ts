@@ -20,6 +20,31 @@ export function consumptionLabel(c: CatalogConfig): string {
   return "–";
 }
 
+// catalog_vehicle_configurations.driven_axle (20261104200000) -> the short label buyers know.
+// A config with no AWD system used to be shown as "FWD" unconditionally -- wrong for a RWD BMW.
+// null (axle not recorded, or the migration not run yet) is shown as "2WD": true for every
+// config without an AWD system, without claiming which axle.
+export function axleLabel(axle: string | null): string {
+  if (axle === "front") return "FWD";
+  if (axle === "rear") return "RWD";
+  if (axle === "all") return "AWD";
+  return "2WD";
+}
+
+// "6.4 l/100 km · NEDC" -- the cycle next to the figure, so an NEDC car and a WLTP car are
+// never read as directly comparable (WLTP runs ~15-25 % higher for the same car). Bi-fuel
+// cars add the second fuel: "9.2 l/100 km LPG · 7.2 petrol · NEDC".
+export function consumptionDetailLabel(c: CatalogConfig): string {
+  const base = consumptionLabel(c);
+  if (base === "–") return base;
+  const parts = [c.secondaryFuelType ? `${base} ${c.engine.fuelType.toUpperCase()}` : base];
+  if (c.secondaryFuelType && c.secondaryConsumptionL100km != null) {
+    parts.push(`${c.secondaryConsumptionL100km} ${c.secondaryFuelType}`);
+  }
+  if (c.consumptionCycle) parts.push(c.consumptionCycle);
+  return parts.join(" · ");
+}
+
 // transmission_units.code is near-universally "<Maker> <Model>" ("VW DQ381", "ZF 6HP",
 // "generic:7-speed dct") -- strip the first whitespace- or colon-separated token so the
 // Configurations rows show just the unit itself ("DQ381"), the maker already being implicit
@@ -56,7 +81,7 @@ export function transmissionLabel(c: CatalogConfig): string {
 // some rows and "Haldex Traction" on others depending on which migration added it) keeps
 // every Haldex generation reading the same way everywhere this label is shown.
 export function drivetrainLabel(c: CatalogConfig): string {
-  if (!c.drivetrain) return "FWD";
+  if (!c.drivetrain) return axleLabel(c.drivenAxle);
   if (c.drivetrain.type === "haldex" && c.drivetrain.generation) return `Haldex ${c.drivetrain.generation}`;
   return c.drivetrain.generation ?? c.drivetrain.code;
 }

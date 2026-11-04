@@ -99,7 +99,18 @@ function Chips({ items }: { items: string[] }) {
   );
 }
 
+// Yes / No / "—" for a nullable fact -- null is "not recorded", never shown as "No".
+function yesNo(v: boolean | null): string {
+  return v == null ? "—" : v ? "Yes" : "No";
+}
+
+// "350kg" / "—" -- one formatter for every nullable measurement on the Dimensions tab.
+function withUnit(v: number | null, unit: string): string {
+  return v != null ? `${v}${unit}` : "—";
+}
+
 const DRIVETRAIN_TYPE_LABELS: Record<string, string> = {
+  part_time: "Part-time / selectable 4x4",
   haldex: "Haldex-type coupling",
   torsen: "Torsen mechanical diff",
   permanent: "Permanent / full-time",
@@ -370,6 +381,16 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
                 <div className="cgrid-val">{cylinders}</div>
               </div>
             )}
+            {/* Exhaust after-treatment (20261104202000) -- drives the "particulate-filter diesel +
+                short trips" question. Electric engines have none, so the tile is skipped there. */}
+            {engine.fuel_type !== "electric" && (
+              <div className="cgrid-item">
+                <div className="cgrid-label">{engine.fuel_type === "diesel" ? "DPF / AdBlue" : "Petrol particulate filter"}</div>
+                <div className="cgrid-val">
+                  {engine.fuel_type === "diesel" ? `${yesNo(engine.has_dpf)} / ${yesNo(engine.has_scr)}` : yesNo(engine.has_gpf)}
+                </div>
+              </div>
+            )}
           </div>
           {maintRows.length > 0 || yearly ? (
             <div className="cgrid">
@@ -499,6 +520,16 @@ function DrivetrainAccordion({ group, showVariants, gapsMode, isOpen, onToggle, 
             ) : (
               <MissingMarker gapsMode={gapsMode} label="maintenance note" />
             )}
+          </div>
+          {/* Off-road hardware (20261104201000) -- what separates a true 4x4 from a road AWD.
+              Always shown, with "—" for unknown, so a missing fact is visible while the
+              dilemma test cars are being filled in. */}
+          <div className="sub-label">{"⛰️"} Off-road hardware</div>
+          <div className="cgrid">
+            <div className="cgrid-item"><div className="cgrid-label">Low range</div><div className="cgrid-val">{yesNo(system.hasLowRange)}</div></div>
+            <div className="cgrid-item"><div className="cgrid-label">Centre diff lock</div><div className="cgrid-val">{yesNo(system.centerDiffLock)}</div></div>
+            <div className="cgrid-item"><div className="cgrid-label">Rear diff lock</div><div className="cgrid-val">{yesNo(system.rearDiffLock)}</div></div>
+            <div className="cgrid-item"><div className="cgrid-label">Front diff lock</div><div className="cgrid-val">{yesNo(system.frontDiffLock)}</div></div>
           </div>
           {descOpen && system.description && (
             <div className="maint-card">
@@ -1246,6 +1277,31 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                   <div className="cgrid-item"><div className="cgrid-label">Payload</div><div className="cgrid-val">{d.payload != null ? `${d.payload}kg` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Fuel tank</div><div className="cgrid-val">{d.fuelTank != null ? `${d.fuelTank}L` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Seats</div><div className="cgrid-val">{d.seats ?? "—"}</div></div>
+                </div>
+                {/* Dilemma-driven fields (20261104200500-201500), grouped by the question they
+                    answer. Always rendered with "—" for unknown on purpose: the point of the
+                    test cars is to SEE which facts are still missing. */}
+                <div className="sub-label">Family</div>
+                <div className="cgrid">
+                  <div className="cgrid-item"><div className="cgrid-label">ISOFIX positions</div><div className="cgrid-val">{d.isofixCount ?? "—"}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">ISOFIX front passenger</div><div className="cgrid-val">{yesNo(d.isofixFrontPassenger)}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Seats (optional max)</div><div className="cgrid-val">{d.seatsOptionalMax ?? "—"}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Boot, all seats up</div><div className="cgrid-val">{withUnit(d.boot7Seats, "L")}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Boot sill height</div><div className="cgrid-val">{withUnit(d.bootSillHeight, "mm")}</div></div>
+                </div>
+                <div className="sub-label">Towing &amp; loads</div>
+                <div className="cgrid">
+                  <div className="cgrid-item"><div className="cgrid-label">Towing (phase max)</div><div className="cgrid-val">{withUnit(detail?.specs.towingCapacity ?? null, "kg")}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Nose weight</div><div className="cgrid-val">{withUnit(d.noseWeight, "kg")}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Roof load</div><div className="cgrid-val">{withUnit(d.roofLoad, "kg")}</div></div>
+                </div>
+                <div className="sub-label">Off-road</div>
+                <div className="cgrid">
+                  <div className="cgrid-item"><div className="cgrid-label">Chassis</div><div className="cgrid-val">{detail?.specs.chassisType === "ladder_frame" ? "Ladder frame" : detail?.specs.chassisType === "monocoque" ? "Monocoque" : "—"}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Approach angle</div><div className="cgrid-val">{withUnit(d.approachAngle, "°")}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Departure angle</div><div className="cgrid-val">{withUnit(d.departureAngle, "°")}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Breakover angle</div><div className="cgrid-val">{withUnit(d.breakoverAngle, "°")}</div></div>
+                  <div className="cgrid-item"><div className="cgrid-label">Wading depth</div><div className="cgrid-val">{withUnit(d.wadingDepth, "mm")}</div></div>
                 </div>
               </div>
             ))}

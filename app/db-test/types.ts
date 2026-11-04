@@ -69,6 +69,10 @@ export interface DetailEngine {
   // Service intervals + typical SK/CZ workshop prices (catalog_engines maintenance columns) --
   // shown in the engine card's Maintenance tile and the comparison's yearly-cost row.
   maintenance: EngineMaintenance;
+  // Exhaust after-treatment (catalog_engines.has_dpf/has_gpf/has_scr) -- null = unknown.
+  has_dpf: boolean | null;
+  has_gpf: boolean | null;
+  has_scr: boolean | null;
   // Official combined consumption across this engine's configurations on this phase (min/max,
   // so one gearbox/body spread shows as a range). From fuel_consumption_l100km, or
   // energy_consumption_kwh100km for electric -- the manufacturer figure, NOT a real-world one.
@@ -96,6 +100,11 @@ export interface DetailDrivetrainSystem {
   maintenance_note: string | null;
   pros: string[];
   cons: string[];
+  // Off-road hardware (drivetrain_systems, 20261104201000) -- null = unknown.
+  hasLowRange: boolean | null;
+  centerDiffLock: boolean | null;
+  rearDiffLock: boolean | null;
+  frontDiffLock: boolean | null;
 }
 
 // Drivetrain systems are real, standalone components independent of any one engine/gearbox
@@ -115,6 +124,8 @@ export interface DetailFault {
 
 export interface DetailSpecs {
   towingCapacity: number | null;
+  // 'monocoque' | 'ladder_frame' -- null until 20261104201000 runs.
+  chassisType: string | null;
   groundClearance: number | null;
   length: number | null;
   width: number | null;
@@ -142,6 +153,18 @@ export interface DimensionsByBody {
   payload: number | null;
   fuelTank: number | null;
   seats: number | null;
+  // 20261104200500 / 201000 / 201500 -- see CatalogBodyDimensions for what each one means.
+  noseWeight: number | null;
+  roofLoad: number | null;
+  approachAngle: number | null;
+  departureAngle: number | null;
+  breakoverAngle: number | null;
+  wadingDepth: number | null;
+  isofixCount: number | null;
+  isofixFrontPassenger: boolean | null;
+  seatsOptionalMax: number | null;
+  boot7Seats: number | null;
+  bootSillHeight: number | null;
 }
 
 export interface DetailData {
