@@ -342,7 +342,9 @@ has never used the word "gearbox"). `target_code` means something different per 
 - **`engine`**: the engine code. There's no `target_power_kw` column here — the parser
   looks `target_code` up against this same document's own section D by code and fills it
   in automatically; if that code is absent or ambiguous in section D, that's a STOP (never
-  guessed).
+  guessed). When the same code appears at two powers (G3LA 49 / 51 kW), write
+  `CODE@kW` (`G3LA@49kW`, the same form section J uses) — one row per power the fault
+  applies to.
 - **`transmission`** (`gearbox` in the document): the gearbox code, resolved against live
   `transmission_units` at seed-generation time (not validated by this script itself, same
   as `configs.csv`'s own gearbox codes).

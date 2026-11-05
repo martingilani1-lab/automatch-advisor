@@ -623,12 +623,17 @@ function resolveFaults(faults, engines, phases, problems) {
     }
 
     if (f.component_type !== "engine") return { ...f, target_power_kw: "" };
-    const matches = engines.filter(e => e.code === f.target_code);
+    // An engine code used at two powers in this document (G3LA 49 / 51 kW, K9K 63 / 85 kW -- the
+    // common case for city cars) can't be resolved from the bare code, so `CODE@kW` (the same form
+    // section J uses) names the exact row. The bare code still works when it's unique.
+    const at = f.target_code.match(/^(.+)@(\d+)kW$/);
+    const code = at ? at[1] : f.target_code;
+    const matches = engines.filter(e => e.code === code && (!at || String(e.power_kw) === at[2]));
     if (matches.length !== 1) {
-      problems.push(`I. FAULTS: engine code '${f.target_code}' is ${matches.length === 0 ? "absent from" : "ambiguous in"} this document's ENGINES section -- cannot infer target_power_kw`);
+      problems.push(`I. FAULTS: engine '${f.target_code}' is ${matches.length === 0 ? "absent from" : "ambiguous in"} this document's ENGINES section -- write it as CODE@kW (e.g. G3LA@49kW) when the code appears at more than one power`);
       return { ...f, target_power_kw: "" };
     }
-    return { ...f, target_power_kw: matches[0].power_kw };
+    return { ...f, target_code: code, target_power_kw: matches[0].power_kw };
   });
 }
 
