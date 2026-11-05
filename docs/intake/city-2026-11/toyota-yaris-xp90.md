@@ -142,8 +142,37 @@ INHERIT dimensions FROM Toyota Yaris XP90 Pre-facelift / Hatchback 5-door
 | vehicle | Pre-facelift | Dashboard and door-card rattles and creaks. | minor | interior |
 
 ## J. CONFIG FACTS
-*(NEDC. Only the auto-data.net figure for the 1.3 VVT-i manual 5-door; every other configuration NULL until filled.)*
+*(Fill-in form: one row per configuration from section G — every real engine × gearbox × drivetrain × body. `NULL` = not known yet; replace with the figure. `consumption_cycle` NULL = the phase default from section B (NEDC / WLTP). `fuel_consumption_l100km` = official combined figure of the engine's own fuel; for EVs use `energy_consumption_kwh100km` + `ev_range_wltp_km`. `secondary_fuel_type` + `secondary_consumption_l100km` only for factory bi-fuel (LPG / CNG), both or neither. `towing_unbraked_kg` ≤ `towing_braked_kg`.)*
 
-| phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | fuel_consumption_urban_l100km | fuel_consumption_extra_urban_l100km | curb_weight_kg | acceleration_0_100 | top_speed_kmh |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Pre-facelift | 2SZ-FE@64kW | Toyota C54 | FWD | Hatchback 5-door | 6.0 | 7.2 | 5.3 | 1010 | 11.5 | 170 |
+| phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | energy_consumption_kwh100km | consumption_cycle | secondary_fuel_type | secondary_consumption_l100km | fuel_consumption_urban_l100km | fuel_consumption_extra_urban_l100km | towing_braked_kg | towing_unbraked_kg | curb_weight_kg | acceleration_0_100 | top_speed_kmh | co2_emissions_g_km | ev_range_wltp_km |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Pre-facelift | 1KR-FE@51kW | Toyota C551 | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 1KR-FE@51kW | Toyota C551 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 1KR-FE@51kW | Toyota MultiMode (MMT) | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 1KR-FE@51kW | Toyota MultiMode (MMT) | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 2SZ-FE@64kW | Toyota C54 | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 2SZ-FE@64kW | Toyota C54 | FWD | Hatchback 5-door | 6.0 | NULL | NULL | NULL | NULL | 7.2 | 5.3 | NULL | NULL | 1010 | 11.5 | 170 | NULL | NULL |
+| Pre-facelift | 2SZ-FE@64kW | Toyota MultiMode (MMT) | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 2SZ-FE@64kW | Toyota MultiMode (MMT) | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 2SZ-FE@64kW | Toyota U441E | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 2SZ-FE@64kW | Toyota U441E | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 1ND-TV@66kW | Toyota C53 | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 1ND-TV@66kW | Toyota C53 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 1ND-TV@66kW | Toyota MultiMode (MMT) | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 1ND-TV@66kW | Toyota MultiMode (MMT) | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 2ZR-FE@98kW | Toyota TS-MT (code TBD) | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | 2ZR-FE@98kW | Toyota TS-MT (code TBD) | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1KR-FE@51kW | Toyota C551 | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1KR-FE@51kW | Toyota C551 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1KR-FE@51kW | Toyota MultiMode (MMT) | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1KR-FE@51kW | Toyota MultiMode (MMT) | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1NR-FE@74kW | Toyota EC60 | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1NR-FE@74kW | Toyota EC60 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1NR-FE@74kW | Toyota Multidrive S CVT | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1NR-FE@74kW | Toyota Multidrive S CVT | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1ND-TV@66kW | Toyota C53 | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1ND-TV@66kW | Toyota C53 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1ND-TV@66kW | Toyota MultiMode (MMT) | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 1ND-TV@66kW | Toyota MultiMode (MMT) | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 2ZR-FE@98kW | Toyota TS-MT (code TBD) | FWD | Hatchback 3-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | 2ZR-FE@98kW | Toyota TS-MT (code TBD) | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |

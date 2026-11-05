@@ -131,9 +131,13 @@ INHERIT dimensions FROM BMW i3 I01 Pre-facelift / Hatchback 5-door
 | vehicle | Pre-facelift | Front suspension (lower arm bushes) knocks; steering rack noise. | minor | suspension |
 
 ## J. CONFIG FACTS
-*(NEDC range for the pre-facelift (NEDC era) is not stored — `ev_range_wltp_km` is WLTP only. Facelift WLTP ranges are BMW's published ranges.)*
+*(Fill-in form: one row per configuration from section G — every real engine × gearbox × drivetrain × body. `NULL` = not known yet; replace with the figure. `consumption_cycle` NULL = the phase default from section B (NEDC / WLTP). `fuel_consumption_l100km` = official combined figure of the engine's own fuel; for EVs use `energy_consumption_kwh100km` + `ev_range_wltp_km`. `secondary_fuel_type` + `secondary_consumption_l100km` only for factory bi-fuel (LPG / CNG), both or neither. `towing_unbraked_kg` ≤ `towing_braked_kg`.)*
 
-| phase | engine | gearbox | drivetrain | body | ev_range_wltp_km |
-|---|---|---|---|---|---|
-| Facelift | i3-120Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 285 |
-| Facelift | i3s-120Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | 270 |
+| phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | energy_consumption_kwh100km | consumption_cycle | secondary_fuel_type | secondary_consumption_l100km | fuel_consumption_urban_l100km | fuel_consumption_extra_urban_l100km | towing_braked_kg | towing_unbraked_kg | curb_weight_kg | acceleration_0_100 | top_speed_kmh | co2_emissions_g_km | ev_range_wltp_km |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Pre-facelift | i3-60Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | i3-94Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | i3-94Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | i3s-94Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | i3-120Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | 285 |
+| Facelift | i3s-120Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | 270 |

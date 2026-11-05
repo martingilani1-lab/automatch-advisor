@@ -118,6 +118,13 @@ INHERIT configs FROM Hyundai i10 IA Pre-facelift
 | vehicle | Pre-facelift | Steering column flexible coupling (electric power steering) knocks over bumps. | moderate | steering |
 
 ## J. CONFIG FACTS
-| phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | co2_emissions_g_km |
-|---|---|---|---|---|---|---|
-| Pre-facelift | G3LA@49kW | Hyundai M5EF2 | FWD | Hatchback 5-door | 4.7 | 108 |
+*(Fill-in form: one row per configuration from section G — every real engine × gearbox × drivetrain × body. `NULL` = not known yet; replace with the figure. `consumption_cycle` NULL = the phase default from section B (NEDC / WLTP). `fuel_consumption_l100km` = official combined figure of the engine's own fuel; for EVs use `energy_consumption_kwh100km` + `ev_range_wltp_km`. `secondary_fuel_type` + `secondary_consumption_l100km` only for factory bi-fuel (LPG / CNG), both or neither. `towing_unbraked_kg` ≤ `towing_braked_kg`.)*
+
+| phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | energy_consumption_kwh100km | consumption_cycle | secondary_fuel_type | secondary_consumption_l100km | fuel_consumption_urban_l100km | fuel_consumption_extra_urban_l100km | towing_braked_kg | towing_unbraked_kg | curb_weight_kg | acceleration_0_100 | top_speed_kmh | co2_emissions_g_km | ev_range_wltp_km |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Pre-facelift | G3LA@49kW | Hyundai M5EF2 | FWD | Hatchback 5-door | 4.7 | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | 108 | NULL |
+| Pre-facelift | G4LA@64kW | Hyundai M5EF2 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | G4LA@64kW | Hyundai A4CF0 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | G3LA@49kW | Hyundai M5EF2 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | G4LA@64kW | Hyundai M5EF2 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | G4LA@64kW | Hyundai A4CF0 | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |

@@ -116,3 +116,13 @@ INHERIT dimensions FROM Honda Jazz GR Pre-facelift / Hatchback Cross
 | engine | LEB@80kW | 12 V auxiliary battery drain after long standing (car won't start the hybrid system). | minor | NULL |
 | engine | LEB@90kW | 12 V auxiliary battery drain after long standing (car won't start the hybrid system). | minor | NULL |
 | vehicle | Pre-facelift | Infotainment freezes and Apple CarPlay / Android Auto drop-outs on early software. | minor | electrical |
+
+## J. CONFIG FACTS
+*(Fill-in form: one row per configuration from section G — every real engine × gearbox × drivetrain × body. `NULL` = not known yet; replace with the figure. `consumption_cycle` NULL = the phase default from section B (NEDC / WLTP). `fuel_consumption_l100km` = official combined figure of the engine's own fuel; for EVs use `energy_consumption_kwh100km` + `ev_range_wltp_km`. `secondary_fuel_type` + `secondary_consumption_l100km` only for factory bi-fuel (LPG / CNG), both or neither. `towing_unbraked_kg` ≤ `towing_braked_kg`.)*
+
+| phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | energy_consumption_kwh100km | consumption_cycle | secondary_fuel_type | secondary_consumption_l100km | fuel_consumption_urban_l100km | fuel_consumption_extra_urban_l100km | towing_braked_kg | towing_unbraked_kg | curb_weight_kg | acceleration_0_100 | top_speed_kmh | co2_emissions_g_km | ev_range_wltp_km |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Pre-facelift | LEB@80kW | Honda e:HEV eCVT | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Pre-facelift | LEB@80kW | Honda e:HEV eCVT | FWD | Hatchback Cross | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | LEB@90kW | Honda e:HEV eCVT | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
+| Facelift | LEB@90kW | Honda e:HEV eCVT | FWD | Hatchback Cross | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL |
