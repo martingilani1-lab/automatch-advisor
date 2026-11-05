@@ -55,8 +55,6 @@ export interface CatalogEngine {
   // 'port' | 'direct' | 'dual' | 'common_rail' | 'pump_injector' | 'distributor_pump'
   // (20261105150000) -- null until recorded.
   injectionType: string | null;
-  // Wet belt running in oil (PureTech, 1.0 EcoBoost) -- null for chain/gear and until checked.
-  timingBeltInOil: boolean | null;
   // Electrified powertrain (EV / PHEV / HEV), 20261105150000. The engine row IS the powertrain
   // variant (motor + battery), so battery and charging live here, not per configuration.
   ev: EnginePowertrainEv;

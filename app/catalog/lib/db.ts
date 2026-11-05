@@ -451,7 +451,6 @@ function transformBundle(
       // has_adblue was has_scr until 20261104210000 -- read either, so the page works on both sides of that rename.
       hasAdblue: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_adblue ?? extras.engine.get(c.catalog_engines.id)?.has_scr),
       injectionType: strOrNull(extras.engine.get(c.catalog_engines.id)?.injection_type),
-      timingBeltInOil: boolOrNull(extras.engine.get(c.catalog_engines.id)?.timing_belt_in_oil),
       ev: engineEv(extras.engine.get(c.catalog_engines.id)),
     },
     gearbox: {

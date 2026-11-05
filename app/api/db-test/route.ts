@@ -382,7 +382,6 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
         has_gpf: engine.hasGpf,
         has_adblue: engine.hasAdblue,
         injection_type: engine.injectionType,
-        timing_belt_in_oil: engine.timingBeltInOil,
         ev: engine.ev,
         consumption: engineConsumption(group.configs, engine.fuelType === "electric"),
         faults: bundle.faults

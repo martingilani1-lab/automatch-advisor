@@ -73,9 +73,8 @@ export interface DetailEngine {
   has_dpf: boolean | null;
   has_gpf: boolean | null;
   has_adblue: boolean | null;
-  // 20261105150000 -- injection type, wet belt, electrified powertrain (see CatalogEngine).
+  // 20261105150000 -- injection type, electrified powertrain (see CatalogEngine).
   injection_type: string | null;
-  timing_belt_in_oil: boolean | null;
   ev: EnginePowertrainEv;
   // Official combined consumption across this engine's configurations on this phase (min/max,
   // so one gearbox/body spread shows as a range). From fuel_consumption_l100km, or

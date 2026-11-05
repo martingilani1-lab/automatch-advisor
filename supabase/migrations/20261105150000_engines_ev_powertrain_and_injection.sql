@@ -1,4 +1,4 @@
--- EV / hybrid powertrain data on catalog_engines, plus injection type and wet-belt flag
+-- EV / hybrid powertrain data on catalog_engines, plus injection type
 -- (Martin, 2026-11-05 -- city-commuter batch: budget, modern, EV / hybrid).
 --
 -- WHERE the EV data lives: on the ENGINE row, as asked. In this catalog an electrified "engine"
@@ -18,10 +18,9 @@
 --                               case and a boolean could only say yes/no)
 --   injection_type              port | direct | dual | common_rail | pump_injector |
 --                               distributor_pump -- carbon build-up (direct), PD vs CR diesels
---   timing_belt_in_oil          true = wet belt running in engine oil (PSA 1.2 PureTech, Ford 1.0
---                               EcoBoost); false = ordinary dry belt. A separate, well-known failure
---                               class (belt shedding into the oil pickup), so it can't be folded
---                               into timing_type; NULL for chain / gear engines and until checked
+-- A wet (in-oil) timing belt is deliberately NOT a column (Martin, 2026-11-05): it is recorded as
+-- a fault / con on the engine (PureTech, 1.0 EcoBoost), the same way other engine-specific
+-- failure patterns are.
 -- Values are lowercase snake_case like every other frozen vocabulary here ('active_liquid' for
 -- "Active liquid", 'yes' / 'no' / 'optional' for Yes / No / Optional).
 --
@@ -62,8 +61,7 @@ ALTER TABLE public.catalog_engines
   ADD COLUMN max_dc_charging_kw numeric,
   ADD COLUMN battery_thermal_management text,
   ADD COLUMN heat_pump text,
-  ADD COLUMN injection_type text,
-  ADD COLUMN timing_belt_in_oil boolean;
+  ADD COLUMN injection_type text;
 
 ALTER TABLE public.catalog_engines
   ADD CONSTRAINT catalog_engines_battery_capacity_net_kwh_range_check
@@ -77,10 +75,7 @@ ALTER TABLE public.catalog_engines
   ADD CONSTRAINT catalog_engines_heat_pump_check
     CHECK (heat_pump IS NULL OR heat_pump IN ('yes', 'no', 'optional')),
   ADD CONSTRAINT catalog_engines_injection_type_check
-    CHECK (injection_type IS NULL OR injection_type IN ('port', 'direct', 'dual', 'common_rail', 'pump_injector', 'distributor_pump')),
-  -- A wet belt is still a belt.
-  ADD CONSTRAINT catalog_engines_belt_in_oil_needs_belt_check
-    CHECK (timing_belt_in_oil IS NOT TRUE OR timing_type = 'belt');
+    CHECK (injection_type IS NULL OR injection_type IN ('port', 'direct', 'dual', 'common_rail', 'pump_injector', 'distributor_pump'));
 
 -- ---- catalog_vehicle_configurations: drop the now-duplicate, never-filled EV columns -----------
 ALTER TABLE public.catalog_vehicle_configurations

@@ -10,7 +10,7 @@ function makeEngine(id: string, code: string): CatalogEngine {
     torqueNm: null, cylinders: null, emissionStandard: null, timingType: null,
     engineOilCapacityLiters: null, timingReplacementKm: null, hybridType: null,
     reliabilityRating: null, pros: [], cons: [], maintenance: EMPTY_ENGINE_MAINTENANCE,
-    hasDpf: null, hasGpf: null, hasAdblue: null, injectionType: null, timingBeltInOil: null,
+    hasDpf: null, hasGpf: null, hasAdblue: null, injectionType: null,
     ev: { batteryCapacityNetKwh: null, maxAcChargingKw: null, maxDcChargingKw: null, batteryThermalManagement: null, heatPump: null },
   };
 }

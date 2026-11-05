@@ -194,8 +194,8 @@ Notes:
 - `hybrid_type`: `MHEV` (mild — no electric-only driving), `HEV` (full self-charging hybrid,
   e.g. Yaris Hybrid), `PHEV` (plug-in).
 - `injection_type` (`port` / `direct` / `dual` / `common_rail` / `pump_injector` /
-  `distributor_pump`) and `timing_belt_in_oil` (`true` = wet belt, e.g. 1.2 PureTech;
-  `false` = dry; blank for chain/gear) — optional columns.
+  `distributor_pump`) — optional column. A wet (in-oil) timing belt is recorded as a fault /
+  con, not a column.
 - Electrified powertrains — the engine row is the whole variant (motor + battery):
   `battery_capacity_net_kwh` (net usable), `max_ac_charging_kw`, `max_dc_charging_kw`,
   `battery_thermal_management` (`active_liquid` / `active_air` / `passive`), `heat_pump`

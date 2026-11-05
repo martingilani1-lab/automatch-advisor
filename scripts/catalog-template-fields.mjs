@@ -18,7 +18,7 @@ export const ENGINE_FLAG_FIELDS = ["has_dpf", "has_gpf", "has_adblue"];
 // engine row IS the powertrain variant (motor + battery for an EV), so battery size, charging
 // and battery cooling live here; range / energy use stay per configuration (body, wheels).
 export const ENGINE_POWERTRAIN_FIELDS = [
-  "injection_type", "timing_belt_in_oil",
+  "injection_type",
   "battery_capacity_net_kwh", "max_ac_charging_kw", "max_dc_charging_kw",
   "battery_thermal_management", "heat_pump",
 ];
@@ -57,7 +57,7 @@ export const CONFIG_FACT_FIELDS = [
 // literal (the all-NULL-column type-inference bug), validate-template.mjs checks the format.
 export const FIELD_TYPES = {
   has_dpf: "boolean", has_gpf: "boolean", has_adblue: "boolean",
-  isofix_front_passenger: "boolean", timing_belt_in_oil: "boolean",
+  isofix_front_passenger: "boolean",
   battery_capacity_net_kwh: "numeric", max_ac_charging_kw: "numeric", max_dc_charging_kw: "numeric",
   nose_weight_kg: "integer", roof_load_kg: "integer", wading_depth_mm: "integer",
   isofix_count: "integer", seats_optional_max: "integer",

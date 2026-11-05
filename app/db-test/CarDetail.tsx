@@ -437,13 +437,9 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
             {engine.fuel_type === "petrol" && engine.has_gpf === true && (
               <div className="cgrid-item"><div className="cgrid-label">Petrol particulate filter</div><div className="cgrid-val">Yes</div></div>
             )}
-            {/* Injection + wet belt (20261105150000): only when recorded. A wet belt is the
-                PureTech / EcoBoost failure class, so it reads as a warning, not a neutral spec. */}
+            {/* Injection type (20261105150000): only when recorded. */}
             {engine.injection_type && (
               <div className="cgrid-item"><div className="cgrid-label">Injection</div><div className="cgrid-val">{INJECTION_LABELS[engine.injection_type] ?? engine.injection_type}</div></div>
-            )}
-            {engine.timing_belt_in_oil === true && (
-              <div className="cgrid-item"><div className="cgrid-label">Timing belt</div><div className="cgrid-val" style={{ color: "#ff9800" }}>Wet (in oil)</div></div>
             )}
             {/* Electrified powertrain -- battery, charging, battery cooling, heat pump. Each tile
                 only when the value is recorded; nothing at all for a combustion engine. */}
