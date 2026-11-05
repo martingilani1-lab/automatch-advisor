@@ -25,6 +25,9 @@ describe("blank template CSVs carry every shared field", () => {
   });
   it("EV enums follow catalog-vocabularies.json", () => {
     expect(checkFieldValue("heat_pump", "optional", VOCAB)).toBeNull();
+    expect(checkFieldValue("heat_pump", "standard", VOCAB)).toBeNull();
+    expect(checkFieldValue("heat_pump", "yes", VOCAB)).toMatch(/frozen vocabulary/);
+    expect(checkFieldValue("battery_thermal_management", "active_refrigerant", VOCAB)).toBeNull();
     expect(checkFieldValue("heat_pump", "Optional", VOCAB)).toMatch(/frozen vocabulary/);
     expect(checkFieldValue("battery_thermal_management", "passive", VOCAB)).toBeNull();
     expect(checkFieldValue("max_dc_charging_kw", "50", VOCAB)).toBeNull();

@@ -8,9 +8,8 @@
 > keyed on (code, power_kw). The i3 kept one motor at 125 kW across three batteries (60 / 94 / 120 Ah),
 > so a motor code can't be the key. The battery-variant name is used as the code (`i3-60Ah`, …). If you'd
 > rather have a different convention, decide it before the import — it will apply to every EV after this.
-> **Battery cooling:** the i3 pack is cooled by the AC refrigerant circuit (direct refrigerant cooling).
-> None of `active_liquid` / `active_air` / `passive` fits exactly, so it's NULL. Options: add
-> `active_refrigerant` (a CHECK migration) or file it as `active_liquid`.
+> **Battery cooling `active_refrigerant`:** the pack is cooled directly by the A/C refrigerant circuit (value added by
+> `20261105180000`).
 > **i3 REx** (W20 range extender, 647 cc) is left out: an EREV fits neither `HEV` nor a plain `electric`
 > row (fuel_type / hybrid_type can't say "EV with a petrol generator"). Decide whether REx is `PHEV` before
 > adding it. Prices / mileage NULL for Martin.
@@ -86,11 +85,11 @@ INHERIT dimensions FROM BMW i3 I01 Pre-facelift / Hatchback 5-door
 ## D. ENGINES
 | code | power_kw | fuel_type | hybrid_type | display_name | alt_codes | displacement_cc | torque_nm | cylinders | emission_standard | timing_type | engine_oil_capacity_liters | timing_replacement_km | has_dpf | has_gpf | has_adblue | injection_type | battery_capacity_net_kwh | max_ac_charging_kw | max_dc_charging_kw | battery_thermal_management | heat_pump |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| i3-60Ah | 125 | electric | NULL | i3 60 Ah, 125kW | NULL | NULL | 250 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 18.8 | 7.4 | 50 | NULL | optional |
-| i3-94Ah | 125 | electric | NULL | i3 94 Ah, 125kW | NULL | NULL | 250 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 27.2 | 7.4 | 50 | NULL | optional |
-| i3-120Ah | 125 | electric | NULL | i3 120 Ah, 125kW | NULL | NULL | 250 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 37.9 | 11 | 50 | NULL | optional |
-| i3s-94Ah | 135 | electric | NULL | i3s 94 Ah, 135kW | NULL | NULL | 270 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 27.2 | 7.4 | 50 | NULL | optional |
-| i3s-120Ah | 135 | electric | NULL | i3s 120 Ah, 135kW | NULL | NULL | 270 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 37.9 | 11 | 50 | NULL | optional |
+| i3-60Ah | 125 | electric | NULL | i3 60 Ah, 125kW | NULL | NULL | 250 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 18.8 | 7.4 | 50 | active_refrigerant | optional |
+| i3-94Ah | 125 | electric | NULL | i3 94 Ah, 125kW | NULL | NULL | 250 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 27.2 | 7.4 | 50 | active_refrigerant | optional |
+| i3-120Ah | 125 | electric | NULL | i3 120 Ah, 125kW | NULL | NULL | 250 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 37.9 | 11 | 50 | active_refrigerant | optional |
+| i3s-94Ah | 135 | electric | NULL | i3s 94 Ah, 135kW | NULL | NULL | 270 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 27.2 | 7.4 | 50 | active_refrigerant | optional |
+| i3s-120Ah | 135 | electric | NULL | i3s 120 Ah, 135kW | NULL | NULL | 270 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 37.9 | 11 | 50 | active_refrigerant | optional |
 
 ## E. GEARBOXES
 | unit_code |

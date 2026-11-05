@@ -198,8 +198,8 @@ Notes:
   con, not a column.
 - Electrified powertrains — the engine row is the whole variant (motor + battery):
   `battery_capacity_net_kwh` (net usable), `max_ac_charging_kw`, `max_dc_charging_kw`,
-  `battery_thermal_management` (`active_liquid` / `active_air` / `passive`), `heat_pump`
-  (`yes` / `no` / `optional`). A pure EV leaves `displacement_cc`, `cylinders`,
+  `battery_thermal_management` (`active_liquid` / `active_air` / `active_refrigerant` /
+  `passive`), `heat_pump` (`standard` / `optional` / `none`). A pure EV leaves `displacement_cc`, `cylinders`,
   `engine_oil_capacity_liters` and the timing columns `NULL`.
 - `hybrid_type` `MHEV` covers both 12V and 48V mild hybrid systems — the voltage isn't a
   separate axis in this schema; if it matters for a specific engine, say so in

@@ -64,9 +64,9 @@ export interface EnginePowertrainEv {
   batteryCapacityNetKwh: number | null;
   maxAcChargingKw: number | null;
   maxDcChargingKw: number | null;
-  // 'active_liquid' | 'active_air' | 'passive'
+  // 'active_liquid' | 'active_air' | 'active_refrigerant' | 'passive'
   batteryThermalManagement: string | null;
-  // 'yes' | 'no' | 'optional'
+  // 'standard' | 'optional' | 'none'
   heatPump: string | null;
 }
 

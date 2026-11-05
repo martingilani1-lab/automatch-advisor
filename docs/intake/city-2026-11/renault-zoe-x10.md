@@ -56,8 +56,8 @@
 ## D. ENGINES
 | code | power_kw | fuel_type | hybrid_type | display_name | alt_codes | displacement_cc | torque_nm | cylinders | emission_standard | timing_type | engine_oil_capacity_liters | timing_replacement_km | has_dpf | has_gpf | has_adblue | injection_type | battery_capacity_net_kwh | max_ac_charging_kw | max_dc_charging_kw | battery_thermal_management | heat_pump |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| R110 | 80 | electric | NULL | R110 Z.E. 50, 80kW | NULL | NULL | 225 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 52 | 22 | 50 | active_air | yes |
-| R135 | 100 | electric | NULL | R135 Z.E. 50, 100kW | NULL | NULL | 245 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 52 | 22 | 50 | active_air | yes |
+| R110 | 80 | electric | NULL | R110 Z.E. 50, 80kW | NULL | NULL | 225 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 52 | 22 | 50 | active_air | standard |
+| R135 | 100 | electric | NULL | R135 Z.E. 50, 100kW | NULL | NULL | 245 | NULL | NULL | NULL | NULL | NULL | false | false | false | NULL | 52 | 22 | 50 | active_air | standard |
 
 *(DC 50 kW CCS was an option on R110, standard on R135 — the column holds the capability, not whether a given car has the socket.)*
 

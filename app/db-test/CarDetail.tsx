@@ -118,8 +118,8 @@ const INJECTION_LABELS: Record<string, string> = {
   port: "Port (MPI)", direct: "Direct", dual: "Dual (port + direct)",
   common_rail: "Common rail", pump_injector: "Pump-injector (PD)", distributor_pump: "Distributor pump",
 };
-const THERMAL_LABELS: Record<string, string> = { active_liquid: "Active liquid", active_air: "Active air", passive: "Passive" };
-const HEAT_PUMP_LABELS: Record<string, string> = { yes: "Standard", no: "None", optional: "Optional" };
+const THERMAL_LABELS: Record<string, string> = { active_liquid: "Active liquid", active_air: "Active air", active_refrigerant: "Active refrigerant", passive: "Passive" };
+const HEAT_PUMP_LABELS: Record<string, string> = { standard: "Standard", optional: "Optional", none: "None" };
 
 // Which tags make a Dimensions-tab section relevant (Martin, 2026-11-04): a family /
 // towing / off-road block is shown only for a car that carries one of its tags -- model-level

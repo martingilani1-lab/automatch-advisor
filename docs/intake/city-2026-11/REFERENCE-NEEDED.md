@@ -70,6 +70,4 @@ Live units the batch REUSES as they are: `VW MQ200`, `VW DQ200`, `Aisin 09G (TF-
 - **`catalog_phases_safety_rating_check` is `1..5`.** Renault Zoe Ph2 has a real **0-star** Euro
   NCAP result (2021), which the DB rejects. The fix is to widen it to `0..5` (migration), and the app
   then has to show 0★ distinctly from "not tested" (NULL).
-- **`battery_thermal_management`:** the BMW i3 battery is cooled by refrigerant directly. That's
-  neither `active_liquid` nor `active_air`. Either add `active_refrigerant` or file it as
-  `active_liquid`; the document leaves it NULL until decided.
+- **`battery_thermal_management`:** `active_refrigerant` added (`20261105180000`) for the BMW i3.
