@@ -16,6 +16,9 @@ const FAMILY_LABELS: Record<string, string> = {
   dct: "DCT",
   torque_converter: "automatic",
   cvt: "CVT",
+  // Toyota-style power-split hybrid transmission (20261105150000) -- marketed "e-CVT", but a
+  // planetary set with no belt, so it is NOT labelled "CVT".
+  power_split: "power-split hybrid (e-CVT)",
   amt: "automated manual",
   single_speed: "single-speed",
 };

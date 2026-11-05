@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 import type {
+  EnginePowertrainEv,
   CatalogBodyDimensions,
   CatalogConfig,
   CatalogFault,
@@ -214,7 +215,7 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
         `
         id, body_type_id, acceleration_0_100, top_speed_kmh, fuel_consumption_combined,
         fuel_consumption_l100km, energy_consumption_kwh100km,
-        co2_emissions_g_km, battery_capacity_net_kwh, ev_range_wltp_km, max_charging_kw_dc,
+        co2_emissions_g_km, ev_range_wltp_km,
         catalog_body_types(id, name),
         catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type, reliability_rating, pros, cons, oil_change_interval_km, oil_change_interval_months, oil_spec, oil_service_cost_eur_min, oil_service_cost_eur_max, air_filter_interval_km, fuel_filter_interval_km, spark_plug_interval_km, spark_plug_cost_eur_min, spark_plug_cost_eur_max, timing_replacement_years, timing_service_cost_eur_min, timing_service_cost_eur_max, yearly_maintenance_eur_min, yearly_maintenance_eur_max, maintenance_note),
         transmission_units(id, code, family, maker, speeds, reliability_note, maintenance_note, reliability_rating, pros, cons),
@@ -359,6 +360,18 @@ function strOrNull(v: unknown): string | null {
   return v == null ? null : String(v);
 }
 
+// EV / hybrid powertrain block of one raw catalog_engines row (20261105150000). battery_kwh is the
+// column's name before that migration renames it -- read either, so the page works on both sides.
+function engineEv(row: any): EnginePowertrainEv {
+  return {
+    batteryCapacityNetKwh: numOrNull(row?.battery_capacity_net_kwh ?? row?.battery_kwh),
+    maxAcChargingKw: numOrNull(row?.max_ac_charging_kw),
+    maxDcChargingKw: numOrNull(row?.max_dc_charging_kw),
+    batteryThermalManagement: strOrNull(row?.battery_thermal_management),
+    heatPump: strOrNull(row?.heat_pump),
+  };
+}
+
 function transformBundle(
   phaseRow: any,
   brand: any,
@@ -437,6 +450,9 @@ function transformBundle(
       hasGpf: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_gpf),
       // has_adblue was has_scr until 20261104210000 -- read either, so the page works on both sides of that rename.
       hasAdblue: boolOrNull(extras.engine.get(c.catalog_engines.id)?.has_adblue ?? extras.engine.get(c.catalog_engines.id)?.has_scr),
+      injectionType: strOrNull(extras.engine.get(c.catalog_engines.id)?.injection_type),
+      timingBeltInOil: boolOrNull(extras.engine.get(c.catalog_engines.id)?.timing_belt_in_oil),
+      ev: engineEv(extras.engine.get(c.catalog_engines.id)),
     },
     gearbox: {
       id: c.transmission_units.id,
@@ -478,9 +494,7 @@ function transformBundle(
     fuelConsumptionL100km: c.fuel_consumption_l100km,
     energyConsumptionKwh100km: c.energy_consumption_kwh100km,
     co2EmissionsGKm: c.co2_emissions_g_km,
-    batteryCapacityNetKwh: c.battery_capacity_net_kwh,
     evRangeWltpKm: c.ev_range_wltp_km,
-    maxChargingKwDc: c.max_charging_kw_dc,
     drivenAxle: strOrNull(extras.config.get(c.id)?.driven_axle),
     secondaryFuelType: strOrNull(extras.config.get(c.id)?.secondary_fuel_type),
     secondaryConsumptionL100km: numOrNull(extras.config.get(c.id)?.secondary_consumption_l100km),
@@ -490,8 +504,6 @@ function transformBundle(
     towingBrakedKg: numOrNull(extras.config.get(c.id)?.towing_braked_kg),
     towingUnbrakedKg: numOrNull(extras.config.get(c.id)?.towing_unbraked_kg),
     curbWeightKg: numOrNull(extras.config.get(c.id)?.curb_weight_kg),
-    maxChargingKwAc: numOrNull(extras.config.get(c.id)?.max_charging_kw_ac),
-    hasHeatPump: boolOrNull(extras.config.get(c.id)?.has_heat_pump),
     tireSizes: tireSizesByConfig.get(c.id) ?? [],
     tags: tagsByConfig.get(c.id) ?? [],
   }));

@@ -13,5 +13,8 @@
   "catalog_vehicle_configurations.driven_axle": ["front", "rear", "all"],
   "catalog_vehicle_configurations.secondary_fuel_type": ["petrol", "lpg", "cng"],
   "catalog_vehicle_configurations.consumption_cycle": ["NEDC", "WLTP"],
-  "catalog_phases.chassis_type": ["monocoque", "ladder_frame"]
+  "catalog_phases.chassis_type": ["monocoque", "ladder_frame"],
+  "catalog_engines.injection_type": ["port", "direct", "dual", "common_rail", "pump_injector", "distributor_pump"],
+  "catalog_engines.battery_thermal_management": ["active_liquid", "active_air", "passive"],
+  "catalog_engines.heat_pump": ["yes", "no", "optional"]
 }

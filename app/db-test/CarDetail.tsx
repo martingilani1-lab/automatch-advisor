@@ -112,6 +112,15 @@ function withUnit(v: number | null, unit: string): string {
   return v != null ? `${v}${unit}` : "—";
 }
 
+// Display words for the 20261105150000 engine vocabularies. Passive battery cooling is shown in
+// amber in the engine card: it's the used-EV ageing risk (Leaf, e-Golf), not a neutral detail.
+const INJECTION_LABELS: Record<string, string> = {
+  port: "Port (MPI)", direct: "Direct", dual: "Dual (port + direct)",
+  common_rail: "Common rail", pump_injector: "Pump-injector (PD)", distributor_pump: "Distributor pump",
+};
+const THERMAL_LABELS: Record<string, string> = { active_liquid: "Active liquid", active_air: "Active air", passive: "Passive" };
+const HEAT_PUMP_LABELS: Record<string, string> = { yes: "Standard", no: "None", optional: "Optional" };
+
 // Which tags make a Dimensions-tab section relevant (Martin, 2026-11-04): a family /
 // towing / off-road block is shown only for a car that carries one of its tags -- model-level
 // on the phase, or configuration-level on any configuration of that body -- instead of a wall
@@ -427,6 +436,28 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
             </>)}
             {engine.fuel_type === "petrol" && engine.has_gpf === true && (
               <div className="cgrid-item"><div className="cgrid-label">Petrol particulate filter</div><div className="cgrid-val">Yes</div></div>
+            )}
+            {/* Injection + wet belt (20261105150000): only when recorded. A wet belt is the
+                PureTech / EcoBoost failure class, so it reads as a warning, not a neutral spec. */}
+            {engine.injection_type && (
+              <div className="cgrid-item"><div className="cgrid-label">Injection</div><div className="cgrid-val">{INJECTION_LABELS[engine.injection_type] ?? engine.injection_type}</div></div>
+            )}
+            {engine.timing_belt_in_oil === true && (
+              <div className="cgrid-item"><div className="cgrid-label">Timing belt</div><div className="cgrid-val" style={{ color: "#ff9800" }}>Wet (in oil)</div></div>
+            )}
+            {/* Electrified powertrain -- battery, charging, battery cooling, heat pump. Each tile
+                only when the value is recorded; nothing at all for a combustion engine. */}
+            {engine.ev.batteryCapacityNetKwh != null && (
+              <div className="cgrid-item"><div className="cgrid-label">Battery (net)</div><div className="cgrid-val">{engine.ev.batteryCapacityNetKwh} kWh</div></div>
+            )}
+            {(engine.ev.maxAcChargingKw != null || engine.ev.maxDcChargingKw != null) && (
+              <div className="cgrid-item"><div className="cgrid-label">Charging AC / DC</div><div className="cgrid-val">{engine.ev.maxAcChargingKw ?? "—"} / {engine.ev.maxDcChargingKw ?? "—"} kW</div></div>
+            )}
+            {engine.ev.batteryThermalManagement && (
+              <div className="cgrid-item"><div className="cgrid-label">Battery cooling</div><div className="cgrid-val" style={engine.ev.batteryThermalManagement === "passive" ? { color: "#ff9800" } : undefined}>{THERMAL_LABELS[engine.ev.batteryThermalManagement] ?? engine.ev.batteryThermalManagement}</div></div>
+            )}
+            {engine.ev.heatPump && (
+              <div className="cgrid-item"><div className="cgrid-label">Heat pump</div><div className="cgrid-val">{HEAT_PUMP_LABELS[engine.ev.heatPump] ?? engine.ev.heatPump}</div></div>
             )}
           </div>
           {maintRows.length > 0 || yearly ? (

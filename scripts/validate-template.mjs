@@ -64,7 +64,7 @@ import fs from "fs";
 import path from "path";
 import { createClient } from "../node_modules/@supabase/supabase-js/dist/index.mjs";
 import {
-  ENGINE_FLAG_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS, DIM_EXTRA_FIELDS,
+  ENGINE_EXTRA_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS, DIM_EXTRA_FIELDS,
   CONFIG_FACT_FIELDS, checkFieldValue,
 } from "./catalog-template-fields.mjs";
 
@@ -289,7 +289,7 @@ if (car && car.segment && !VOCAB["catalog_models.segment"].includes(car.segment)
 // 4e: dilemma fields (2026-11-04, catalog-template-fields.mjs) -- format and vocabulary on
 // engines / phases / dimensions, the strict diesel rule, and the optional config_facts.csv.
 for (const e of engines) {
-  for (const f of ENGINE_FLAG_FIELDS) {
+  for (const f of ENGINE_EXTRA_FIELDS) {
     const msg = checkFieldValue(f, e[f], VOCAB);
     if (msg) err("engines.csv", e.__line, msg);
   }

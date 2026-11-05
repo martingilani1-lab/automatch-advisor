@@ -193,6 +193,14 @@ Notes:
   optional (petrol particulate filter).
 - `hybrid_type`: `MHEV` (mild — no electric-only driving), `HEV` (full self-charging hybrid,
   e.g. Yaris Hybrid), `PHEV` (plug-in).
+- `injection_type` (`port` / `direct` / `dual` / `common_rail` / `pump_injector` /
+  `distributor_pump`) and `timing_belt_in_oil` (`true` = wet belt, e.g. 1.2 PureTech;
+  `false` = dry; blank for chain/gear) — optional columns.
+- Electrified powertrains — the engine row is the whole variant (motor + battery):
+  `battery_capacity_net_kwh` (net usable), `max_ac_charging_kw`, `max_dc_charging_kw`,
+  `battery_thermal_management` (`active_liquid` / `active_air` / `passive`), `heat_pump`
+  (`yes` / `no` / `optional`). A pure EV leaves `displacement_cc`, `cylinders`,
+  `engine_oil_capacity_liters` and the timing columns `NULL`.
 - `hybrid_type` `MHEV` covers both 12V and 48V mild hybrid systems — the voltage isn't a
   separate axis in this schema; if it matters for a specific engine, say so in
   `display_name` or a fault/note, not by inventing a new `hybrid_type` value.
@@ -366,8 +374,8 @@ columns are any subset of, by header name: `fuel_consumption_l100km`,
 `secondary_consumption_l100km`, `fuel_consumption_urban_l100km`,
 `fuel_consumption_extra_urban_l100km`, `towing_braked_kg`, `towing_unbraked_kg`,
 `curb_weight_kg`, `acceleration_0_100`, `top_speed_kmh`, `co2_emissions_g_km`,
-`battery_capacity_net_kwh`, `ev_range_wltp_km`, `max_charging_kw_dc`, `max_charging_kw_ac`,
-`has_heat_pump` (the one list lives in `scripts/catalog-template-fields.mjs`).
+`ev_range_wltp_km` (the one list lives in `scripts/catalog-template-fields.mjs`). Battery,
+charging and heat pump are engine columns (section D), not configuration facts.
 
 ```markdown
 ## J. CONFIG FACTS

@@ -12,7 +12,8 @@
 #   fuel_consumption_urban_l100km / fuel_consumption_extra_urban_l100km   city / highway figures
 #   towing_braked_kg / towing_unbraked_kg   homologated trailer limits (unbraked <= braked)
 #   curb_weight_kg              this configuration's own weight (dimensions.csv holds the base)
-#   has_heat_pump               true | false (EV / PHEV winter range)
+#   ev_range_wltp_km            electric range of this configuration (battery / charging / heat
+#                               pump are ENGINE columns - see engines.csv)
 # driven_axle is NOT a column: it comes from the grid's drivetrain (FWD -> front, RWD -> rear,
 # an AWD system -> all).
-phase_label,body_gearbox_drivetrain,engine_code,power_kw,fuel_consumption_l100km,energy_consumption_kwh100km,consumption_cycle,secondary_fuel_type,secondary_consumption_l100km,fuel_consumption_urban_l100km,fuel_consumption_extra_urban_l100km,towing_braked_kg,towing_unbraked_kg,curb_weight_kg,acceleration_0_100,top_speed_kmh,co2_emissions_g_km,battery_capacity_net_kwh,ev_range_wltp_km,max_charging_kw_dc,max_charging_kw_ac,has_heat_pump
+phase_label,body_gearbox_drivetrain,engine_code,power_kw,fuel_consumption_l100km,energy_consumption_kwh100km,consumption_cycle,secondary_fuel_type,secondary_consumption_l100km,fuel_consumption_urban_l100km,fuel_consumption_extra_urban_l100km,towing_braked_kg,towing_unbraked_kg,curb_weight_kg,acceleration_0_100,top_speed_kmh,co2_emissions_g_km,ev_range_wltp_km

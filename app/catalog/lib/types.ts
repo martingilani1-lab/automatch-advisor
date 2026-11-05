@@ -52,6 +52,24 @@ export interface CatalogEngine {
   hasDpf: boolean | null;
   hasGpf: boolean | null;
   hasAdblue: boolean | null;
+  // 'port' | 'direct' | 'dual' | 'common_rail' | 'pump_injector' | 'distributor_pump'
+  // (20261105150000) -- null until recorded.
+  injectionType: string | null;
+  // Wet belt running in oil (PureTech, 1.0 EcoBoost) -- null for chain/gear and until checked.
+  timingBeltInOil: boolean | null;
+  // Electrified powertrain (EV / PHEV / HEV), 20261105150000. The engine row IS the powertrain
+  // variant (motor + battery), so battery and charging live here, not per configuration.
+  ev: EnginePowertrainEv;
+}
+
+export interface EnginePowertrainEv {
+  batteryCapacityNetKwh: number | null;
+  maxAcChargingKw: number | null;
+  maxDcChargingKw: number | null;
+  // 'active_liquid' | 'active_air' | 'passive'
+  batteryThermalManagement: string | null;
+  // 'yes' | 'no' | 'optional'
+  heatPump: string | null;
 }
 
 // One scheduled fluid service of a gearbox or AWD system (transmission_units /
@@ -120,17 +138,16 @@ export interface CatalogConfig {
   acceleration0To100: number | null;
   topSpeedKmh: number | null;
   fuelConsumptionCombined: number | null;
-  // The columns actually populated live (fuel_consumption_combined/battery_capacity_net_kwh/
-  // ev_range_wltp_km are 0% filled across all 1550 rows, confirmed by direct query -- dead
-  // columns from an earlier, unfinished pass). fuel_consumption_l100km is 100% filled;
+  // fuel_consumption_combined is a dead, 0%-filled column from an earlier, unfinished pass.
+  // fuel_consumption_l100km is 100% filled;
   // energy_consumption_kwh100km covers the PHEV/electric rows. Use these two for any new
   // consumption display -- see the Configurations table.
   fuelConsumptionL100km: number | null;
   energyConsumptionKwh100km: number | null;
   co2EmissionsGKm: number | null;
-  batteryCapacityNetKwh: number | null;
+  // Battery / charging moved to the engine (CatalogEngine.ev, 20261105150000); range stays here
+  // because it changes with body and wheels.
   evRangeWltpKm: number | null;
-  maxChargingKwDc: number | null;
   // Dilemma-driven columns (20261104200000-202000). All null until those migrations have run
   // live -- the loader reads them through a tolerant select("*"), never by name.
   // 'front' | 'rear' | 'all' -- which axle is driven. drivetrain === null used to be read as
@@ -150,8 +167,6 @@ export interface CatalogConfig {
   towingBrakedKg: number | null;
   towingUnbrakedKg: number | null;
   curbWeightKg: number | null;
-  maxChargingKwAc: number | null;
-  hasHeatPump: boolean | null;
   tireSizes: CatalogTireSize[];
   // Tier-2 tags of this exact configuration (catalog_configuration_tags) -- [] until tagged or
   // while that table doesn't exist yet. See app/catalog/lib/tags.ts.

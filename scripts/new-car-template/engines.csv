@@ -14,4 +14,12 @@
 # has_dpf / has_adblue: true | false. REQUIRED for a NEW diesel (the live strict diesel rule rejects
 #   it otherwise) - a diesel WITHOUT a DPF is a selling point, so 'false' is real data, never a default.
 # has_gpf: true | false | blank - petrol particulate filter, optional.
-reuse_or_new,code,alt_codes,display_name,displacement_cc,power_kw,fuel_type,torque_nm,cylinders,emission_standard,timing_type,engine_oil_capacity_liters,timing_replacement_km,hybrid_type,has_dpf,has_gpf,has_adblue
+# injection_type: port | direct | dual | common_rail | pump_injector | distributor_pump.
+# timing_belt_in_oil: true = wet belt in oil (1.2 PureTech, 1.0 EcoBoost), false = dry belt;
+#   blank for chain / gear engines.
+# Electrified powertrains (EV / PHEV / HEV) - the engine row is the whole variant, motor + battery:
+#   battery_capacity_net_kwh (NET usable), max_ac_charging_kw, max_dc_charging_kw,
+#   battery_thermal_management: active_liquid | active_air | passive,
+#   heat_pump: yes | no | optional.  Leave all blank for a plain combustion engine; displacement /
+#   oil capacity stay blank for a pure EV.
+reuse_or_new,code,alt_codes,display_name,displacement_cc,power_kw,fuel_type,torque_nm,cylinders,emission_standard,timing_type,engine_oil_capacity_liters,timing_replacement_km,hybrid_type,has_dpf,has_gpf,has_adblue,injection_type,timing_belt_in_oil,battery_capacity_net_kwh,max_ac_charging_kw,max_dc_charging_kw,battery_thermal_management,heat_pump

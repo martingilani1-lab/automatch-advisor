@@ -78,6 +78,7 @@ export const GEARBOX_TYPES: GearboxType[] = [
   { slug: "dct", label: "Dual-clutch (unspecified)", consequence: "Dual-clutch automatic; wet/dry clutch type not recorded." },
   { slug: "torque_converter", label: "Torque converter", consequence: "Smooth, tolerates traffic and towing." },
   { slug: "cvt", label: "CVT", consequence: "Stepless and efficient around town." },
+  { slug: "power_split", label: "Power-split hybrid (e-CVT)", consequence: "Planetary gearset, no belt or clutch to wear -- a different, far tougher unit than a belt CVT." },
   { slug: "amt", label: "Automated manual (AMT)", consequence: "Cheap to buy and run; jerkier shifts than a real automatic." },
   { slug: "single_speed", label: "Single-speed (EV)", consequence: "Nothing to shift or wear out." },
 ];

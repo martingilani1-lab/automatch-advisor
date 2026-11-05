@@ -3,7 +3,7 @@
 // in the Prehľad version) has no catalog_ equivalent at all (no vehicle_safety_features-style
 // table), so it's dropped here rather than carried over empty — see CarDetail.tsx's Safety tab.
 
-import type { CatalogConfig, CatalogMediaItem, CatalogTrim, EngineMaintenance } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogMediaItem, CatalogTrim, EngineMaintenance, EnginePowertrainEv } from "@/app/catalog/lib/types";
 import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
 
 // A fault carries its own severity (catalog_component_faults.severity: 'critical' | 'moderate'
@@ -73,6 +73,10 @@ export interface DetailEngine {
   has_dpf: boolean | null;
   has_gpf: boolean | null;
   has_adblue: boolean | null;
+  // 20261105150000 -- injection type, wet belt, electrified powertrain (see CatalogEngine).
+  injection_type: string | null;
+  timing_belt_in_oil: boolean | null;
+  ev: EnginePowertrainEv;
   // Official combined consumption across this engine's configurations on this phase (min/max,
   // so one gearbox/body spread shows as a range). From fuel_consumption_l100km, or
   // energy_consumption_kwh100km for electric -- the manufacturer figure, NOT a real-world one.

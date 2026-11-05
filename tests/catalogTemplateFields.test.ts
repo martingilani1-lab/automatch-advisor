@@ -7,7 +7,7 @@ import path from "path";
 import { describe, expect, it } from "vitest";
 
 import {
-  CONFIG_FACT_FIELDS, DIM_EXTRA_FIELDS, ENGINE_FLAG_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS,
+  CONFIG_FACT_FIELDS, DIM_EXTRA_FIELDS, ENGINE_EXTRA_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS,
   checkFieldValue, drivenAxleOf,
 } from "@/scripts/catalog-template-fields.mjs";
 
@@ -20,8 +20,14 @@ function header(file: string): string[] {
 }
 
 describe("blank template CSVs carry every shared field", () => {
-  it("engines.csv ends with the DPF / GPF / AdBlue flags", () => {
-    expect(header("engines.csv").slice(-ENGINE_FLAG_FIELDS.length)).toEqual(ENGINE_FLAG_FIELDS);
+  it("engines.csv ends with the after-treatment, injection and EV powertrain fields", () => {
+    expect(header("engines.csv").slice(-ENGINE_EXTRA_FIELDS.length)).toEqual(ENGINE_EXTRA_FIELDS);
+  });
+  it("EV enums follow catalog-vocabularies.json", () => {
+    expect(checkFieldValue("heat_pump", "optional", VOCAB)).toBeNull();
+    expect(checkFieldValue("heat_pump", "Optional", VOCAB)).toMatch(/frozen vocabulary/);
+    expect(checkFieldValue("battery_thermal_management", "passive", VOCAB)).toBeNull();
+    expect(checkFieldValue("max_dc_charging_kw", "50", VOCAB)).toBeNull();
   });
   it("phases.csv ends with chassis_type + the template-only test cycle", () => {
     const extra = [...PHASE_EXTRA_FIELDS, ...PHASE_TEMPLATE_ONLY_FIELDS];

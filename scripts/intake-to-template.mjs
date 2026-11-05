@@ -97,7 +97,7 @@ import fs from "fs";
 import path from "path";
 import { createClient } from "../node_modules/@supabase/supabase-js/dist/index.mjs";
 import {
-  ENGINE_FLAG_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS, DIM_EXTRA_FIELDS,
+  ENGINE_EXTRA_FIELDS, PHASE_EXTRA_FIELDS, PHASE_TEMPLATE_ONLY_FIELDS, DIM_EXTRA_FIELDS,
   CONFIG_FACT_FIELDS, checkFieldValue,
 } from "./catalog-template-fields.mjs";
 
@@ -345,7 +345,7 @@ const ENGINE_FIELDS = [
   "timing_replacement_km", "hybrid_type",
   // DPF / GPF / AdBlue (catalog-template-fields.mjs). REQUIRED for a NEW diesel -- see the
   // post-liveResolve check in main().
-  ...ENGINE_FLAG_FIELDS,
+  ...ENGINE_EXTRA_FIELDS,
 ];
 
 const REUSE_SHORTHAND_RE = /^REUSE\s+(\S+)@(\d+)\s*kW\s*$/i;
@@ -844,7 +844,7 @@ function validateVocabularies(doc, problems) {
   }
   // Dilemma fields (catalog-template-fields.mjs): format + vocabulary.
   for (const e of doc.engines) {
-    for (const f of ENGINE_FLAG_FIELDS) {
+    for (const f of ENGINE_EXTRA_FIELDS) {
       const msg = checkFieldValue(f, e[f], VOCAB);
       if (msg) problems.push(`D. ENGINES: engine ${e.code} (${e.power_kw}kW) ${msg}`);
     }

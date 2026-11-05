@@ -10,7 +10,8 @@ function makeEngine(id: string, code: string): CatalogEngine {
     torqueNm: null, cylinders: null, emissionStandard: null, timingType: null,
     engineOilCapacityLiters: null, timingReplacementKm: null, hybridType: null,
     reliabilityRating: null, pros: [], cons: [], maintenance: EMPTY_ENGINE_MAINTENANCE,
-    hasDpf: null, hasGpf: null, hasAdblue: null,
+    hasDpf: null, hasGpf: null, hasAdblue: null, injectionType: null, timingBeltInOil: null,
+    ev: { batteryCapacityNetKwh: null, maxAcChargingKw: null, maxDcChargingKw: null, batteryThermalManagement: null, heatPump: null },
   };
 }
 
@@ -30,11 +31,11 @@ function makeConfig(opts: {
     engine: opts.engine, gearbox: opts.gearbox, drivetrain: null,
     acceleration0To100: null, topSpeedKmh: null, fuelConsumptionCombined: null,
     fuelConsumptionL100km: null, energyConsumptionKwh100km: null,
-    co2EmissionsGKm: null, batteryCapacityNetKwh: null, evRangeWltpKm: null,
-    maxChargingKwDc: null, drivenAxle: null, secondaryFuelType: null,
+    co2EmissionsGKm: null, evRangeWltpKm: null,
+    drivenAxle: null, secondaryFuelType: null,
     secondaryConsumptionL100km: null, consumptionCycle: null, fuelConsumptionUrbanL100km: null,
     fuelConsumptionExtraUrbanL100km: null, towingBrakedKg: null, towingUnbrakedKg: null,
-    curbWeightKg: null, maxChargingKwAc: null, hasHeatPump: null, tireSizes: [], tags: [],
+    curbWeightKg: null, tireSizes: [], tags: [],
   };
 }
 

@@ -14,6 +14,18 @@
 // has_gpf stays optional.
 export const ENGINE_FLAG_FIELDS = ["has_dpf", "has_gpf", "has_adblue"];
 
+// catalog_engines -- injection, wet belt, and the electrified powertrain (20261105150000). The
+// engine row IS the powertrain variant (motor + battery for an EV), so battery size, charging
+// and battery cooling live here; range / energy use stay per configuration (body, wheels).
+export const ENGINE_POWERTRAIN_FIELDS = [
+  "injection_type", "timing_belt_in_oil",
+  "battery_capacity_net_kwh", "max_ac_charging_kw", "max_dc_charging_kw",
+  "battery_thermal_management", "heat_pump",
+];
+
+// Every non-identity engine column this module adds, in engines.csv column order.
+export const ENGINE_EXTRA_FIELDS = [...ENGINE_FLAG_FIELDS, ...ENGINE_POWERTRAIN_FIELDS];
+
 // catalog_phases -- the phase's structure. Frozen vocabulary (catalog_phases.chassis_type).
 export const PHASE_EXTRA_FIELDS = ["chassis_type"];
 
@@ -38,16 +50,15 @@ export const CONFIG_FACT_FIELDS = [
   "secondary_fuel_type", "secondary_consumption_l100km",
   "fuel_consumption_urban_l100km", "fuel_consumption_extra_urban_l100km",
   "towing_braked_kg", "towing_unbraked_kg", "curb_weight_kg",
-  "acceleration_0_100", "top_speed_kmh", "co2_emissions_g_km",
-  "battery_capacity_net_kwh", "ev_range_wltp_km", "max_charging_kw_dc", "max_charging_kw_ac",
-  "has_heat_pump",
+  "acceleration_0_100", "top_speed_kmh", "co2_emissions_g_km", "ev_range_wltp_km",
 ];
 
 // SQL type of every field above that isn't plain text -- generate-seed.mjs casts every VALUES
 // literal (the all-NULL-column type-inference bug), validate-template.mjs checks the format.
 export const FIELD_TYPES = {
   has_dpf: "boolean", has_gpf: "boolean", has_adblue: "boolean",
-  isofix_front_passenger: "boolean", has_heat_pump: "boolean",
+  isofix_front_passenger: "boolean", timing_belt_in_oil: "boolean",
+  battery_capacity_net_kwh: "numeric", max_ac_charging_kw: "numeric", max_dc_charging_kw: "numeric",
   nose_weight_kg: "integer", roof_load_kg: "integer", wading_depth_mm: "integer",
   isofix_count: "integer", seats_optional_max: "integer",
   boot_capacity_7_seats_liters: "integer", boot_sill_height_mm: "integer",
@@ -57,8 +68,7 @@ export const FIELD_TYPES = {
   fuel_consumption_urban_l100km: "numeric", fuel_consumption_extra_urban_l100km: "numeric",
   towing_braked_kg: "integer", towing_unbraked_kg: "integer", curb_weight_kg: "integer",
   acceleration_0_100: "numeric", top_speed_kmh: "integer", co2_emissions_g_km: "integer",
-  battery_capacity_net_kwh: "numeric", ev_range_wltp_km: "integer",
-  max_charging_kw_dc: "integer", max_charging_kw_ac: "numeric",
+  ev_range_wltp_km: "integer",
 };
 
 // Which frozen vocabulary (catalog-vocabularies.json key) a text field must match.
@@ -66,6 +76,9 @@ export const FIELD_VOCAB = {
   chassis_type: "catalog_phases.chassis_type",
   consumption_cycle: "catalog_vehicle_configurations.consumption_cycle",
   secondary_fuel_type: "catalog_vehicle_configurations.secondary_fuel_type",
+  injection_type: "catalog_engines.injection_type",
+  battery_thermal_management: "catalog_engines.battery_thermal_management",
+  heat_pump: "catalog_engines.heat_pump",
 };
 
 // Template drivetrain column -> catalog_vehicle_configurations.driven_axle. "FWD" / "RWD" are
