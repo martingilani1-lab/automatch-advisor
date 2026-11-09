@@ -31,7 +31,7 @@ function makeConfig(opts: {
     engine: opts.engine, gearbox: opts.gearbox, drivetrain: null,
     acceleration0To100: null, topSpeedKmh: null, fuelConsumptionCombined: null,
     fuelConsumptionL100km: null, energyConsumptionKwh100km: null,
-    co2EmissionsGKm: null, evRangeWltpKm: null,
+    co2EmissionsGKm: null, evRangeKm: null,
     drivenAxle: null, secondaryFuelType: null,
     secondaryConsumptionL100km: null, consumptionCycle: null, fuelConsumptionUrbanL100km: null,
     fuelConsumptionExtraUrbanL100km: null, towingBrakedKg: null, towingUnbrakedKg: null,

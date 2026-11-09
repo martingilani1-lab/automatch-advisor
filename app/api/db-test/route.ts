@@ -346,7 +346,7 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
     const e: DetailEngine[] = engineGroups.map((group) => {
       const engine = group.engine;
       const isEv = engine.fuelType === "electric" || group.configs.some(
-        (c) => c.engine.ev.batteryCapacityNetKwh != null || c.evRangeWltpKm != null
+        (c) => c.engine.ev.batteryCapacityNetKwh != null || c.evRangeKm != null
       );
       // Some catalog_engines.display_name values already embed power ("1.9 TDI 66kW
       // (Wastegate)", "1.0 TSI 85kW"), some don't ("1.6 MPI") -- confirmed across several

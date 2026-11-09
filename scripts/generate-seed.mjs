@@ -513,7 +513,8 @@ async function main() {
     const fact = factByKey.get(`${c.phase_label}|${c.engine_code}|${c.power_kw}|${c.b}|${c.g}|${c.d}`) || {};
     // consumption_cycle: the configuration's own value wins, else the phase default, and only
     // when there is a consumption figure for it to describe.
-    const hasFigure = (fact.fuel_consumption_l100km || fact.energy_consumption_kwh100km || "") !== "";
+    // EV range follows the cycle too (ev_range_km, 20261109223000), so it also pulls the default in.
+    const hasFigure = (fact.fuel_consumption_l100km || fact.energy_consumption_kwh100km || fact.ev_range_km || "") !== "";
     const cycle = fact.consumption_cycle || (hasFigure ? (phaseByLabel.get(c.phase_label)?.consumption_cycle || "") : "");
     const factLits = CONFIG_FACT_FIELDS.map(f => typedLit(f, f === "consumption_cycle" ? cycle : fact[f]));
     return `      ('${esc(c.phase_label)}'::text, '${esc(c.b)}'::text, '${esc(c.engine_code)}'::text, ${c.power_kw}::integer, '${esc(c.g)}'::text, ${dt}, '${drivenAxleOf(c.d)}'::text, ${factLits.join(", ")})`;

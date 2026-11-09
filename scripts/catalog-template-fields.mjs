@@ -50,7 +50,7 @@ export const CONFIG_FACT_FIELDS = [
   "secondary_fuel_type", "secondary_consumption_l100km",
   "fuel_consumption_urban_l100km", "fuel_consumption_extra_urban_l100km",
   "towing_braked_kg", "towing_unbraked_kg", "curb_weight_kg",
-  "acceleration_0_100", "top_speed_kmh", "co2_emissions_g_km", "ev_range_wltp_km",
+  "acceleration_0_100", "top_speed_kmh", "co2_emissions_g_km", "ev_range_km",
 ];
 
 // SQL type of every field above that isn't plain text -- generate-seed.mjs casts every VALUES
@@ -68,7 +68,7 @@ export const FIELD_TYPES = {
   fuel_consumption_urban_l100km: "numeric", fuel_consumption_extra_urban_l100km: "numeric",
   towing_braked_kg: "integer", towing_unbraked_kg: "integer", curb_weight_kg: "integer",
   acceleration_0_100: "numeric", top_speed_kmh: "integer", co2_emissions_g_km: "integer",
-  ev_range_wltp_km: "integer",
+  ev_range_km: "integer",
 };
 
 // Which frozen vocabulary (catalog-vocabularies.json key) a text field must match.
