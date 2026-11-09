@@ -145,7 +145,7 @@ export interface CatalogConfig {
   co2EmissionsGKm: number | null;
   // Battery / charging moved to the engine (CatalogEngine.ev, 20261105150000); range stays here
   // because it changes with body and wheels.
-  evRangeWltpKm: number | null;
+  evRangeKm: number | null;
   // Dilemma-driven columns (20261104200000-202000). All null until those migrations have run
   // live -- the loader reads them through a tolerant select("*"), never by name.
   // 'front' | 'rear' | 'all' -- which axle is driven. drivetrain === null used to be read as

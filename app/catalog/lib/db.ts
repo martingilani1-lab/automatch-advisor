@@ -215,7 +215,7 @@ async function fetchBundleForPhase(supabase: ReturnType<typeof client>, phaseRow
         `
         id, body_type_id, acceleration_0_100, top_speed_kmh, fuel_consumption_combined,
         fuel_consumption_l100km, energy_consumption_kwh100km,
-        co2_emissions_g_km, ev_range_wltp_km,
+        co2_emissions_g_km, ev_range_km,
         catalog_body_types(id, name),
         catalog_engines(id, code, display_name, displacement_cc, power_kw, fuel_type, torque_nm, cylinders, emission_standard, timing_type, engine_oil_capacity_liters, timing_replacement_km, hybrid_type, reliability_rating, pros, cons, oil_change_interval_km, oil_change_interval_months, oil_spec, oil_service_cost_eur_min, oil_service_cost_eur_max, air_filter_interval_km, fuel_filter_interval_km, spark_plug_interval_km, spark_plug_cost_eur_min, spark_plug_cost_eur_max, timing_replacement_years, timing_service_cost_eur_min, timing_service_cost_eur_max, yearly_maintenance_eur_min, yearly_maintenance_eur_max, maintenance_note),
         transmission_units(id, code, family, maker, speeds, reliability_note, maintenance_note, reliability_rating, pros, cons),
@@ -493,7 +493,7 @@ function transformBundle(
     fuelConsumptionL100km: c.fuel_consumption_l100km,
     energyConsumptionKwh100km: c.energy_consumption_kwh100km,
     co2EmissionsGKm: c.co2_emissions_g_km,
-    evRangeWltpKm: c.ev_range_wltp_km,
+    evRangeKm: c.ev_range_km,
     drivenAxle: strOrNull(extras.config.get(c.id)?.driven_axle),
     secondaryFuelType: strOrNull(extras.config.get(c.id)?.secondary_fuel_type),
     secondaryConsumptionL100km: numOrNull(extras.config.get(c.id)?.secondary_consumption_l100km),

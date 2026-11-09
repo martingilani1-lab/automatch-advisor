@@ -6,7 +6,7 @@ import type { CatalogConfig } from "./types";
 import { gearboxHeaderLabel } from "./gearboxLabel";
 
 // Same priority as the fill-rate check this was built from (confirmed live:
-// fuel_consumption_combined/battery_capacity_net_kwh/ev_range_wltp_km are 0% filled across
+// fuel_consumption_combined/battery_capacity_net_kwh/ev_range_wltp_km (now ev_range_km) were 0% filled across
 // all 1550 catalog_vehicle_configurations rows -- dead columns from an earlier, unfinished
 // pass -- while fuel_consumption_l100km is 100% filled and energy_consumption_kwh100km
 // covers the handful of PHEV rows): a pure EV shows its energy figure even if some stray
@@ -41,9 +41,12 @@ export function consumptionDetailLabel(c: CatalogConfig): string {
   if (c.engine.fuelType === "electric") {
     const parts: string[] = [];
     if (c.energyConsumptionKwh100km != null) parts.push(`${c.energyConsumptionKwh100km} kWh/100 km`);
-    if (c.evRangeWltpKm != null) parts.push(`${c.evRangeWltpKm} km range (WLTP)`);
+    if (c.evRangeKm != null) parts.push(`${c.evRangeKm} km range`);
     if (parts.length === 0) return "–";
-    if (c.energyConsumptionKwh100km != null && c.consumptionCycle) parts.push(c.consumptionCycle);
+    // ev_range_km follows the row's consumption_cycle exactly like the consumption figures
+    // (20261109223000, Martin 2026-11-09): "190 km range · NEDC" for a 2013 i3, "285 km range ·
+    // WLTP" for a 2019 one -- one cycle per row, never two mixed.
+    if (c.consumptionCycle) parts.push(c.consumptionCycle);
     return parts.join(" · ");
   }
   const base = consumptionLabel(c);

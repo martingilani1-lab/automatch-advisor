@@ -338,8 +338,8 @@ for (const d of dims) {
     if (f.towing_braked_kg && f.towing_unbraked_kg && Number(f.towing_unbraked_kg) > Number(f.towing_braked_kg)) {
       err("config_facts.csv", f.__line, "towing_unbraked_kg exceeds towing_braked_kg (live CHECK)");
     }
-    if ((f.fuel_consumption_l100km || f.energy_consumption_kwh100km) && !f.consumption_cycle && !phaseCycle.get(f.phase_label)) {
-      warn("config_facts.csv", f.__line, `consumption figure without a test cycle -- set consumption_cycle here or on phase '${f.phase_label}' in phases.csv (NEDC and WLTP figures must not be compared as equals)`);
+    if ((f.fuel_consumption_l100km || f.energy_consumption_kwh100km || f.ev_range_km) && !f.consumption_cycle && !phaseCycle.get(f.phase_label)) {
+      warn("config_facts.csv", f.__line, `consumption / range figure without a test cycle -- set consumption_cycle here or on phase '${f.phase_label}' in phases.csv (NEDC and WLTP figures must not be compared as equals)`);
     }
   }
 }

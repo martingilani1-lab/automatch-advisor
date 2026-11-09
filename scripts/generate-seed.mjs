@@ -194,7 +194,10 @@ const nOrNull = v => (v === "" || v == null) ? "null" : v;
 const sOrNull = v => (v === "" || v == null) ? "null" : `'${esc(v)}'`;
 const nInt = v => (v === "" || v == null) ? "null::integer" : `${v}::integer`;
 const nNum = v => (v === "" || v == null) ? "null::numeric" : `${v}::numeric`;
-const sTxt = v => (v === "" || v == null) ? "null::text" : `'${esc(v)}'::text`;
+// "NULL" (any case) is the intake document's explicit "unknown" -- SQL NULL, never the text
+// 'NULL' (the BMW i3's typical_mileage_range reached the DB as a string that way). The number
+// helpers already treat it so; this brings text in line.
+const sTxt = v => (v === "" || v == null || /^null$/i.test(String(v).trim())) ? "null::text" : `'${esc(v)}'::text`;
 // Models with no real generation code (e.g. a brand-new single-generation nameplate like
 // Cupra Terramar) get generation_code = NULL in catalog_phases (via sTxt above), not an
 // empty string. Every later lookup keyed by this car's generation must match that the
@@ -513,7 +516,8 @@ async function main() {
     const fact = factByKey.get(`${c.phase_label}|${c.engine_code}|${c.power_kw}|${c.b}|${c.g}|${c.d}`) || {};
     // consumption_cycle: the configuration's own value wins, else the phase default, and only
     // when there is a consumption figure for it to describe.
-    const hasFigure = (fact.fuel_consumption_l100km || fact.energy_consumption_kwh100km || "") !== "";
+    // EV range follows the cycle too (ev_range_km, 20261109223000), so it also pulls the default in.
+    const hasFigure = (fact.fuel_consumption_l100km || fact.energy_consumption_kwh100km || fact.ev_range_km || "") !== "";
     const cycle = fact.consumption_cycle || (hasFigure ? (phaseByLabel.get(c.phase_label)?.consumption_cycle || "") : "");
     const factLits = CONFIG_FACT_FIELDS.map(f => typedLit(f, f === "consumption_cycle" ? cycle : fact[f]));
     return `      ('${esc(c.phase_label)}'::text, '${esc(c.b)}'::text, '${esc(c.engine_code)}'::text, ${c.power_kw}::integer, '${esc(c.g)}'::text, ${dt}, '${drivenAxleOf(c.d)}'::text, ${factLits.join(", ")})`;

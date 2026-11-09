@@ -376,7 +376,9 @@ columns are any subset of, by header name: `fuel_consumption_l100km`,
 `secondary_consumption_l100km`, `fuel_consumption_urban_l100km`,
 `fuel_consumption_extra_urban_l100km`, `towing_braked_kg`, `towing_unbraked_kg`,
 `curb_weight_kg`, `acceleration_0_100`, `top_speed_kmh`, `co2_emissions_g_km`,
-`ev_range_wltp_km` (the one list lives in `scripts/catalog-template-fields.mjs`). Battery,
+`ev_range_km` (the one list lives in `scripts/catalog-template-fields.mjs`). `ev_range_km` is
+the official range on the row's own cycle (`consumption_cycle`, or the phase default) — an
+NEDC-era EV gets its NEDC range, never a converted figure. Battery,
 charging and heat pump are engine columns (section D), not configuration facts.
 
 ```markdown

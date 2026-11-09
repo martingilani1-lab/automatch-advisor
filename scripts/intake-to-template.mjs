@@ -647,9 +647,11 @@ function resolveFaults(faults, engines, phases, problems) {
 function normalizeMileageRange(v) {
   if (!v) return v;
   let s = v.trim();
-  // "NULL" is the document's word for unknown -- it must stay empty, not become "NULL km"
-  // (that literal reached the live DB for the BMW i3 and showed as "NULL km" on the card).
-  if (/^null$/i.test(s)) return "";
+  // "NULL" is the document's explicit "unknown" -- passed through untouched (generate-seed turns
+  // it into SQL NULL, like the price fields), never suffixed into "NULL km" (that literal reached
+  // the live DB for the BMW i3). Not "" either: an empty value would read as "not given" to the
+  // never-inherit check below, which requires price / mileage to be stated even when unknown.
+  if (/^null$/i.test(s)) return "NULL";
   s = s.replace(/(\d+)\s*k/gi, (_, n) => String(Number(n) * 1000));
   s = s.replace(/\s*-\s*/, " - ");
   if (!/km\s*$/i.test(s)) s += " km";
