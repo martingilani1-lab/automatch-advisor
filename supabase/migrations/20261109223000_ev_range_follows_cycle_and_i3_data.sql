@@ -1,8 +1,8 @@
 -- EV range follows the configuration's test cycle + BMW i3 (I01) data, engine content and faults
 -- (Martin, 2026-11-09: "go with the recommended way").
 --
--- Replaces the unrun 20261109220000 (deleted in the same commit) -- same i3 data, plus the
--- schema change it needed.
+-- Follows 20261109220000 (run 2026-11-09, file since removed from the repo) -- corrects / completes
+-- what it wrote, plus the schema change.
 --
 -- Part 1 -- catalog_vehicle_configurations.ev_range_wltp_km -> ev_range_km (RENAME, no data lost:
 --   2 rows filled live, both WLTP, both i3 120 Ah). The range now means the official range on the
@@ -17,10 +17,11 @@
 --   cycle because the seed only wrote the phase default next to a consumption figure; fixed in
 --   generate-seed.mjs: a range now counts too).
 --
--- Part 3 -- typical_mileage_range 'NULL km' -> NULL on both i3 phases (intake-parser bug, fixed in
---   scripts/intake-to-template.mjs, commit ecad30e).
+-- Part 3 -- (dropped) the i3 'NULL km' mileage: already cleared -- 20261109220000 had been run
+--   before this file replaced it (Martin, 2026-11-09; the first attempt of this file rolled back on
+--   that). Parts 2 and 4 are written against the state 20261109220000 left.
 --
--- Part 4 -- i3 per-configuration facts, NULL cells only. Sources:
+-- Part 4 -- i3 per-configuration facts set to Martin's finalized figures. Sources:
 --   [B16] BMW technical data i3 (60 Ah) / (94 Ah), 2016 (ecomento.de copy of BMW's sheet), EU cycle
 --         = NEDC, 19" wheels: 12.9 / 12.6 kWh/100 km, range 190 / 312 km; EU curb weight
 --         1280 / 1320 kg; 0-100 7.2 / 7.3 s; 150 km/h.
@@ -56,38 +57,35 @@ BEGIN
   GET DIAGNOSTICS n = ROW_COUNT;
   IF n <> 2 THEN RAISE EXCEPTION 'Expected 2 range rows without a cycle (i3 120 Ah), updated % -- rolled back', n; END IF;
 
-  -- Part 3
-  UPDATE public.catalog_phases p SET typical_mileage_range = NULL
-    FROM public.catalog_models m
-   WHERE m.id = p.model_id AND m.name = 'i3' AND p.generation_code = 'I01'
-     AND p.typical_mileage_range = 'NULL km';
-  GET DIAGNOSTICS n = ROW_COUNT;
-  IF n <> 2 THEN RAISE EXCEPTION 'Expected 2 i3 phases with ''NULL km'', updated % -- rolled back', n; END IF;
+  -- Part 3 -- dropped: the 'NULL km' mileage was already cleared when 20261109220000 ran.
 
-  -- Part 4
-  WITH v(phase_label, engine_code, energy, range_km, cycle, curb, accel, vmax) AS (VALUES
-    ('Pre-facelift'::text, 'i3-60Ah'::text,   12.9::numeric, 190::integer, 'NEDC'::text, 1280::integer, 7.2::numeric, 150::integer),  -- [B16][M]
-    ('Pre-facelift',       'i3-94Ah',         12.6,          312,          'NEDC',       1320,          7.3,          150),           -- [B16][M]
-    ('Facelift',           'i3-94Ah',         13.1,          NULL,         'NEDC',       1320,          7.3,          150),           -- [M]
-    ('Facelift',           'i3s-94Ah',        14.3,          280,          'NEDC',       1340,          6.9,          160),           -- [US][M]
-    ('Facelift',           'i3-120Ah',        15.3,          NULL,         NULL,         1345,          7.3,          150),           -- [M] range 285 / WLTP already set
-    ('Facelift',           'i3s-120Ah',       16.3,          NULL,         NULL,         1365,          6.9,          160)            -- [M] range 270 / WLTP already set
+  -- Part 4 -- the 6 i3 rows to Martin's finalized set. 20261109220000 already ran (2026-11-09)
+  -- and filled part of this, so each row is matched on the exact state that file left
+  -- (old_energy / old_curb) -- anything else on a row means someone changed it since, and the
+  -- count check rolls everything back.
+  WITH v(phase_label, engine_code, old_energy, old_curb, energy, range_km, cycle, curb, accel, vmax) AS (VALUES
+    ('Pre-facelift'::text, 'i3-60Ah'::text,   12.9::numeric, 1280::integer, 12.9::numeric, 190::integer, 'NEDC'::text, 1280::integer, 7.2::numeric, 150::integer),  -- [B16][M]
+    ('Pre-facelift',       'i3-94Ah',         12.6,          1320,          12.6,          312,          'NEDC',       1320,          7.3,          150),           -- [B16][M]
+    ('Facelift',           'i3-94Ah',         NULL,          NULL,          13.1,          NULL,         'NEDC',       1320,          7.3,          150),           -- [M]
+    ('Facelift',           'i3s-94Ah',        14.3,          NULL,          14.3,          280,          'NEDC',       1340,          6.9,          160),           -- [US][M]
+    ('Facelift',           'i3-120Ah',        NULL,          1345,          15.3,          NULL,         'WLTP',       1345,          7.3,          150),           -- [M] range 285 already set
+    ('Facelift',           'i3s-120Ah',       NULL,          1365,          16.3,          NULL,         'WLTP',       1365,          6.9,          160)            -- [M] range 270 already set
   )
   UPDATE public.catalog_vehicle_configurations c
-     SET energy_consumption_kwh100km = COALESCE(c.energy_consumption_kwh100km, v.energy),
+     SET energy_consumption_kwh100km = v.energy,
          ev_range_km                 = COALESCE(c.ev_range_km, v.range_km),
-         consumption_cycle           = COALESCE(c.consumption_cycle, v.cycle),
-         curb_weight_kg              = COALESCE(c.curb_weight_kg, v.curb),
-         acceleration_0_100          = COALESCE(c.acceleration_0_100, v.accel),
-         top_speed_kmh               = COALESCE(c.top_speed_kmh, v.vmax)
+         consumption_cycle           = v.cycle,
+         curb_weight_kg              = v.curb,
+         acceleration_0_100          = v.accel,
+         top_speed_kmh               = v.vmax
     FROM v, public.catalog_phases p, public.catalog_models m, public.catalog_engines e
    WHERE p.id = c.phase_id AND m.id = p.model_id AND e.id = c.engine_id
      AND m.name = 'i3' AND p.generation_code = 'I01'
      AND p.phase_label = v.phase_label AND e.code = v.engine_code
-     AND c.energy_consumption_kwh100km IS NULL AND c.curb_weight_kg IS NULL
-     AND c.acceleration_0_100 IS NULL AND c.top_speed_kmh IS NULL;
+     AND c.energy_consumption_kwh100km IS NOT DISTINCT FROM v.old_energy
+     AND c.curb_weight_kg IS NOT DISTINCT FROM v.old_curb;
   GET DIAGNOSTICS n = ROW_COUNT;
-  IF n <> 6 THEN RAISE EXCEPTION 'Expected 6 empty i3 configurations, updated % -- rolled back', n; END IF;
+  IF n <> 6 THEN RAISE EXCEPTION 'Expected 6 i3 configurations in the state 20261109220000 left, updated % -- rolled back', n; END IF;
 
   -- Every i3 range now has a cycle next to it.
   SELECT count(*) INTO n FROM public.catalog_vehicle_configurations WHERE ev_range_km IS NOT NULL AND consumption_cycle IS NULL;
