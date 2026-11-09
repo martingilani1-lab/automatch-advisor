@@ -194,7 +194,10 @@ const nOrNull = v => (v === "" || v == null) ? "null" : v;
 const sOrNull = v => (v === "" || v == null) ? "null" : `'${esc(v)}'`;
 const nInt = v => (v === "" || v == null) ? "null::integer" : `${v}::integer`;
 const nNum = v => (v === "" || v == null) ? "null::numeric" : `${v}::numeric`;
-const sTxt = v => (v === "" || v == null) ? "null::text" : `'${esc(v)}'::text`;
+// "NULL" (any case) is the intake document's explicit "unknown" -- SQL NULL, never the text
+// 'NULL' (the BMW i3's typical_mileage_range reached the DB as a string that way). The number
+// helpers already treat it so; this brings text in line.
+const sTxt = v => (v === "" || v == null || /^null$/i.test(String(v).trim())) ? "null::text" : `'${esc(v)}'::text`;
 // Models with no real generation code (e.g. a brand-new single-generation nameplate like
 // Cupra Terramar) get generation_code = NULL in catalog_phases (via sTxt above), not an
 // empty string. Every later lookup keyed by this car's generation must match that the
