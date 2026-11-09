@@ -35,6 +35,17 @@ export function axleLabel(axle: string | null): string {
 // never read as directly comparable (WLTP runs ~15-25 % higher for the same car). Bi-fuel
 // cars add the second fuel: "9.2 l/100 km LPG · 7.2 petrol · NEDC".
 export function consumptionDetailLabel(c: CatalogConfig): string {
+  // A pure EV's useful figure is often the range, not the kWh/100 km (BMW i3 120 Ah: WLTP range
+  // published, WLTP consumption not) -- so the range is shown next to the energy figure, or on its
+  // own when that's all there is, instead of the row reading "–" for a car with known data.
+  if (c.engine.fuelType === "electric") {
+    const parts: string[] = [];
+    if (c.energyConsumptionKwh100km != null) parts.push(`${c.energyConsumptionKwh100km} kWh/100 km`);
+    if (c.evRangeWltpKm != null) parts.push(`${c.evRangeWltpKm} km range (WLTP)`);
+    if (parts.length === 0) return "–";
+    if (c.energyConsumptionKwh100km != null && c.consumptionCycle) parts.push(c.consumptionCycle);
+    return parts.join(" · ");
+  }
   const base = consumptionLabel(c);
   if (base === "–") return base;
   const parts = [c.secondaryFuelType ? `${base} ${c.engine.fuelType.toUpperCase()}` : base];

@@ -647,6 +647,9 @@ function resolveFaults(faults, engines, phases, problems) {
 function normalizeMileageRange(v) {
   if (!v) return v;
   let s = v.trim();
+  // "NULL" is the document's word for unknown -- it must stay empty, not become "NULL km"
+  // (that literal reached the live DB for the BMW i3 and showed as "NULL km" on the card).
+  if (/^null$/i.test(s)) return "";
   s = s.replace(/(\d+)\s*k/gi, (_, n) => String(Number(n) * 1000));
   s = s.replace(/\s*-\s*/, " - ");
   if (!/km\s*$/i.test(s)) s += " km";

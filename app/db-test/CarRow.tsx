@@ -58,7 +58,8 @@ interface CarRowProps {
 // for an unknown key) rather than being cut, since catalog_ cards do carry other real content
 // around it (price/mileage/fuel) worth keeping in the same row shape.
 export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
-  const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
+  // No price recorded (both ends NULL -> 0) reads as "Price n/a", never "€0–0".
+  const price = carPriceMax(car) > 0 ? `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}` : "Price n/a";
   const mileage = carMileage(car);
   const rel = carRel(car);
   const relColor = REL_COLORS[rel] || "#888";

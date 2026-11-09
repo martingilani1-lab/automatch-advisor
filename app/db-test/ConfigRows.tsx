@@ -1,4 +1,4 @@
-import { IconManualGearbox, IconAutomaticGearbox, IconCar, IconCar4wd, IconGasStation } from "@tabler/icons-react";
+import { IconManualGearbox, IconAutomaticGearbox, IconCar, IconCar4wd, IconGasStation, IconBattery3, IconBolt } from "@tabler/icons-react";
 
 import type { CatalogConfig } from "@/app/catalog/lib/types";
 import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
@@ -23,6 +23,16 @@ interface ConfigRowsProps {
 // same color everywhere in the app -- transmission/body are new here, picked to stay
 // distinct from those two and from REL_COLORS' tier palette.
 const CONFIG_ICON_COLORS = { transmission: "#60a5fa", body: "#34d399", drivetrain: "#a78bfa", consumption: "#4dd0e1" };
+
+// "37.9 kWh · 11 / 50 kW" -- net battery plus AC / DC charging power; missing parts are left out
+// rather than shown as "–" so a half-filled EV row still says what is known.
+function evBatteryLabel(c: CatalogConfig): string {
+  const { batteryCapacityNetKwh: kwh, maxAcChargingKw: ac, maxDcChargingKw: dc } = c.engine.ev;
+  const parts: string[] = [];
+  if (kwh != null) parts.push(`${kwh} kWh`);
+  if (ac != null || dc != null) parts.push(`${ac ?? "–"} / ${dc ?? "–"} kW`);
+  return parts.length ? parts.join(" · ") : "–";
+}
 
 // A catalog_engines.display_name sometimes already embeds power ("1.9 TDI 66kW (Wastegate)",
 // "1.0 TSI 85kW"), sometimes doesn't ("1.6 MPI") -- confirmed across several seed migrations.
@@ -130,6 +140,17 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
               {dbTestEngineLabel(c)}
             </button>
             <div className="cgrid">
+              {/* A pure EV's gearbox is always the same single reduction gear -- the tile is spent on
+                  what actually differs between EV variants: net battery and AC / DC charging power
+                  (catalog_engines, 20261105150000). Every other powertrain keeps the gearbox tile. */}
+              {c.engine.fuelType === "electric" ? (
+                <div className="cgrid-item">
+                  <div className="cgrid-icon-cell">
+                    <IconBattery3 size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.transmission }} />
+                  </div>
+                  <div className="cgrid-val">{evBatteryLabel(c)}</div>
+                </div>
+              ) : (
               <div
                 className="cgrid-item cgrid-item-btn"
                 onClick={() => onNavigate({ kind: "unit", id: c.gearbox.id })}
@@ -143,6 +164,7 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
                 </div>
                 <div className="cgrid-val cfg-link">{dbTestTransmissionLabel(c)}</div>
               </div>
+              )}
               <div className="cgrid-item">
                 <div className="cgrid-icon-cell">
                   <IconCar size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.body }} />
@@ -169,7 +191,11 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
               )}
               <div className="cgrid-item">
                 <div className="cgrid-icon-cell">
-                  <IconGasStation size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
+                  {c.engine.fuelType === "electric" ? (
+                    <IconBolt size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
+                  ) : (
+                    <IconGasStation size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
+                  )}
                 </div>
                 <div className="cgrid-val">{consumptionDetailLabel(c)}</div>
               </div>

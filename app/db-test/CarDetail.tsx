@@ -1008,7 +1008,8 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
     });
   }
 
-  const price = `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}`;
+  // No price recorded (both ends NULL -> 0) reads as "Price n/a", never "€0–0".
+  const price = carPriceMax(car) > 0 ? `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}` : "Price n/a";
   const mileage = carMileage(car);
   const rel = carRel(car);
   const relColor = REL_COLORS[rel] || "#888";
