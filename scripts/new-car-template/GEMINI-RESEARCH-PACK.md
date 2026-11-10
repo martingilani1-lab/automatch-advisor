@@ -28,6 +28,15 @@ market. Buyers make purchase decisions on this data. **A wrong value is worse th
 - **Phase:** <PHASE>  (e.g. "Facelift (LCI), 2017–2022")
 - **Market:** EU versions as sold in Slovakia / Czech Republic.
 
+## Output format — read first
+
+- **Output ONLY the filled document** (sections A–R, in order). No introduction, no analysis
+  paragraphs, no summary between or after the tables. Any explanation goes in a table cell
+  (`rating_reason`, `maintenance_note`) or in section R.
+- **Section Q (evidence) is mandatory.** A document without Q is rejected as a whole, however good
+  the tables look. If you cannot give URLs and quotes, stop and say so in section R.
+- **Keep markdown table syntax** (`| a | b |` with the `|---|` line). Don't render tables as plain text.
+
 ## Hard rules — breaking one makes the whole document unusable
 
 1. **Unknown → `NULL`.** Never estimate, average, round, or carry a value over from another model,
@@ -46,7 +55,11 @@ market. Buyers make purchase decisions on this data. **A wrong value is worse th
 6. **Sources disagree → `NULL`** and both go in section R — unless one is the manufacturer: use it,
    still list the other.
 7. **Codes are never guessed** (engine, gearbox, platform). Only when a source names the code;
-   otherwise `NULL` and describe the unit in words.
+   otherwise `NULL` and describe the unit in words. **EV:** when one motor code was used with several
+   batteries, the code is `<motor code>-<battery>` (e.g. `IB1P25B-94Ah`) — every row needs a unique
+   code + power_kw pair.
+7b. **`phase_label` is exactly `Pre-facelift`, `Facelift`, or `Phase 1` / `Phase 2` …** — never the
+   years or the marketing name (those go in year_from / year_to / display_name).
 8. **Closed vocabularies.** Fields listed in section P accept only the listed values, exactly
    spelled. Nothing fits → `NULL` + section R.
 9. **Only factory configurations** sold in the EU (section G). No "probably also available".
