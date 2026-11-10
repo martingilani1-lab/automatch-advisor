@@ -100,7 +100,11 @@ INHERIT phase attributes FROM BMW i3 I01 Pre-facelift
 | Pre-facelift | Hatchback 5-door | 3999 | 1775 | 1578 | NULL | NULL | 260 | 1100 | 4 | NULL | NULL | NULL | 2 | false |
 
 ### Facelift
-INHERIT dimensions FROM BMW i3 I01 Pre-facelift / Hatchback 5-door
+| phase | body_type | length_mm | width_mm | height_mm | ground_clearance_mm | curb_weight_kg | boot_capacity_liters | boot_max_liters | seats_count | gross_vehicle_weight_kg | payload_kg | fuel_tank_capacity_liters | isofix_count | isofix_front_passenger | boot_sill_height_mm |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Facelift | Hatchback 5-door | 4011 | 1775 | 1598 | 139 | NULL | 260 | 1100 | 4 | NULL | NULL | NULL | 2 | false | 780 |
+
+*(Facelift: BMW 2018 technical data (length 4011, height with roof fin 1598, clearance 139); boot sill 780 mm de.wikipedia. Base i3 — the i3s is 4006 / 1570 / 131 mm (ADAC).)*
 
 *(Coach rear doors — still a 5-door hatch body. No fuel tank: pure EV. Curb weight is per configuration (section J). The i3s is 4006 × 1791 × 1590 mm — a per-version difference the body table can't hold. Euro NCAP 2013: front-passenger ISOFIX not permitted.)*
 
@@ -172,4 +176,4 @@ INHERIT dimensions FROM BMW i3 I01 Pre-facelift / Hatchback 5-door
 | Facelift | i3-94Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 13.1 | NEDC | 1320 | 7.3 | 150 | NULL |
 | Facelift | i3s-94Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | 14.3 | NEDC | 1340 | 6.9 | 160 | 280 |
 | Facelift | i3-120Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 15.3 | WLTP | 1345 | 7.3 | 150 | 285 |
-| Facelift | i3s-120Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | 16.3 | WLTP | 1365 | 6.9 | 160 | 270 |
+| Facelift | i3s-120Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | 16.3 | WLTP | 1365 | 6.9 | 160 | 283 |
