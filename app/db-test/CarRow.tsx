@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Image from "next/image";
-import { IconGauge, IconGasStation, IconCar4wd } from "@tabler/icons-react";
+import { IconGauge, IconGasStation, IconBolt, IconCar4wd } from "@tabler/icons-react";
 
 import type { CarData } from "@/app/lib/carFields";
 import { carPriceMin, carPriceMax, carRel, carMileage, carModelBase, REL_COLORS, bodyLabel } from "@/app/lib/carFields";
@@ -62,6 +62,7 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
   const price = carPriceMax(car) > 0 ? `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}` : "Price n/a";
   const mileage = carMileage(car);
   const rel = carRel(car);
+  const isRated = rel !== "—";
   const relColor = REL_COLORS[rel] || "#888";
   // Falls back to the single primaryBody `car.body` for a car whose bodyNames hasn't been
   // populated (e.g. a stale cached response) rather than rendering nothing.
@@ -115,11 +116,19 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
         {car.phaseLabel && <div className="cphase">{car.phaseLabel}</div>}
         {/* Country of origin dropped from this line -- replaced with the reliability tag,
             placed right before the year range. Best engine tier (app/api/db-test/route.ts),
-            "—" when no engine in this phase has a reliability_rating recorded yet. Same
+            unrated when no engine in this phase has a reliability_rating recorded yet. Same
             per-tier REL_COLORS the detail page's badges use, at a lower background/border
-            alpha than a solid pill so it reads as a quiet inline label, not a loud badge. */}
+            alpha than a solid pill so it reads as a quiet inline label, not a loud badge --
+            except the unrated case, which needs its own higher-contrast neutral style: the
+            fallback gray (#888) at that same low alpha was nearly invisible against the dark
+            background (it read as a stray "—" rather than a tag), unlike the tier colors
+            which stay legible at low alpha because they're bright/saturated. */}
         <div className="cgen">
-          <span className="row-rel-tag" style={{ background: relColor + "14", color: relColor, border: `1px solid ${relColor}33` }}>{rel}</span>
+          {isRated ? (
+            <span className="row-rel-tag" style={{ background: relColor + "14", color: relColor, border: `1px solid ${relColor}33` }}>{rel}</span>
+          ) : (
+            <span className="row-rel-tag row-rel-tag-unrated">Unrated</span>
+          )}
           {" "}{car.years}
         </div>
         <div className="row-tags">
@@ -145,7 +154,11 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
             )}
             {consumptionRange && (
               <span className="row-spec-item">
-                <IconGasStation size={16} stroke={1.5} style={{ color: SPEC_ICON_COLORS.consumption }} />
+                {isElectricOnly ? (
+                  <IconBolt size={16} stroke={1.5} style={{ color: SPEC_ICON_COLORS.consumption }} />
+                ) : (
+                  <IconGasStation size={16} stroke={1.5} style={{ color: SPEC_ICON_COLORS.consumption }} />
+                )}
                 <span>{consumptionRange}</span>
               </span>
             )}

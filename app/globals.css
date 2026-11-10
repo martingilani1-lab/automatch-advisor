@@ -504,6 +504,10 @@ body{font-family:'DM Sans',sans-serif;background:#0e0e0f;color:#f0f0f0;min-heigh
    .row-rel-tag) -- distinct from the plain .rel-pill still used elsewhere (CarDetail.tsx's
    trust row, /prehlad's own CarRow), which stays its own solid pill shape. */
 .db-test-page .row-rel-tag{display:inline-block;font-size:.62rem;font-weight:600;padding:2px 6px;border-radius:4px;vertical-align:middle}
+/* Unrated case: the tier colors' quiet low-alpha look goes nearly invisible with the gray
+   fallback, so this gets its own plainly-visible neutral chip instead (same shape, solid
+   enough border/background to actually read as a tag next to the year). */
+.db-test-page .row-rel-tag-unrated{background:#2a2a2e;color:#9999aa;border:1px solid #3a3a3e}
 /* Power/consumption/drivetrain line under the body/fuel/drivetrain tags -- three icon+value
    pairs (@tabler/icons-react) instead of the plain "·"-joined text this replaced. Text stays
    neutral/light (.row-spec-item span); only the icon itself carries SPEC_ICON_COLORS'
