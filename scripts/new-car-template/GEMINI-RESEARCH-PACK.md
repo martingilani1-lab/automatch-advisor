@@ -45,6 +45,10 @@ market. Buyers make purchase decisions on this data. **A wrong value is worse th
 3. **Every filled value has evidence.** Each table row has an `evidence` cell with refs (`E1`, `E1, E4`)
    to section Q, where each ref is a URL plus a verbatim quote (max ~25 words) that contains the
    value. No quote → `NULL`.
+3b. **The quote must be about this exact phase and variant** (model year, battery, body). A price list
+   of the pre-facelift is not evidence for the facelift; a listing page covering every year of the
+   model is not evidence for one phase's prices; a forum post about one owner's battery is not
+   evidence for a resale rating. Wrong-scope evidence → `NULL`.
 4. **No conversions.** No PS→kW, mph→km/h, NEDC↔WLTP, DIN↔EU weight, gross↔net battery. If the source
    uses a different standard than the STANDARDS table, write `NULL` and put the figure in section R.
 5. **Source priority.** (1) Manufacturer price lists / technical data / press kits for that model
