@@ -44,14 +44,14 @@
 | chassis_type | monocoque |
 | consumption_cycle | WLTP |
 
-*(**BLOCKER — live `catalog_phases_safety_rating_check` is `1..5`, so `safety_rating = 0` is rejected by the database.** A real 0★ result needs that CHECK widened to `0..5` (a reviewed migration) — storing NULL instead would read as "not tested", which is wrong. Euro NCAP 2021: **0 stars**, 43 / 52 / 41 / 14 — the facelift swapped the head-and-thorax side airbag for a thorax-only one. A real 0, not "unrated" — checks that the app shows 0★ rather than treating it as missing.)*
+*(`safety_rating = 0` needs `20261110080000` (CHECK widened to 0..5) to run first. Euro NCAP 2021: **0 stars**, 43 / 52 / 41 / 14 — the facelift swapped the head-and-thorax side airbag for a thorax-only one. A real 0, not "unrated" — checks that the app shows 0★ rather than treating it as missing.)*
 
 ## C. BODIES × PHASE
 
 ### Phase 2
 | phase | body_type | length_mm | width_mm | height_mm | ground_clearance_mm | curb_weight_kg | boot_capacity_liters | boot_max_liters | seats_count | gross_vehicle_weight_kg | payload_kg | fuel_tank_capacity_liters | isofix_count | isofix_front_passenger |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Phase 2 | Hatchback 5-door | 4087 | 1787 | 1562 | NULL | NULL | 338 | 1225 | 5 | NULL | NULL | NULL | 2 | false |
+| Phase 2 | Hatchback 5-door | 4087 | 1787 | 1562 | 120 | NULL | 338 | 1225 | 5 | NULL | NULL | NULL | 2 | false |
 
 ## D. ENGINES
 | code | power_kw | fuel_type | hybrid_type | display_name | alt_codes | displacement_cc | torque_nm | cylinders | emission_standard | timing_type | engine_oil_capacity_liters | timing_replacement_km | has_dpf | has_gpf | has_adblue | injection_type | battery_capacity_net_kwh | max_ac_charging_kw | max_dc_charging_kw | battery_thermal_management | heat_pump |
@@ -94,9 +94,10 @@
 | vehicle | Phase 2 | Heat-pump / AC refrigerant leaks; heating falls back to the weaker resistive heater. | minor | climate |
 
 ## J. CONFIG FACTS
+*(Martin's figures, 2026-11-10: WLTP 17.2 / 17.7 kWh, 1502 kg (both), 0–100 11.4 / 9.5 s, 135 / 140 km/h; ground clearance 120 mm in section C. Ranges: Renault WLTP.)*
 *(Fill-in form: one row per configuration from section G — every real engine × gearbox × drivetrain × body. `NULL` = not known yet; replace with the figure. `consumption_cycle` NULL = the phase default from section B (NEDC / WLTP). `fuel_consumption_l100km` = official combined figure of the engine's own fuel; for EVs use `energy_consumption_kwh100km` + `ev_range_km`. `secondary_fuel_type` + `secondary_consumption_l100km` only for factory bi-fuel (LPG / CNG), both or neither. `towing_unbraked_kg` ≤ `towing_braked_kg`.)*
 
 | phase | engine | gearbox | drivetrain | body | fuel_consumption_l100km | energy_consumption_kwh100km | consumption_cycle | secondary_fuel_type | secondary_consumption_l100km | fuel_consumption_urban_l100km | fuel_consumption_extra_urban_l100km | towing_braked_kg | towing_unbraked_kg | curb_weight_kg | acceleration_0_100 | top_speed_kmh | co2_emissions_g_km | ev_range_km |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Phase 2 | R110@80kW | generic:Single-speed EV | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | 395 |
-| Phase 2 | R135@100kW | generic:Single-speed EV | FWD | Hatchback 5-door | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | NULL | 386 |
+| Phase 2 | R110@80kW | generic:Single-speed EV | FWD | Hatchback 5-door | NULL | 17.2 | WLTP | NULL | NULL | NULL | NULL | NULL | NULL | 1502 | 11.4 | 135 | NULL | 395 |
+| Phase 2 | R135@100kW | generic:Single-speed EV | FWD | Hatchback 5-door | NULL | 17.7 | WLTP | NULL | NULL | NULL | NULL | NULL | NULL | 1502 | 9.5 | 140 | NULL | 386 |

@@ -1460,7 +1460,9 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                 {[{ l: "Adult", v: adult }, { l: "Child", v: child }, { l: "Pedestrian", v: ped }, { l: "Safety Assist", v: assist }].filter((b) => b.v != null).map((b) => (
                   <div key={b.l} className="ncap-bar"><span className="ncap-bl">{b.l}</span><div className="ncap-track"><div className="ncap-fill" style={{ width: b.v + "%", background: (b.v || 0) >= 90 ? "#4caf50" : (b.v || 0) >= 75 ? "#e8ff47" : (b.v || 0) >= 60 ? "#ff9800" : "#f44336" }} /></div><span className="ncap-pv">{b.v}%</span></div>
                 ))}
-                <div className="ncap-verdict" style={{ color: (stars || 0) >= 5 ? "#4caf50" : (stars || 0) >= 4 ? "#e8ff47" : "#ff9800" }}>{(stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}</div>
+                {/* A real 0-star result (Renault Zoe Ph2, 2021 -- 20261110080000 allows it) gets its own red
+                    verdict: "Poor rating" would undersell a car Euro NCAP failed outright. */}
+                <div className="ncap-verdict" style={{ color: stars === 0 ? "#f44336" : (stars || 0) >= 5 ? "#4caf50" : (stars || 0) >= 4 ? "#e8ff47" : "#ff9800" }}>{stars === 0 ? "⛔ 0 stars — failed Euro NCAP" : (stars || 0) >= 5 ? "Outstanding safety" : (stars || 0) >= 4 ? "Good — 4 stars" : (stars || 0) >= 3 ? "⚠️ Below average" : "⚠️ Poor rating"}</div>
               </div>
             ) : <div className="ncap-na">{"⚠️"} Not tested by Euro NCAP</div>}
 
