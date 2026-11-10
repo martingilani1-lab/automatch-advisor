@@ -333,8 +333,8 @@ export default function DbTestView() {
             </div>
           )}
 
-          {sortedList.map((car) => (
-            <CarRow key={car.id} car={car} onOpen={() => openCar(car.id)} selectedFuel={filters.fuel} />
+          {sortedList.map((car, i) => (
+            <CarRow key={car.id} car={car} onOpen={() => openCar(car.id)} selectedFuel={filters.fuel} eagerImage={i === 0} />
           ))}
         </>)}
       </>)}

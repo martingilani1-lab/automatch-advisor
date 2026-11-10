@@ -50,6 +50,14 @@ interface CarRowProps {
   car: CarData;
   onOpen: () => void;
   selectedFuel: string[];
+  // True only for the first row in the (unfiltered, default-sorted) list -- the one row whose
+  // photo is reliably above the fold on first paint and gets picked as the page's Largest
+  // Contentful Paint element. Every other row keeps the default lazy loading; setting this on
+  // more than the one row Chrome actually measures as LCP would just delay those images'
+  // neighbors for no benefit (Next's own image docs warn against `preload` for exactly this
+  // "several images could be the LCP element" case -- `loading="eager"` on just the one row is
+  // the recommended alternative).
+  eagerImage?: boolean;
 }
 
 // Started as a copy of app/prehlad/CarRow.tsx (same layout/classes), drops the lifestyle-
@@ -57,7 +65,7 @@ interface CarRowProps {
 // The reliability tag still renders (rel = "—", REL_COLORS falls back to gray automatically
 // for an unknown key) rather than being cut, since catalog_ cards do carry other real content
 // around it (price/mileage/fuel) worth keeping in the same row shape.
-export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
+export default function CarRow({ car, onOpen, selectedFuel, eagerImage }: CarRowProps) {
   // No price recorded (both ends NULL -> 0) reads as "Price n/a", never "€0–0".
   const price = carPriceMax(car) > 0 ? `€${fmtK(carPriceMin(car))}–${fmtK(carPriceMax(car))}` : "Price n/a";
   const mileage = carMileage(car);
@@ -101,7 +109,7 @@ export default function CarRow({ car, onOpen, selectedFuel }: CarRowProps) {
             alt={`${car.make} ${carModelBase(car)}`}
             fill
             sizes="96px"
-            loading="lazy"
+            loading={eagerImage ? "eager" : "lazy"}
             onError={() => setFailedUrl(car.mainImageUrl!)}
           />
         ) : (
