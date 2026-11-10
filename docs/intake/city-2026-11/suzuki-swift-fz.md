@@ -1,5 +1,10 @@
 # Intake — Suzuki Swift (FZ/NZ, 2010–2017)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Which Swift:** "Swift III" read as the 2010–2017 FZ/NZ generation (the one in the 1 000–5 000 €
 > band; European numbering counts the 1980s/90s Swift as I and the 2004 car as II). If Martin meant
 > the 2017+ AZ, this doc is the wrong car — the AZ is 3★ Euro NCAP 2017 (83/75/69/25).

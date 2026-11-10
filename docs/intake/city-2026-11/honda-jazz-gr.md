@@ -1,5 +1,10 @@
 # Intake — Honda Jazz IV (GR, e:HEV)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Honda` NOT live. Engines NEW. Gearbox REUSES the live
 > `Honda e:HEV eCVT` (family `cvt`). Note for Martin: e:HEV isn't a belt CVT or a power-split —
 > it's series drive plus a single fixed-ratio lock-up clutch. `cvt` gives it the belt-CVT reputation it

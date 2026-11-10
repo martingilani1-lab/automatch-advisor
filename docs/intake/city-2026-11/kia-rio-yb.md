@@ -1,5 +1,10 @@
 # Intake — Kia Rio IV (YB)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Kia` NOT live (shared with the Picanto doc). Engines NEW
 > (G4LA here is 62 kW, not the Picanto's 63 kW). Gearboxes: `Hyundai D7GF1` (7DCT) and the 5MT / 6MT /
 > 6iMT placeholders are the same Hyundai-Kia reference rows as the i20; the 4AT behind the 1.4 MPI is

@@ -1,5 +1,10 @@
 # Intake — Hyundai i10 II (IA)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Hyundai` NOT live (reference migration first). Both
 > engines NEW. Gearboxes: no Hyundai 5MT / 4AT in `transmission_units` — `Hyundai A4CF0` (4AT) is
 > the known Hyundai-Kia code; the 5-speed manual code `M5EF2` is **unverified**. Both STOP until the

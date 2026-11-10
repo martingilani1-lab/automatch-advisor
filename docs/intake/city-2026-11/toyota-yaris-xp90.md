@@ -1,5 +1,10 @@
 # Intake — Toyota Yaris II (XP90)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Toyota` is NOT live → needs the reference migration
 > (`REFERENCE-NEEDED.md`) first. Every engine is NEW. **No Toyota manual / AMT / 4AT / CVT gearbox
 > exists in `transmission_units`** — all gearboxes below STOP until the reference rows are reviewed and

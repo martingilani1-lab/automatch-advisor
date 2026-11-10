@@ -1,5 +1,10 @@
 # Intake — Toyota Yaris IV (XP210)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Toyota` NOT live (shared with the Yaris II doc). Engines NEW
 > (`1KR-FE@53` is a different power from the Yaris II's `1KR-FE@51`). Hybrid gearbox REUSES the live
 > `Toyota Hybrid Synergy eCVT` — after `20261105150000` it should move from family `cvt` to

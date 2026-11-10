@@ -1,5 +1,10 @@
 # Intake — Škoda Fabia II (5J)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Škoda` and model `Fabia` are LIVE (generations NJ, PJ) —
 > this adds generation `5J` under the existing model. Engines REUSE: `CBZB@77`, `BLS@77`, `CAYC@77`.
 > Every other engine below is NEW. Gearboxes all resolve live (`VW MQ200`, `VW DQ200`,

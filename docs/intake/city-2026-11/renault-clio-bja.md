@@ -1,5 +1,10 @@
 # Intake — Renault Clio V (BJA) incl. E-Tech hybrid
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Renault` NOT live (shared with the Zoe doc). Engines NEW.
 > Gearboxes REUSED: `Renault EDC 7-speed (dry)` (TCe 130) and `Renault E-TECH Multi-mode` (E-Tech).
 > The multi-mode is a clutchless dog-clutch box (no friction clutch at all), but it's live as

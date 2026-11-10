@@ -1,5 +1,10 @@
 # Intake — Kia Picanto II (TA)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Kia` NOT live (reference migration first). Engines NEW,
 > except `G3LA@49` which the i10 (IA) doc also declares (same engine: whichever imports first creates
 > it). Gearboxes `Hyundai M5EF2` (**unverified** code) / `Hyundai A4CF0` — shared Hyundai-Kia units,

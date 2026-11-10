@@ -1,5 +1,10 @@
 # Intake — Mazda 2 III (DJ)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Mazda` NOT live. Engines NEW. Gearbox
 > `Mazda Skyactiv-Drive 6AT` IS live (torque converter; a family name, not a factory code — reused as the
 > catalog already does). The two Skyactiv-MT manuals are NOT live → STOP; codes **unverified**, given as

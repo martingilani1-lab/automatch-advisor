@@ -1,5 +1,11 @@
 # Car intake document
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+> Carry this instruction into every new intake document started from this template.
+
 One markdown document, sections **A through J** (J optional), that `scripts/intake-to-template.mjs`
 parses directly into the machine-format CSVs (`car.csv`, `phases.csv`, `dimensions.csv`,
 `engines.csv`, `transmissions.csv`, `drivetrains.csv`, `configs-<phase>.csv`, `trims.csv`,

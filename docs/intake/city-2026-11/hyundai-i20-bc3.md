@@ -1,5 +1,10 @@
 # Intake — Hyundai i20 III (BC3)
 
+> **Data-research instruction:** Act as a strict automotive data researcher. Accuracy is
+> critical. DO NOT guess or infer any values. If you cannot find a verified, exact technical
+> figure for a specific field (especially weights, dimensions, or exact charging speeds),
+> output NULL. I prefer a NULL value that I can fill manually over a hallucinated number.
+
 > **Reconcile (live, 2026-11-05):** brand `Hyundai` NOT live (shared with the i10 doc). Engines NEW.
 > No Hyundai manual / iMT / DCT gearbox in `transmission_units` → STOP. `Hyundai D7GF1` (7-speed dry
 > DCT) is the known Hyundai-Kia small-car DCT code; the 5MT / 6-speed iMT / i20 N 6MT codes are
