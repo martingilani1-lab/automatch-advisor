@@ -237,6 +237,27 @@ export interface CatalogFault {
   category: string | null;
   fault: string;
   severity: string | null;
+  // Repair-buffer facts (20261112150000 / 20261112160000) -- null until those migrations run,
+  // and on every fault nobody has priced yet. Cost is EUR out of warranty (single figure: min =
+  // max). annualProbability is the share of cars meeting it in one year (wear every N years =
+  // 1/N); null keeps the fault OUT of the cost calculator's buffer (listed as "not priced").
+  estimatedCostEurMin: number | null;
+  estimatedCostEurMax: number | null;
+  annualProbability: number | null;
+  // Build years the fault applies to, inclusive; null = open end.
+  affectedYearFrom: number | null;
+  affectedYearTo: number | null;
+  // What a buyer should have checked before buying (shown with the risk), or null.
+  prePurchaseCheck: string | null;
+}
+
+// Per-axle tyre wear for a car that doesn't wear tyres like the generic "set of 4 every
+// 40 000 km" (catalog_phases.tyre_*, 20261112160000). Cost is one PAIR, fitted.
+export interface TyreWear {
+  frontCostEur: number;
+  frontLifeKm: number;
+  rearCostEur: number;
+  rearLifeKm: number;
 }
 
 export interface CatalogMediaItem {
@@ -279,6 +300,8 @@ export interface PhaseBundle {
   configs: CatalogConfig[];
   trims: CatalogTrim[];
   faults: CatalogFault[];
+  // null = the generic tyre figure applies (all four tyre_* columns must be set to use it).
+  tyreWear: TyreWear | null;
   media: CatalogMediaItem[];
   // Tier-1 (model-level) tags of this phase (catalog_phase_tags); [] until tagged.
   tags: ModelLevelTagSlug[];

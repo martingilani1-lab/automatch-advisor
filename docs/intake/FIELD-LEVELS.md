@@ -136,7 +136,9 @@ Table: `catalog_component_faults`
 | field(s) | level | when | pass | note |
 |---|---|---|---|---|
 | at least 1 vehicle fault per phase | **required** |  | 4 reliability + service |  |
-| `estimated_cost_eur_min`, `estimated_cost_eur_max`, `probability` | **required** |  | 4 reliability + service | on every fault: the cost calculator's repair buffer reads them. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A |
+| `estimated_cost_eur_min`, `estimated_cost_eur_max`, `annual_probability` | **required** |  | 4 reliability + service | on every fault: the cost calculator's repair buffer reads them (cost x annual probability). Wear replaced every N years = 1/N. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A |
+| `affected_year_from`, `affected_year_to` | **conditional** | the fault only hit some build years | 4 reliability + service |  |
+| `pre_purchase_check` | optional |  | 4 reliability + service | a check before buying that settles the risk (i3: reinforced motor mount fitted?) |
 | engine fault | **conditional** | engine reliability_rating <= 3 | 4 reliability + service |  |
 | gearbox fault | **conditional** | gearbox reliability_rating <= 3 | 4 reliability + service |  |
 
@@ -156,3 +158,11 @@ Table: `catalog_media`
 | field(s) | level | when | pass | note |
 |---|---|---|---|---|
 | `photos` | optional |  | later | deferred: licensing, separate step |
+
+## Tyre wear
+
+Table: `catalog_phases`
+
+| field(s) | level | when | pass | note |
+|---|---|---|---|---|
+| `tyre_front_cost_eur`, `tyre_front_life_km`, `tyre_rear_cost_eur`, `tyre_rear_life_km` | optional |  | 4 reliability + service | only when the car wears tyres unlike the generic set of 4 per 40 000 km (e.g. rear-driven EV); all four or none |

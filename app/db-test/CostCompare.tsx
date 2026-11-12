@@ -177,7 +177,7 @@ export function CostCompareView({ entries, onChange, onClose, cars, details, loa
       entries.map((entry) => {
         const car = cars.find((c) => c.id === entry.phaseId) ?? null;
         const detail = details[entry.phaseId];
-        const options = car && detail ? buildTcoOptions(detail.configs, carPriceMin(car), carPriceMax(car), representativeYear(car)) : [];
+        const options = car && detail ? buildTcoOptions(detail.configs, carPriceMin(car), carPriceMax(car), representativeYear(car), detail.costFaults ?? [], detail.tyreWear ?? null) : [];
         const option = options.find((o) => o.key === entry.configKey) ?? options[0] ?? null;
         return {
           entry,

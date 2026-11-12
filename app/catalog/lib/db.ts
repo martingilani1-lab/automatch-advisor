@@ -10,6 +10,7 @@ import type {
   EngineMaintenance,
   UnitService,
   PhaseBundle,
+  TyreWear,
 } from "./types";
 // Page-agnostic reference-table shape -- /db-test's CarDetail.tsx already imports this same
 // type from here rather than duplicating it; this follows that precedent instead of adding a
@@ -530,7 +531,23 @@ function transformBundle(
     category: f.category,
     fault: f.fault,
     severity: f.severity,
+    // select("*") above -> these columns are simply absent (undefined -> null) until the
+    // repair-buffer migrations run, same tolerant pattern as the dilemma columns.
+    estimatedCostEurMin: numOrNull(f.estimated_cost_eur_min),
+    estimatedCostEurMax: numOrNull(f.estimated_cost_eur_max),
+    annualProbability: numOrNull(f.annual_probability),
+    affectedYearFrom: numOrNull(f.affected_year_from),
+    affectedYearTo: numOrNull(f.affected_year_to),
+    prePurchaseCheck: strOrNull(f.pre_purchase_check),
   }));
+
+  // Per-axle tyre wear (catalog_phases.tyre_*, from the tolerant select("*") phase row). Only a
+  // complete set of four figures is used -- half an override would mix car-specific and
+  // generic tyre maths on one line.
+  const tw = [extras.phase.tyre_front_cost_eur, extras.phase.tyre_front_life_km, extras.phase.tyre_rear_cost_eur, extras.phase.tyre_rear_life_km].map(numOrNull);
+  const tyreWear: TyreWear | null = tw.every((v) => v != null && v > 0)
+    ? { frontCostEur: tw[0]!, frontLifeKm: tw[1]!, rearCostEur: tw[2]!, rearLifeKm: tw[3]! }
+    : null;
 
   const media: CatalogMediaItem[] = mediaRows.map((m) => ({
     id: m.id,
@@ -571,6 +588,7 @@ function transformBundle(
     configs,
     trims,
     faults,
+    tyreWear,
     media,
     tags: phaseTags,
   };

@@ -89,6 +89,15 @@ affected years / build range and whether the campaign fixed it
 campaign does not by itself lower a reliability rating. (There is no schema column for this yet —
 see open questions.)
 
+**Cost and probability (pass 4).** Every fault carries a repair cost (EUR, out of warranty, SK / CZ)
+and an `annual_probability` — the share of cars that meet it in one year. The Costs tab turns them
+into the repair buffer (cost × probability, `app/db-test/lib/repairBuffer.ts`). A wear item
+replaced every N years is `1/N` (12 V battery every 4 years = 0.25). A rate a source gives over
+several years ("2 % after 10 years") is converted to a yearly one by Claude or Martin, never by the
+research tool. Faults that only hit some build years get `affected_year_from / _to`; a check that
+settles the risk before buying goes in `pre_purchase_check`. A fault without cost or rate stays out
+of the buffer and is listed as not priced — never filled in to make the total look complete.
+
 **EV sources for reliability (pass 4):** ADAC Pannenstatistik (it covers EVs), recall databases
 (EU Safety Gate, KBA, NHTSA for the same platform), manufacturer service campaigns, battery-health
 reports that name the exact model and battery. Generic "EVs are reliable" articles are not evidence.
