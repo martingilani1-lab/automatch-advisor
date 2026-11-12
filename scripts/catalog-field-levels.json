@@ -137,6 +137,7 @@
       "table": "catalog_component_faults",
       "fields": [
         { "fields": ["at least 1 vehicle fault per phase"], "level": "required", "pass": 4 },
+        { "fields": ["estimated_cost_eur_min", "estimated_cost_eur_max", "probability"], "level": "required", "pass": 4, "note": "on every fault: the cost calculator's repair buffer reads them. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A" },
         { "fields": ["engine fault"], "level": "conditional", "when": "engine reliability_rating <= 3", "pass": 4 },
         { "fields": ["gearbox fault"], "level": "conditional", "when": "gearbox reliability_rating <= 3", "pass": 4 }
       ]

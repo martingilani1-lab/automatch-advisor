@@ -270,11 +270,11 @@ is inconsistent. Explain each rating in one line in `rating_reason`.
 *(One row per feature per trim. availability = `standard` or `optional`. feature_group and safety_feature_slug from section P, `NULL` if none fits. Write each feature once, short ("Heated front seats", "LED headlights"). Infotainment: name the screen size and whether Apple CarPlay / Android Auto are standard, optional or not offered.)*
 
 ## I. FAULTS
-| component | target (engine code@kW / gearbox / drivetrain / body) | fault + symptom | affected_years | severity | category | evidence |
-|---|---|---|---|---|---|---|
-| | | | | | | |
+| component | target (engine code@kW / gearbox / drivetrain / body) | fault + symptom | affected_years | severity | category | cost_eur_min | cost_eur_max | probability | evidence |
+|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | |
 
-*(severity: critical = engine / gearbox / battery failure or safety risk; moderate = costly repair, car still drives; minor = annoyance, cheap fix. A fault is a concrete defect — never a comparison ("worse than X") and never a design trait ("harsh ride" → pros / cons). category only for component = vehicle. Engine faults never describe the gearbox or AWD system.)*
+*(cost: repair out of warranty in EUR, SK / CZ independent garage where found; a figure from another market or a dealer goes in with its currency and source in R, and Claude / Martin settle the EUR value. One figure → min = max. probability: `rare` = isolated reports, `occasional` = known pattern hitting a minority of cars, `common` = most cars, or an early-wearing item — never a percentage you can't quote. severity: critical = engine / gearbox / battery failure or safety risk; moderate = costly repair, car still drives; minor = annoyance, cheap fix. A fault is a concrete defect — never a comparison ("worse than X") and never a design trait ("harsh ride" → pros / cons). category only for component = vehicle. Engine faults never describe the gearbox or AWD system.)*
 
 ## J. CONFIGURATION FACTS
 | engine (code@kW) | gearbox | drivetrain | body | fuel_consumption_l100km | energy_consumption_kwh100km | consumption_cycle | ev_range_km | co2_emissions_g_km | curb_weight_kg | acceleration_0_100 | top_speed_kmh | towing_braked_kg | towing_unbraked_kg | secondary_fuel_type | secondary_consumption_l100km | evidence |
@@ -319,6 +319,7 @@ is inconsistent. Explain each rating in one line in `rating_reason`.
 | gearbox type | manual, amt, torque_converter, cvt, power_split, dct_dry, dct_wet, single_speed |
 | reliability_rating | 1, 2, 3, 4, 5 |
 | severity | critical, moderate, minor |
+| probability | rare, occasional, common |
 | fault category (vehicle) | electrical, body_rust, suspension, steering, brakes, climate, interior |
 | availability | standard, optional |
 | feature_group | airbags, ambient_lighting, armrests, bumpers, climate, cruise, fog_lights, headlights, infotainment, instruments, interior_trim, light_rain_sensors, locking, mirrors, parking, rear_spoiler, roof_rails, seat_adjustment, seat_comfort, seats, sliding_doors, smartphone, sound, steering_wheel, suspension, wheels, windows |

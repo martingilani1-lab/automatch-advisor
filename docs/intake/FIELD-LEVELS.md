@@ -136,6 +136,7 @@ Table: `catalog_component_faults`
 | field(s) | level | when | pass | note |
 |---|---|---|---|---|
 | at least 1 vehicle fault per phase | **required** |  | 4 reliability + service |  |
+| `estimated_cost_eur_min`, `estimated_cost_eur_max`, `probability` | **required** |  | 4 reliability + service | on every fault: the cost calculator's repair buffer reads them. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A |
 | engine fault | **conditional** | engine reliability_rating <= 3 | 4 reliability + service |  |
 | gearbox fault | **conditional** | gearbox reliability_rating <= 3 | 4 reliability + service |  |
 
