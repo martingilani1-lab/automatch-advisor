@@ -1,0 +1,160 @@
+{
+  "_comment": [
+    "Field importance levels for a catalog_ car import (Martin, 2026-11-12). The ONE source for which",
+    "fields an intake must fill before a seed may be generated. docs/intake/FIELD-LEVELS.md is rendered",
+    "from this file by scripts/render-field-levels.mjs -- edit here, then re-render, never the other way.",
+    "",
+    "level:",
+    "  required    -- the seed is not generated while this is empty. A value that genuinely cannot be",
+    "                 found goes to Martin: he supplies it (source M), or approves an exception with a",
+    "                 reason (intake section M). A required field is never a reason to guess (CLAUDE.md rule 7).",
+    "  conditional -- required only when `when` holds; otherwise the intake writes N/A.",
+    "  optional    -- filled when a source has it; NULL is fine.",
+    "",
+    "pass: which research pass finds the value (docs/intake/RESEARCH-PROCESS.md).",
+    "  1 identity + configurations, 2 technical data, 3 safety + equipment, 4 reliability + service,",
+    "  5 market data, derived = computed by Claude Code from other data, never researched.",
+    "",
+    "Not enforced by any script yet: validate-template.mjs reading this file is the next step (step 2",
+    "of the intake revision). Until then Claude Code checks it by hand before generating a seed."
+  ],
+  "version": "2026-11-12",
+  "areas": [
+    {
+      "area": "Phase",
+      "table": "catalog_phases",
+      "fields": [
+        { "fields": ["generation_code"], "level": "required", "pass": 1 },
+        { "fields": ["year_from", "year_to"], "level": "required", "pass": 1, "note": "year_to N/A while the phase is still in production" },
+        { "fields": ["platform_code"], "level": "required", "pass": 1 },
+        { "fields": ["chassis_type"], "level": "required", "pass": 1 },
+        { "fields": ["consumption_cycle"], "level": "required", "pass": 1, "note": "template-only default cycle for the phase, not a DB column" },
+        { "fields": ["safety_rating", "ncap_year"], "level": "required", "pass": 3, "note": "safety_rating 0 = tested and failed (0 stars); never tested by Euro NCAP = N/A for both" },
+        { "fields": ["ncap_adult_pct", "ncap_child_pct", "ncap_pedestrian_pct", "ncap_safety_assist_pct"], "level": "conditional", "when": "Euro NCAP test from 2009 on (four-box protocol)", "pass": 3 },
+        { "fields": ["price_range_min_eur", "avg_market_price_eur", "price_range_max_eur"], "level": "required", "pass": 5, "note": "No seed without market research (Martin, 2026-11-12)" },
+        { "fields": ["typical_mileage_range"], "level": "required", "pass": 5, "note": "No seed without market research (Martin, 2026-11-12)" },
+        { "fields": ["resale_value_rating"], "level": "required", "pass": 5 },
+        { "fields": ["towing_capacity_kg"], "level": "required", "pass": 2, "note": "0 = the manufacturer does not permit towing (a fact); NULL = unknown. See RESEARCH-PROCESS.md, towing." }
+      ]
+    },
+    {
+      "area": "Body",
+      "table": "phase_body_dimensions",
+      "fields": [
+        { "fields": ["length_mm", "width_mm", "height_mm"], "level": "required", "pass": 2 },
+        { "fields": ["curb_weight_kg"], "level": "required", "pass": 2, "note": "lightest version of that body; per-configuration weight goes in section J" },
+        { "fields": ["gross_vehicle_weight_kg", "payload_kg"], "level": "required", "pass": 2 },
+        { "fields": ["boot_capacity_liters", "boot_max_liters"], "level": "required", "pass": 2 },
+        { "fields": ["seats_count"], "level": "required", "pass": 2 },
+        { "fields": ["isofix_count", "isofix_front_passenger"], "level": "required", "pass": 3 },
+        { "fields": ["fuel_tank_capacity_liters"], "level": "conditional", "when": "not a pure EV", "pass": 2 },
+        { "fields": ["boot_sill_height_mm"], "level": "conditional", "when": "Estate, Estate Cross, SUV or MPV body", "pass": 2 },
+        { "fields": ["seats_optional_max", "boot_capacity_7_seats_liters"], "level": "conditional", "when": "a 7-seat option was sold", "pass": 2 },
+        { "fields": ["approach_angle_deg", "departure_angle_deg", "breakover_angle_deg", "wading_depth_mm"], "level": "conditional", "when": "off-road category car", "pass": 2 },
+        { "fields": ["ground_clearance_mm"], "level": "optional", "pass": 2 },
+        { "fields": ["roof_load_kg", "nose_weight_kg"], "level": "optional", "pass": 2 }
+      ]
+    },
+    {
+      "area": "Engine - specification",
+      "table": "catalog_engines",
+      "fields": [
+        { "fields": ["code", "power_kw", "fuel_type", "display_name", "torque_nm"], "level": "required", "pass": 2 },
+        { "fields": ["displacement_cc", "cylinders", "emission_standard"], "level": "conditional", "when": "combustion engine", "pass": 2 },
+        { "fields": ["timing_type", "injection_type", "engine_oil_capacity_liters"], "level": "conditional", "when": "combustion engine", "pass": 2 },
+        { "fields": ["hybrid_type"], "level": "conditional", "when": "MHEV, HEV or PHEV", "pass": 2 },
+        { "fields": ["has_dpf", "has_adblue"], "level": "conditional", "when": "diesel", "pass": 2 },
+        { "fields": ["battery_capacity_net_kwh", "max_ac_charging_kw", "max_dc_charging_kw", "battery_thermal_management", "heat_pump"], "level": "conditional", "when": "EV or PHEV (max_dc_charging_kw: only where DC charging was offered)", "pass": 2 },
+        { "fields": ["has_gpf"], "level": "optional", "pass": 2 },
+        { "fields": ["alt_codes"], "level": "optional", "pass": 2 }
+      ]
+    },
+    {
+      "area": "Engine - service",
+      "table": "catalog_engines",
+      "fields": [
+        { "fields": ["reliability_rating"], "level": "required", "pass": 4, "note": "with a one-line reason; a rating of 3 or lower needs a listed fault" },
+        { "fields": ["yearly_maintenance_eur_min", "yearly_maintenance_eur_max"], "level": "required", "pass": 4, "note": "SK / CZ independent garage; Martin's own figure (source M) is valid" },
+        { "fields": ["pros", "cons"], "level": "required", "pass": 4, "note": "engine only, never gearbox or AWD (CLAUDE.md rule 9)" },
+        { "fields": ["maintenance_note"], "level": "required", "pass": 4, "note": "EV: brake fluid, cabin filter, coolant, 12 V battery" },
+        { "fields": ["oil_change_interval_km", "oil_change_interval_months", "oil_spec"], "level": "conditional", "when": "combustion engine", "pass": 4 },
+        { "fields": ["timing_replacement_km", "timing_replacement_years"], "level": "conditional", "when": "combustion engine with a timing belt", "pass": 4 },
+        { "fields": ["oil_service_cost_eur_min", "oil_service_cost_eur_max", "timing_service_cost_eur_min", "timing_service_cost_eur_max"], "level": "optional", "pass": 4 },
+        { "fields": ["air_filter_interval_km", "fuel_filter_interval_km", "spark_plug_interval_km", "spark_plug_cost_eur_min", "spark_plug_cost_eur_max"], "level": "optional", "pass": 4 }
+      ]
+    },
+    {
+      "area": "Gearbox",
+      "table": "transmission_units",
+      "shared": true,
+      "fields": [
+        { "fields": ["family", "speeds"], "level": "required", "pass": 1 },
+        { "fields": ["maker"], "level": "required", "pass": 1, "note": "in-house EV reduction gear with no named supplier: exception allowed (BMW i3, 2026-11-12)" },
+        { "fields": ["reliability_rating"], "level": "required", "pass": 4 },
+        { "fields": ["reliability_note", "maintenance_note"], "level": "required", "pass": 4 },
+        { "fields": ["pros", "cons"], "level": "required", "pass": 4 },
+        { "fields": ["service_interval_km", "service_interval_years", "service_cost_eur_min", "service_cost_eur_max"], "level": "conditional", "when": "automatic gearbox (DCT, torque converter, CVT, AMT); 'filled for life' is written in maintenance_note and the interval is N/A", "pass": 4 },
+        { "fields": ["faults"], "level": "optional", "pass": 4 }
+      ]
+    },
+    {
+      "area": "AWD system",
+      "table": "drivetrain_systems",
+      "shared": true,
+      "fields": [
+        { "fields": ["reliability_rating"], "level": "required", "pass": 4 },
+        { "fields": ["description"], "level": "required", "pass": 1 },
+        { "fields": ["service_interval_km"], "level": "conditional", "when": "the system has a serviceable coupling or transfer case (Haldex, Torsen, transfer box)", "pass": 4 },
+        { "fields": ["service_cost_eur_min", "service_cost_eur_max"], "level": "optional", "pass": 4 }
+      ]
+    },
+    {
+      "area": "Configuration",
+      "table": "catalog_vehicle_configurations",
+      "fields": [
+        { "fields": ["fuel_consumption_l100km or energy_consumption_kwh100km", "consumption_cycle"], "level": "required", "pass": 2 },
+        { "fields": ["acceleration_0_100", "top_speed_kmh"], "level": "required", "pass": 2 },
+        { "fields": ["curb_weight_kg"], "level": "required", "pass": 2 },
+        { "fields": ["ev_range_km"], "level": "conditional", "when": "EV or PHEV", "pass": 2 },
+        { "fields": ["co2_emissions_g_km"], "level": "conditional", "when": "combustion engine or PHEV", "pass": 2 },
+        { "fields": ["towing_braked_kg", "towing_unbraked_kg"], "level": "conditional", "when": "the phase permits towing (towing_capacity_kg > 0)", "pass": 2 },
+        { "fields": ["secondary_fuel_type", "secondary_consumption_l100km"], "level": "conditional", "when": "factory LPG / CNG bi-fuel", "pass": 2 },
+        { "fields": ["fuel_consumption_urban_l100km", "fuel_consumption_extra_urban_l100km"], "level": "optional", "pass": 2, "note": "WLTP does not publish these in this form" },
+        { "fields": ["tire sizes"], "level": "optional", "pass": 2 }
+      ]
+    },
+    {
+      "area": "Trims",
+      "table": "catalog_trims / catalog_trim_features",
+      "fields": [
+        { "fields": ["at least 1 trim per phase"], "level": "required", "pass": 3 },
+        { "fields": ["feature_group on every feature"], "level": "required", "pass": 3 },
+        { "fields": ["safety_feature_slug"], "level": "conditional", "when": "the feature is one of the safety_features vocabulary", "pass": 3 }
+      ]
+    },
+    {
+      "area": "Faults",
+      "table": "catalog_component_faults",
+      "fields": [
+        { "fields": ["at least 1 vehicle fault per phase"], "level": "required", "pass": 4 },
+        { "fields": ["engine fault"], "level": "conditional", "when": "engine reliability_rating <= 3", "pass": 4 },
+        { "fields": ["gearbox fault"], "level": "conditional", "when": "gearbox reliability_rating <= 3", "pass": 4 }
+      ]
+    },
+    {
+      "area": "Tags",
+      "table": "catalog_phase_tags / catalog_configuration_tags",
+      "fields": [
+        { "fields": ["rule-based tags"], "level": "required", "pass": "derived", "note": "re-run every tag-rule migration after the seed (all are ON CONFLICT DO NOTHING); see RESEARCH-PROCESS.md, tags" },
+        { "fields": ["judgement tags"], "level": "optional", "pass": 4 }
+      ]
+    },
+    {
+      "area": "Media",
+      "table": "catalog_media",
+      "fields": [
+        { "fields": ["photos"], "level": "optional", "pass": "later", "note": "deferred: licensing, separate step" }
+      ]
+    }
+  ]
+}

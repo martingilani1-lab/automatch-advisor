@@ -1,22 +1,28 @@
 <!--
-  GEMINI RESEARCH PACK — v2 (2026-11-10). The one document Gemini fills for a new car: every value
-  the database and the website need, nothing left for "later passes".
+  RESEARCH PACK — v3 (2026-11-12). The one document a research tool fills for a car phase: every value
+  the database and the website need. Tool-agnostic: Perplexity (via MCP in Claude Code), Claude Code's
+  own web search, or a chat tool such as Gemini all fill the same format.
+
+  The process around it — five passes, gates, roles, Perplexity budget — is
+  docs/intake/RESEARCH-PROCESS.md. Which fields must be filled before a seed: docs/intake/FIELD-LEVELS.md
+  (generated from scripts/catalog-field-levels.json).
 
   HOW TO USE
-    1. Copy everything from "PART 1" to the end of this file.
-    2. Replace <CAR> and <PHASE> in PART 1 (Claude can do this for you: "Gemini prompt for X").
-    3. Paste into a NEW Gemini chat with Deep Research on. One car, ONE phase per chat.
-    4. Paste Gemini's answer to Claude Code unchanged. Claude checks every quote against its
-       source, maps gearbox / drivetrain names to the database, applies the rule-based tags,
-       and writes the seed file for your review. Gemini's text never goes straight to Supabase.
+    1. Run ONE PASS at a time (PART 1, "Passes"): the tool fills only that pass's sections.
+       Pass 1 first; Martin approves its configuration list (G) before passes 2–5.
+    2. Replace <CAR>, <PHASE> and <PASS> in PART 1 (Claude can do this for you).
+    3. Give the result to Claude Code unchanged. Claude opens every source, checks every quote,
+       maps gearbox / drivetrain names to the database, merges the passes into one intake, runs the
+       completeness check and writes the seed files for Martin's review. Research text never goes
+       straight to Supabase.
 
   NOT in this document, on purpose:
     - Rule-based tags (city_commuter, winter_ready, green_zone, family_ideal, stroller_friendly,
       ultra_efficient, hot_hatch, sleeper, roadtrip_camper, highway_cruiser, representative,
-      head_turner, cargo_van, seven_seater, bulletproof_reliability) — Claude computes them from
-      the data after seeding, the same rules as every other car.
+      head_turner, cargo_van, seven_seater, bulletproof_reliability) — computed by the tag-rule
+      migrations after the seed (RESEARCH-PROCESS.md, "Tags").
     - Photos — licensing; separate media step.
-    - Database codes for gearboxes / drivetrains — Gemini reports what it finds, Claude maps.
+    - Database codes for gearboxes / drivetrains — the tool reports what it finds, Claude maps.
 -->
 
 # PART 1 — INSTRUCTIONS
@@ -26,6 +32,7 @@ market. Buyers make purchase decisions on this data. **A wrong value is worse th
 
 - **Car:** <CAR>  (e.g. "BMW i3 (I01)")
 - **Phase:** <PHASE>  (e.g. "Facelift (LCI), 2017–2022")
+- **Pass:** <PASS>  (1–5, see "Passes" below — fill ONLY that pass's sections; leave the others out)
 - **Market:** EU versions as sold in Slovakia / Czech Republic.
 
 ## Output format — read first
@@ -54,10 +61,14 @@ market. Buyers make purchase decisions on this data. **A wrong value is worse th
 5. **Source priority.** (1) Manufacturer price lists / technical data / press kits for that model
    year; (2) Euro NCAP datasheet for safety; (3) spec databases (auto-data.net, ultimatespecs.com,
    cars-data.com) only for values the manufacturer doesn't publish — pages of one database are ONE
-   source; (4) owner forums, ADAC / TÜV reports, recall databases for faults and reliability;
-   (5) SK / CZ classified sites for market data (section B2 only).
-6. **Sources disagree → `NULL`** and both go in section R — unless one is the manufacturer: use it,
-   still list the other.
+   source; (4) owner forums, ADAC / TÜV reports, recall databases for faults and reliability —
+   for an EV also ADAC Pannenstatistik (it covers EVs), EU Safety Gate / KBA / NHTSA recalls and
+   battery-health reports naming the exact model and battery; generic "EVs are reliable" articles are
+   not evidence; (5) SK / CZ classified sites for market data (section B2 only).
+6. **Sources disagree → `NULL`** and both go in section R — **unless one is the manufacturer's own
+   document: then you MUST use the manufacturer's value**, and list the other in R. Leaving a cell
+   `NULL` when you have already cited a manufacturer document that states the value is an error
+   (it happened 9 times in the first i3 run).
 7. **Codes are never guessed** (engine, gearbox, platform). Only when a source names the code;
    otherwise `NULL` and describe the unit in words. **EV:** when one motor code was used with several
    batteries, the code is `<motor code>-<battery>` (e.g. `IB1P25B-94Ah`) — every row needs a unique
@@ -73,6 +84,35 @@ market. Buyers make purchase decisions on this data. **A wrong value is worse th
     every cell filled (`NULL` / `N/A` when empty). No prose outside the sections.
 12. **Section R is mandatory and honest:** every value you looked for and didn't find, every doubt.
     A long section R is a good result.
+
+## Passes — fill only the sections of yours
+
+| pass | sections | what |
+|---|---|---|
+| 1 | A, B (years, platform, chassis, cycle), E / F (units and names only), G | identity + every factory configuration |
+| 2 | C (except ISOFIX), D, J, B `towing_capacity_kg` | technical data |
+| 3 | B (NCAP), C (ISOFIX columns), H, H2 | safety + equipment |
+| 4 | D2, E / F (service, ratings, pros / cons), I, K, O | reliability + service |
+| 5 | B2 | market data — run last, right before the seed |
+
+Every pass still returns Q (evidence) and R (gaps & doubts) for its own values.
+
+## Values that need a special form
+
+- **`N/A` vs `NULL`.** `N/A` = does not apply to this car (EV oil capacity, AdBlue on petrol, NCAP %
+  before 2009). `NULL` = you looked and didn't find it. Don't use one for the other: a `NULL` is a
+  gap someone will chase, an `N/A` is closed.
+- **Towing.** `towing_capacity_kg = 0` only when a manufacturer document says the car may not tow
+  (no trailer homologation) — quote it. Not finding a towing figure is `NULL`, never `0`: absence
+  from spec sheets is not proof. When the phase is `0`, J's towing columns are `N/A`.
+- **Recalls.** A fault that is really a recall campaign starts with `Recall:` and names the affected
+  years / build range and whether the campaign fixed it. A fixed recall alone does not justify a low
+  reliability rating.
+- **Variant dimensions.** When one engine variant has different body figures from the rest (e.g. a
+  sport or raised version — i3s vs i3), section C carries the base variant; the variant's figures go
+  in R with their quote. Never average them.
+- **Martin's figures** never come from you. If a market or cost value can't be found to the
+  standard, write `NULL`; Martin may supply it later as source `M`.
 
 ## Research order (each step narrows the next)
 
@@ -137,7 +177,8 @@ is inconsistent. Explain each rating in one line in `rating_reason`.
 | towing_braked_kg | braked trailer, 12 % gradient | |
 | safety_rating | Euro NCAP stars 0–5 (0 = tested and failed, `NULL` = never tested) | |
 | ncap_*_pct | tests from 2009 on; earlier tests → `N/A` | |
-| service costs (EUR) | independent garage in SK / CZ, parts + labour, current | main-dealer price → R |
+| service costs (EUR) | independent garage in SK / CZ, parts + labour, current | main-dealer or other-country price → `NULL`, figure in R |
+| towing_capacity_kg | braked, manufacturer; `0` only when the manufacturer states no towing | figure not found → `NULL` |
 
 ## A. CAR
 | field | value | evidence |

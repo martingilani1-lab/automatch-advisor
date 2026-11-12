@@ -1,10 +1,13 @@
 <!--
-  BLANK INTAKE DOCUMENT — v2 draft (2026-11-10). Copy this file to docs/intake/<batch>/<brand>-<model>-<gen>.md
-  and fill it. Full parser reference: scripts/new-car-template/INTAKE.md.
+  BLANK INTAKE DOCUMENT — v3 (2026-11-12). Copy this file to docs/intake/<batch>/<brand>-<model>-<gen>.md
+  and fill it from the verified research passes (docs/intake/RESEARCH-PROCESS.md).
+  Full parser reference: scripts/new-car-template/INTAKE.md.
+  Which fields are required / conditional / optional: docs/intake/FIELD-LEVELS.md — a required or
+  applicable conditional field left empty blocks the seed unless section M records Martin's exception.
 
   Items marked [parser: v2] need the intake-parser upgrade proposed alongside this template
-  (N/A token, VERIFY: prefix, `source` columns, section K). Until that ships, delete those
-  columns / section K before running intake-to-template.mjs.
+  (N/A token, VERIFY: prefix, `source` columns, sections K and M). Until that ships, delete those
+  columns / sections before running intake-to-template.mjs.
 -->
 
 # Intake — <Brand> <Model> (<generation_code>)
@@ -20,7 +23,8 @@ to buyers. If you can't name where a number came from, it is `NULL`.
 fill here" so it stops reporting it as a gap.
 
 **R3 — Every non-NULL value needs a source.** Tables with a `source` column take source tags
-(`S1`, `S2+S3`) defined in section K. One tag per row; a cell from a different source than the
+(`S1`, `S2+S3`) defined in section K. `M` = Martin's own figure (SK / CZ market or his experience),
+always with a one-line reason in K. One tag per row; a cell from a different source than the
 rest of its row goes in the row note (`source` = `S1; weight S3`).
 
 **R4 — No conversions, no derivations.** Never turn NEDC into WLTP, DIN weight into EU, gross
@@ -47,6 +51,13 @@ a new spelling.
 
 **R9 — Only factory configurations.** Section G lists combinations that left the factory, for
 the market the car is sold in (SK / CZ unless stated). No "probably also available with".
+
+**R9b — Towing `0` is a fact, not a default.** `towing_capacity_kg = 0` only when a manufacturer
+document says the car may not tow, or Martin confirms it. Not found → `NULL`. When the phase is `0`,
+section J's towing columns are `N/A`.
+
+**R9c — Recalls are marked.** A fault that is a recall campaign starts with `Recall:` and names the
+affected years / build range and whether the campaign fixed it.
 
 **R10 — Engine content is engine-only.** Pros, cons and faults on an engine row never mention
 the gearbox, clutch or AWD system (CLAUDE.md rule 9); a comparison ("more reliable than X") is
@@ -202,6 +213,13 @@ INHERIT configs FROM <Brand> <Model> <generation_code> Pre-facelift
 | S1 | | |
 
 *(Manufacturer price list / technical data / CoC first; Euro NCAP datasheet for NCAP; independent databases (auto-data.net, ultimatespecs) only for what the manufacturer doesn't publish. Two pages from the same database are ONE source. `M` = Martin's own figure.)*
+
+## M. EXCEPTIONS [parser: v2]
+| field | target | reason | approved |
+|---|---|---|---|
+| | | | |
+
+*(The only way a required or applicable conditional field may stay empty. `target` = phase label, body, `CODE@kW` or unit code. `approved` = "Martin, <date>" — Claude never fills it. Example: `transmission_units.maker | i3 reduction gear | in-house BMW eDrive unit, no named supplier | Martin, 2026-11-12`.)*
 
 ## L. ALLOWED VALUES (generated from scripts/catalog-vocabularies.json + live reference tables, 2026-11-10 — do not edit by hand)
 

@@ -139,6 +139,20 @@ report, for reviewing several cars' decisions at once before generating anything
 
 ## Open items
 
+- **Intake v3 — field levels and research passes (2026-11-12), documents done, scripts next.**
+  `scripts/catalog-field-levels.json` (rendered to `docs/intake/FIELD-LEVELS.md` by
+  `scripts/render-field-levels.mjs`) says which fields are required / conditional / optional;
+  `docs/intake/RESEARCH-PROCESS.md` is the five-pass research process with gates, Perplexity
+  budget and the NULL / N/A / 0 / M conventions; the research pack is renamed
+  `scripts/new-car-template/RESEARCH-PACK.md` (tool-agnostic, per pass). **Next (step 2):**
+  `intake-to-template.mjs` accepts `N/A`, `source` columns and sections K / M; `validate-template.mjs`
+  reads the field-levels JSON and STOPs on an empty required field without an approved exception;
+  the parser reads pack sections D2 / E / F service + ratings, H2 feature groups and trim
+  safety slugs, which today are lost between research and seed. Pilot: BMW i3 (I01).
+- **Tag-rule migrations must be re-run after every car seed** (all `ON CONFLICT DO NOTHING`). New
+  `20261112140000_seed_ev_city_commuter_tag.sql` (review-only): every electric A/B-segment
+  configuration gets `city_commuter`, whatever its kW.
+
 - **Reference-data duplicate-prevention audit (2026-10-08) — closed, pipeline guards now
   live.** `scripts/audit-reference-duplicates.mjs` (read-only, run anytime for a fresh
   report) checked `catalog_engines`/`transmission_units`/`drivetrain_systems`/
