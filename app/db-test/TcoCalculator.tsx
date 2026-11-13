@@ -187,8 +187,9 @@ export default function TcoCalculator({ configs, priceMin, priceMax, manufacture
       <p className="tg">
         Estimate only: average SK/CZ fuel prices, real-world consumption (official +15 %),
         mid-range tyres (or this car&apos;s own tyre wear, where we know it), workshop service
-        prices, and a repair buffer from this car&apos;s priced known faults (or, until those are
-        priced, a reserve from the engine, gearbox and AWD reliability ratings). Depreciation follows the car&apos;s age (middle of its model years): 15 % a year up to 3 years, 10 % to 8, 5 % to 13, then a flat €200.
+        prices, and this car&apos;s known wear parts (or, until we have them, a repair reserve
+        from the engine, gearbox and AWD reliability ratings). Known faults are listed with
+        their repair price but not added to the yearly total. Depreciation follows the car&apos;s age (middle of its model years): 15 % a year up to 3 years, 10 % to 8, 5 % to 13, then a flat €200.
       </p>
     </div>
   );

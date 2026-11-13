@@ -226,10 +226,11 @@ export function calcTco(
   const eTone = reliabilityTone(car.engineReliabilityRating);
   const gTone = reliabilityTone(car.gearbox.reliabilityRating);
   const dTone = car.drivetrain ? reliabilityTone(car.drivetrain.reliabilityRating) : null;
-  // Priced faults -> their expected cost (not mileage-scaled: each rate is already per year).
-  // None priced yet -> the rating-based reserve, unchanged.
+  // Known wear parts (12 V battery, brakes...) -> their yearly share of the replacement cost.
+  // Possible faults are deliberately NOT here (one-off bills, listed separately -- see
+  // ./repairBuffer.ts). No wear data yet -> the rating-based reserve, unchanged.
   const repairs = buffer.hasFaultData
-    ? buffer.faultsYearly
+    ? buffer.partsYearly
     : (REPAIR_RESERVE_EUR[eTone] + UNIT_RESERVE_UPLIFT_EUR[gTone] + (dTone ? UNIT_RESERVE_UPLIFT_EUR[dTone] : 0)) * scale;
   const toneWord = (t: RelTone) => (t === "unknown" ? "not rated" : t);
 
@@ -277,10 +278,10 @@ export function calcTco(
     },
     {
       key: "repairs",
-      label: "Unexpected repairs reserve",
+      label: buffer.hasFaultData ? "Wear parts" : "Unexpected repairs reserve",
       yearly: repairs,
       detail: buffer.hasFaultData
-        ? `Known faults × how often they happen (${buffer.items.filter((i) => i.kind !== "wear-km").length} priced${buffer.unpriced.length ? `, ${buffer.unpriced.length} without data left out` : ""})`
+        ? buffer.wear.filter((w) => w.kind === "time").map((w) => `${w.title} ${w.basis}`).join(" · ")
         : `Engine ${toneWord(eTone)} · gearbox ${toneWord(gTone)}${dTone ? ` · AWD ${toneWord(dTone)}` : ""}`,
     },
     {

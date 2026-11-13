@@ -90,13 +90,21 @@ campaign does not by itself lower a reliability rating. (There is no schema colu
 see open questions.)
 
 **Cost and probability (pass 4).** Every fault carries a repair cost (EUR, out of warranty, SK / CZ)
-and an `annual_probability` — the share of cars that meet it in one year. The Costs tab turns them
-into the repair buffer (cost × probability, `app/db-test/lib/repairBuffer.ts`). A wear item
-replaced every N years is `1/N` (12 V battery every 4 years = 0.25). A rate a source gives over
-several years ("2 % after 10 years") is converted to a yearly one by Claude or Martin, never by the
-research tool. Faults that only hit some build years get `affected_year_from / _to`; a check that
-settles the risk before buying goes in `pre_purchase_check`. A fault without cost or rate stays out
-of the buffer and is listed as not priced — never filled in to make the total look complete.
+and an `annual_probability` — the share of cars that meet it in one year. The Costs tab
+(`app/db-test/lib/repairBuffer.ts`) uses them in two different ways (Martin, 2026-11-14):
+
+- **Wear** — a part replaced every N years has `annual_probability = 1/N` (12 V battery every
+  4 years = 0.25; anything at 0.2 or above counts as wear). Its cost is spread over the year and is
+  part of the yearly total.
+- **Possible fault** — anything below 0.2 (A/C compressor 0.002). Never spread over the year: it is
+  listed with its one-off repair price, how often it happens in words (rare under 1 %, occasional
+  1–5 %, common above 5 % of cars a year) and its `pre_purchase_check`. An owner who meets it pays
+  the whole repair at once, so a yearly share would mislead.
+
+A rate a source gives over several years ("2 % after 10 years") is converted to a yearly one by
+Claude or Martin, never by the research tool. Faults that only hit some build years get
+`affected_year_from / _to`. A fault without a price is still listed, as "repair price not known" —
+never filled in.
 
 **EV sources for reliability (pass 4):** ADAC Pannenstatistik (it covers EVs), recall databases
 (EU Safety Gate, KBA, NHTSA for the same platform), manufacturer service campaigns, battery-health
