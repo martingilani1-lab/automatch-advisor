@@ -137,7 +137,9 @@
       "table": "catalog_component_faults",
       "fields": [
         { "fields": ["at least 1 vehicle fault per phase"], "level": "required", "pass": 4 },
-        { "fields": ["estimated_cost_eur_min", "estimated_cost_eur_max", "probability"], "level": "required", "pass": 4, "note": "on every fault: the cost calculator's repair buffer reads them. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A" },
+        { "fields": ["estimated_cost_eur_min", "estimated_cost_eur_max", "annual_probability"], "level": "required", "pass": 4, "note": "on every fault: the cost calculator's repair buffer reads them (cost x annual probability). Wear replaced every N years = 1/N. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A" },
+        { "fields": ["affected_year_from", "affected_year_to"], "level": "conditional", "when": "the fault only hit some build years", "pass": 4 },
+        { "fields": ["pre_purchase_check"], "level": "optional", "pass": 4, "note": "a check before buying that settles the risk (i3: reinforced motor mount fitted?)" },
         { "fields": ["engine fault"], "level": "conditional", "when": "engine reliability_rating <= 3", "pass": 4 },
         { "fields": ["gearbox fault"], "level": "conditional", "when": "gearbox reliability_rating <= 3", "pass": 4 }
       ]
@@ -155,6 +157,13 @@
       "table": "catalog_media",
       "fields": [
         { "fields": ["photos"], "level": "optional", "pass": "later", "note": "deferred: licensing, separate step" }
+      ]
+    },
+    {
+      "area": "Tyre wear",
+      "table": "catalog_phases",
+      "fields": [
+        { "fields": ["tyre_front_cost_eur", "tyre_front_life_km", "tyre_rear_cost_eur", "tyre_rear_life_km"], "level": "optional", "pass": 4, "note": "only when the car wears tyres unlike the generic set of 4 per 40 000 km (e.g. rear-driven EV); all four or none" }
       ]
     }
   ]

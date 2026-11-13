@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { calcTco, insuranceEstimate, pickCheapest, proratedYearly, rankedLines, type TcoInput, type TcoResult } from "@/app/db-test/lib/tco";
 import { EMPTY_UNIT_SERVICE } from "@/app/catalog/lib/engineMaintenance";
+import { calculateRepairBuffer } from "@/app/db-test/lib/repairBuffer";
 
 const svc = (km: number | null, yrs: number | null, min: number | null, max: number | null) =>
   ({ intervalKm: km, intervalYears: yrs, costEurMin: min, costEurMax: max });
@@ -82,7 +83,7 @@ describe("rankedLines", () => {
 });
 
 describe("pickCheapest", () => {
-  const res = (yearlyTotal: number, incomplete = false): TcoResult => ({ lines: [], yearlyTotal, monthlyTotal: yearlyTotal / 12, incomplete });
+  const res = (yearlyTotal: number, incomplete = false): TcoResult => ({ lines: [], yearlyTotal, monthlyTotal: yearlyTotal / 12, incomplete, buffer: calculateRepairBuffer([], null, 0, null) });
   it("picks the clearly cheapest vehicle", () => {
     expect(pickCheapest([res(5000), res(4200), res(4600)])).toBe(1);
   });

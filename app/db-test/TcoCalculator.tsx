@@ -9,19 +9,26 @@
 
 import { useMemo, useState } from "react";
 
-import type { CatalogConfig } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogFault, TyreWear } from "@/app/catalog/lib/types";
 import type { TcoKey } from "./lib/tco";
 import { ANNUAL_KM_STEP, COUNTRY_COSTS, DEFAULT_ANNUAL_KM, DEFAULT_COUNTRY, MAX_ANNUAL_KM, MIN_ANNUAL_KM, calcTco, rankedLines } from "./lib/tco";
 import { buildTcoOptions } from "./lib/tcoOptions";
 import { MAX_COST_COMPARE } from "./CostCompare";
+import RepairBuffer from "./RepairBuffer";
 
 interface TcoCalculatorProps {
   configs: CatalogConfig[];
   // The phase's market price range (header price) -- its midpoint is the depreciation base.
   priceMin: number;
   priceMax: number;
-  // Representative year of manufacture (middle of the phase's years) for the depreciation curve.
+  // Representative year of manufacture (middle of the phase's years) -- the year picker's default.
   manufactureYear: number | null;
+  // The phase's production years; the picker offers each one. null = no picker.
+  yearSpan?: { from: number; to: number } | null;
+  // The phase's faults with their repair-buffer facts, and its per-axle tyre wear (null =
+  // generic tyre figure). Both feed the repairs / tyre lines and the buffer panel.
+  faults?: CatalogFault[];
+  tyreWear?: TyreWear | null;
   // Wired later to the external insurance comparison (affiliate) portal. Until then the
   // button renders but does nothing -- deliberately a placeholder, not a fake quote.
   onInsuranceClick?: () => void;
@@ -37,9 +44,15 @@ const fmtEur = (n: number) => `€${Math.round(n).toLocaleString("en-US").replac
 const fmtKm = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} km`;
 const pct = (share: number) => `${Math.round(share * 100)} %`;
 
-export default function TcoCalculator({ configs, priceMin, priceMax, manufactureYear, onInsuranceClick, onAddToCompare, comparedKeys = [], compareCount = 0 }: TcoCalculatorProps) {
+export default function TcoCalculator({ configs, priceMin, priceMax, manufactureYear, yearSpan = null, faults = [], tyreWear = null, onInsuranceClick, onAddToCompare, comparedKeys = [], compareCount = 0 }: TcoCalculatorProps) {
+  // The build year drives depreciation AND which faults apply (some only hit early cars), so the
+  // user can pick the year of the car they are looking at; default = middle of the phase.
+  const [pickedYear, setPickedYear] = useState<number | null>(null);
+  const years = yearSpan ? Array.from({ length: yearSpan.to - yearSpan.from + 1 }, (_, i) => yearSpan.from + i) : [];
+  const year = pickedYear != null && years.includes(pickedYear) ? pickedYear : manufactureYear;
+
   // Same order as the Configurations tab: fuel group, then smallest engine first.
-  const options = useMemo(() => buildTcoOptions(configs, priceMin, priceMax, manufactureYear), [configs, priceMin, priceMax, manufactureYear]);
+  const options = useMemo(() => buildTcoOptions(configs, priceMin, priceMax, year, faults, tyreWear), [configs, priceMin, priceMax, year, faults, tyreWear]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [annualKm, setAnnualKm] = useState(DEFAULT_ANNUAL_KM);
@@ -82,6 +95,18 @@ export default function TcoCalculator({ configs, priceMin, priceMax, manufacture
               ? `Cost comparison full (${MAX_COST_COMPARE})`
               : "+ Compare costs with other models"}
         </button>
+      )}
+
+      {years.length > 1 && (
+        <label className="tco-field">
+          <span className="cgrid-label">Year of manufacture</span>
+          <select value={year ?? ""} onChange={(e) => setPickedYear(Number(e.target.value))}>
+            {years.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <span className="tg">Affects depreciation and faults that only hit some build years</span>
+        </label>
       )}
 
       <label className="tco-field">
@@ -148,6 +173,8 @@ export default function TcoCalculator({ configs, priceMin, priceMax, manufacture
         ))}
       </ul>
 
+      <RepairBuffer buffer={tco.buffer} annualKm={annualKm} vehicleYear={year} />
+
       {missing.length > 0 && (
         <div className="tco-missing">
           <div className="cgrid-label">Not included in the total (no data yet)</div>
@@ -159,8 +186,10 @@ export default function TcoCalculator({ configs, priceMin, priceMax, manufacture
 
       <p className="tg">
         Estimate only: average SK/CZ fuel prices, real-world consumption (official +15 %),
-        mid-range tyres, workshop service prices and a repair reserve from the engine, gearbox
-        and AWD reliability ratings. Depreciation follows the car&apos;s age (middle of its model years): 15 % a year up to 3 years, 10 % to 8, 5 % to 13, then a flat €200.
+        mid-range tyres (or this car&apos;s own tyre wear, where we know it), workshop service
+        prices, and this car&apos;s known wear parts (or, until we have them, a repair reserve
+        from the engine, gearbox and AWD reliability ratings). Known faults are listed with
+        their repair price but not added to the yearly total. Depreciation follows the car&apos;s age (middle of its model years): 15 % a year up to 3 years, 10 % to 8, 5 % to 13, then a flat €200.
       </p>
     </div>
   );

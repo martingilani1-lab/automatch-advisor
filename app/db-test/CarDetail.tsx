@@ -26,7 +26,7 @@ import { resolveTags } from "@/app/catalog/lib/tags";
 import { CompareBar, EngineCompareView } from "./EngineCompare";
 import { MAX_COMPARE } from "./lib/engineCompare";
 import TcoCalculator from "./TcoCalculator";
-import { representativeYear } from "./lib/tco";
+import { phaseYearSpan, representativeYear } from "./lib/tco";
 import type { DetailData, DetailDrivetrainGroup, DetailEngine, DetailGearboxGroup, DetailFaultItem } from "./types";
 
 const fmtK = (v: number) => (v >= 1000 ? Math.round(v / 1000) + "k" : String(v));
@@ -1288,6 +1288,9 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
               priceMin={carPriceMin(car)}
               priceMax={carPriceMax(car)}
               manufactureYear={representativeYear(car)}
+              yearSpan={phaseYearSpan(car)}
+              faults={detail?.costFaults ?? []}
+              tyreWear={detail?.tyreWear ?? null}
               onAddToCompare={onAddCostCompare}
               comparedKeys={costComparedKeys}
               compareCount={costCompareCount}

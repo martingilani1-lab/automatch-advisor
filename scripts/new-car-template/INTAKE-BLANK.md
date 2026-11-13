@@ -194,9 +194,9 @@ INHERIT configs FROM <Brand> <Model> <generation_code> Pre-facelift
 *(Standard equipment only, comma-separated. An option sold on every trim (heat pump, Professional navigation) is not a trim — list it in the trim note.)*
 
 ## I. FAULTS
-| component_type | target_code | fault | severity | category | estimated_cost_eur_min [parser: v2] | estimated_cost_eur_max [parser: v2] | probability [parser: v2] | source |
-|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | |
+| component_type | target_code | fault | severity | category | estimated_cost_eur_min [parser: v2] | estimated_cost_eur_max [parser: v2] | annual_probability [parser: v2] | affected_year_from [parser: v2] | affected_year_to [parser: v2] | pre_purchase_check [parser: v2] | source |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | | |
 
 *(`engine` target = `CODE` or `CODE@kW`; `gearbox` = unit code; `drivetrain` = system code; `vehicle` = this document's phase label + a required `category`. A fault is a concrete defect with its symptom — never a comparison, never a design trait ("harsh ride" is a con).)*
 
@@ -244,5 +244,5 @@ INHERIT configs FROM <Brand> <Model> <generation_code> Pre-facelift
 | drivetrain type (reference rows) | haldex, torsen, permanent, on_demand, dual_motor, part_time |
 | secondary_fuel_type | petrol, lpg, cng |
 | fault severity | critical, moderate, minor |
-| fault probability | rare, occasional, common |
+| fault annual_probability | decimal 0 < p ≤ 1 (0.02 = 2 % a year; wear every N years = 1/N) |
 | fault category (vehicle faults only) | electrical, body_rust, suspension, steering, brakes, climate, interior |
