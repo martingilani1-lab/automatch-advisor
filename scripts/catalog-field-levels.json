@@ -74,7 +74,7 @@
       "table": "catalog_engines",
       "fields": [
         { "fields": ["reliability_rating"], "level": "required", "pass": 4, "note": "with a one-line reason; a rating of 3 or lower needs a listed fault" },
-        { "fields": ["yearly_maintenance_eur_min", "yearly_maintenance_eur_max"], "level": "required", "pass": 4, "note": "SK / CZ independent garage; Martin's own figure (source M) is valid" },
+        { "fields": ["yearly_maintenance_eur_min", "yearly_maintenance_eur_max"], "level": "conditional", "when": "combustion engine, or an EV with a range extender (pure EV: N/A -- no engine servicing, the Costs tab leaves the line out; Martin, 2026-11-14)", "pass": 4, "note": "SK / CZ independent garage; Martin's own figure (source M) is valid" },
         { "fields": ["pros", "cons"], "level": "required", "pass": 4, "note": "engine only, never gearbox or AWD (CLAUDE.md rule 9)" },
         { "fields": ["maintenance_note"], "level": "required", "pass": 4, "note": "EV: brake fluid, cabin filter, coolant, 12 V battery" },
         { "fields": ["oil_change_interval_km", "oil_change_interval_months", "oil_spec"], "level": "conditional", "when": "combustion engine", "pass": 4 },

@@ -139,6 +139,11 @@ report, for reviewing several cars' decisions at once before generating anything
 
 ## Open items
 
+- **BMW i3 REx (range extender) is not in the catalog.** The i3 60 Ah / 94 Ah / 120 Ah were also
+  sold with a 650 cc petrol range extender (Martin, 2026-11-14). When it is imported, its engine
+  row needs a yearly maintenance figure (oil, plugs for the generator): the Costs tab hides engine
+  servicing only for an electric engine WITHOUT one, so the REx line will appear by itself.
+
 - **Intake v3 — field levels and research passes (2026-11-12), documents done, scripts next.**
   `scripts/catalog-field-levels.json` (rendered to `docs/intake/FIELD-LEVELS.md` by
   `scripts/render-field-levels.mjs`) says which fields are required / conditional / optional;

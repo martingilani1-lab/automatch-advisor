@@ -70,7 +70,7 @@ Table: `catalog_engines`
 | field(s) | level | when | pass | note |
 |---|---|---|---|---|
 | `reliability_rating` | **required** |  | 4 reliability + service | with a one-line reason; a rating of 3 or lower needs a listed fault |
-| `yearly_maintenance_eur_min`, `yearly_maintenance_eur_max` | **required** |  | 4 reliability + service | SK / CZ independent garage; Martin's own figure (source M) is valid |
+| `yearly_maintenance_eur_min`, `yearly_maintenance_eur_max` | **conditional** | combustion engine, or an EV with a range extender (pure EV: N/A -- no engine servicing, the Costs tab leaves the line out; Martin, 2026-11-14) | 4 reliability + service | SK / CZ independent garage; Martin's own figure (source M) is valid |
 | `pros`, `cons` | **required** |  | 4 reliability + service | engine only, never gearbox or AWD (CLAUDE.md rule 9) |
 | `maintenance_note` | **required** |  | 4 reliability + service | EV: brake fluid, cabin filter, coolant, 12 V battery |
 | `oil_change_interval_km`, `oil_change_interval_months`, `oil_spec` | **conditional** | combustion engine | 4 reliability + service |  |

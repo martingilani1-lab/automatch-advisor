@@ -62,7 +62,7 @@ export default function RepairBuffer({ buffer, annualKm, vehicleYear }: RepairBu
         <div className="rb-head">
           <div className="cgrid-label">
             Wear &amp; tear{" "}
-            <Tip text="Parts that will need replacing while you own the car, spread over their usual life. Already included in the yearly total above." />
+            <Tip text="Parts that will need replacing while you own the car, spread over their usual life, plus seasonal tyre swaps. The same money as the Tyres and Wear parts lines above, not added on top." />
           </div>
           <div className="rb-total">
             {eur10(buffer.wearYearly)}<span className="rb-total-unit"> / year</span>
@@ -77,7 +77,7 @@ export default function RepairBuffer({ buffer, annualKm, vehicleYear }: RepairBu
                   <span className="rb-item-title">{w.title}</span>
                   <span className="rb-item-val">{eur10(w.yearly)}<span className="tg"> / year</span></span>
                 </div>
-                <div className="tg">{eur(w.costEur)} {w.kind === "km" ? "a pair" : "each time"} · {w.basis}</div>
+                <div className="tg">{eur(w.costEur)} {w.kind === "km" ? "a pair" : w.kind === "swap" ? "per swap" : "each time"} · {w.basis}</div>
               </li>
             ))}
           </ul>

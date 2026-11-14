@@ -216,7 +216,10 @@ export function calcTco(
   // Car-specific data first (./repairBuffer.ts): per-axle tyre wear and priced faults replace the
   // generic tyre figure and the rating-based reserve. Year = the car's (representative or picked)
   // build year, so a fault limited to early cars drops out for later ones.
-  const buffer = calculateRepairBuffer(car.faults ?? [], car.tyreWear ?? null, annualKm, car.manufactureYear);
+  // Seasonal swaps go into the buffer too, so the Wear & tear panel adds up to exactly the
+  // "Tyres & seasonal swaps" + "Wear parts" lines above it (Martin, 2026-11-14).
+  const buffer = calculateRepairBuffer(car.faults ?? [], car.tyreWear ?? null, annualKm, car.manufactureYear,
+    { count: TIRE_SWAPS_PER_YEAR, costEach: costs.tireSwapCostEur });
   const swaps = costs.tireSwapCostEur * TIRE_SWAPS_PER_YEAR;
   const tires = buffer.tyresYearly != null
     ? buffer.tyresYearly + swaps
@@ -256,8 +259,13 @@ export function calcTco(
         ? `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`
         : "No consumption data",
     },
-    {
-      key: "engine",
+    // A pure EV has no engine servicing (no oil, filters, plugs or belt) -- the line is left
+    // out rather than shown as "no data", which would also mark the whole total incomplete.
+    // Brake fluid / cabin filter are deliberately not modelled either (Martin, 2026-11-14:
+    // nobody changes them until needed). An electric engine WITH a yearly figure -- e.g. a
+    // range extender's petrol generator -- still gets the line.
+    ...(fuelKey === "electric" && car.engineYearlyServiceEur == null ? [] : [{
+      key: "engine" as const,
       label: "Engine servicing",
       yearly: engine,
       detail: car.engineYearlyServiceEur == null
@@ -265,8 +273,12 @@ export function calcTco(
         : belt > 0
           ? `Oil, filters, plugs ${eur(car.engineYearlyServiceEur)} + timing belt ${eur(belt)} (prorated)`
           : `Oil, filters, plugs ${eur(car.engineYearlyServiceEur)}`,
-    },
-    unitServiceLine("gearbox", "Gearbox service", car.gearbox, annualKm),
+    }]),
+    // Same for an EV's single-speed reduction gear: "filled for life", no service price --
+    // left out instead of a "no data" line that would mark the total incomplete. A gearbox that
+    // does have a service price (e.g. a 2-speed unit) still shows it.
+    ...(fuelKey === "electric" && proratedYearly(car.gearbox.service, annualKm) == null
+      ? [] : [unitServiceLine("gearbox", "Gearbox service", car.gearbox, annualKm)]),
     ...(car.drivetrain ? [unitServiceLine("drivetrain", "AWD service", car.drivetrain, annualKm)] : []),
     {
       key: "tires",

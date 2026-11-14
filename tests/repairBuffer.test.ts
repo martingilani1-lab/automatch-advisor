@@ -104,6 +104,29 @@ describe("calcTco with wear data", () => {
     expect(line(r, "repairs")?.label).toBe("Unexpected repairs reserve");
     expect(line(r, "tires")?.yearly).toBeCloseTo(150 + 90);
   });
+  it("makes the Wear & tear panel add up to the Tyres + Wear parts lines", () => {
+    const r = calcTco({ ...ev, faults: i3Faults, tyreWear: tyres }, 15000, 2026);
+    expect(r.buffer.wearYearly).toBeCloseTo((line(r, "tires")?.yearly ?? 0) + (line(r, "repairs")?.yearly ?? 0));
+    expect(r.buffer.wear.find((w) => w.kind === "swap")).toMatchObject({ title: "Seasonal tyre swaps", yearly: 90, basis: "2× a year" });
+  });
+  it("leaves out engine servicing for an EV with no service figure (no 'no data' line)", () => {
+    const r = calcTco({ ...ev, engineYearlyServiceEur: null }, 15000, 2026);
+    expect(line(r, "engine")).toBeUndefined();
+    expect(r.lines.filter((l) => l.yearly == null).map((l) => l.key)).not.toContain("engine");
+  });
+  it("leaves out an EV's unpriced reduction gear, so the total is complete", () => {
+    const r = calcTco({ ...ev, engineYearlyServiceEur: null }, 15000, 2026);
+    expect(line(r, "gearbox")).toBeUndefined();
+    expect(r.incomplete).toBe(false);
+  });
+  it("keeps engine servicing for an electric engine that has a service figure (range extender)", () => {
+    expect(line(calcTco(ev, 15000, 2026), "engine")?.yearly).toBe(135);
+  });
+  it("still shows a combustion engine's missing service figure as no data", () => {
+    const r = calcTco({ ...ev, fuelType: "petrol", engineYearlyServiceEur: null }, 15000, 2026);
+    expect(line(r, "engine")?.yearly).toBeNull();
+    expect(r.incomplete).toBe(true);
+  });
   it("keeps the rating reserve when the car has faults but no wear parts", () => {
     const onlyRisk = i3Faults.filter((f) => (f.annualProbability ?? 0) < 0.2);
     expect(line(calcTco({ ...ev, faults: onlyRisk }, 15000, 2026), "repairs")?.yearly).toBe(200);

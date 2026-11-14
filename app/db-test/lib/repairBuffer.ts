@@ -35,7 +35,7 @@ export interface BufferFault {
 }
 
 export interface WearItem {
-  kind: "time" | "km";
+  kind: "time" | "km" | "swap";
   title: string;
   fault: string | null; // full fault text (tooltip); null for tyres
   costEur: number; // one replacement / one pair of tyres
@@ -57,7 +57,7 @@ export interface PossibleFault {
 
 export interface RepairBuffer {
   wear: WearItem[]; // biggest yearly first
-  wearYearly: number; // everything in `wear` -- the yearly figure shown to the buyer
+  wearYearly: number; // everything in `wear` (parts + tyres + swaps) -- the yearly figure shown to the buyer
   partsYearly: number; // wear by time only (what replaces the generic repair reserve)
   tyresYearly: number | null; // wear by km only; null = no car-specific tyre data
   possibleFaults: PossibleFault[]; // most severe, then most expensive first
@@ -109,6 +109,9 @@ export function calculateRepairBuffer(
   tyreWear: TyreWear | null,
   annualKm: number,
   vehicleYear: number | null,
+  // Seasonal tyre swaps (garage labour), shown as a wear row so the panel's total equals the
+  // Costs tab's tyre + wear-parts lines. null = leave out.
+  seasonalSwaps: { count: number; costEach: number } | null = null,
 ): RepairBuffer {
   const wear: WearItem[] = [];
   const possibleFaults: PossibleFault[] = [];
@@ -148,14 +151,19 @@ export function calculateRepairBuffer(
     );
   }
 
+  if (seasonalSwaps && seasonalSwaps.count > 0) {
+    wear.push({ kind: "swap", title: "Seasonal tyre swaps", fault: null, costEur: seasonalSwaps.costEach, yearly: seasonalSwaps.count * seasonalSwaps.costEach, basis: `${seasonalSwaps.count}× a year` });
+  }
+
   wear.sort((a, b) => b.yearly - a.yearly);
   possibleFaults.sort((a, b) =>
     (SEVERITY_ORDER[a.severity ?? ""] ?? 3) - (SEVERITY_ORDER[b.severity ?? ""] ?? 3)
     || (b.costMax ?? -1) - (a.costMax ?? -1));
   const partsYearly = wear.filter((w) => w.kind === "time").reduce((s, w) => s + w.yearly, 0);
+  const swapsYearly = wear.filter((w) => w.kind === "swap").reduce((s, w) => s + w.yearly, 0);
   return {
     wear,
-    wearYearly: partsYearly + (tyresYearly ?? 0),
+    wearYearly: partsYearly + (tyresYearly ?? 0) + swapsYearly,
     partsYearly,
     tyresYearly,
     possibleFaults,
