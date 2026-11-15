@@ -8,6 +8,7 @@
 // and /db-test, both of which already operate on the same CatalogConfig[] shape
 // (PhaseBundle.configs).
 import type { CatalogConfig, CatalogDrivetrain, CatalogEngine, CatalogGearbox } from "./types";
+import { drivetrainLabel } from "./configDisplay";
 
 export interface EngineGroup {
   engine: CatalogEngine;
@@ -35,9 +36,11 @@ function distinct<T>(items: T[]): T[] {
   return [...new Set(items)];
 }
 
-export function drivetrainLabel(c: CatalogConfig): string {
-  return c.drivetrain?.code ?? "FWD";
-}
+// The engine/gearbox chips use configDisplay's drivetrainLabel (imported above) -- the same
+// label the Configurations rows show. This file used to keep its own copy that fell back to
+// "FWD" for every config without an AWD system, which labelled the rear-driven BMW i3 (and
+// every other RWD car with no drivetrain_systems row) as FWD on its Engines/Gearboxes chips
+// while the database correctly said driven_axle = 'rear'.
 
 export function groupConfigurations(configs: CatalogConfig[]): EngineGroup[] {
   const byEngine = new Map<string, CatalogConfig[]>();
