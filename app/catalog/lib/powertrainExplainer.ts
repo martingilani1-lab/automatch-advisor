@@ -29,7 +29,7 @@ export const POWERTRAIN_EXPLAINERS: Record<PowertrainKind, PowertrainExplainer> 
   EREV: {
     title: "Electric with range extender (EREV)",
     body:
-      "The wheels are always driven by the electric motor. A small petrol engine works only as a generator: when the battery runs low it starts and makes electricity, it never drives the wheels. Charge it like an EV for daily driving; the petrol tank is a reserve for longer trips. It is two units in one car -- the electric drive and the range extender -- shown separately below.",
+      "The wheels are always driven by the electric motor. A small petrol engine works only as a generator: when the battery runs low it starts and makes electricity, it never drives the wheels. Charge it like an EV for daily driving; the petrol tank is a reserve for longer trips. It is two units in one car -- the electric drive and the range extender -- so their figures are shown as two separate groups.",
   },
   PHEV: {
     title: "Plug-in hybrid (PHEV)",

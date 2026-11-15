@@ -12,6 +12,7 @@ import { gearboxHeaderLabel, gearboxTypeLabel } from "@/app/catalog/lib/gearboxL
 import { drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
 import { maintenanceRows, yearlyMaintenanceLabel } from "@/app/catalog/lib/engineMaintenance";
+import { POWERTRAIN_EXPLAINERS, powertrainKind } from "@/app/catalog/lib/powertrainExplainer";
 import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, safetyEquipmentAvailability, safetyEquipmentAvailabilityLabel, distinctSafetyFeatureSlugs, trimFeatureCategory, TRIM_CATEGORY_ORDER, TRIM_CATEGORY_LABELS, type CompareRow, type ResolvedFeatureRow } from "@/app/catalog/lib/trimsDisplay";
 import type { CatalogConfig, CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
@@ -364,6 +365,37 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
   const [maintOpen, setMaintOpen] = useState(false);
   const maintRows = maintenanceRows(engine.maintenance, engine.timing_type, engine.timing_replacement_km);
   const yearly = yearlyMaintenanceLabel(engine.maintenance);
+  // "How it works" tile for an electrified engine row -- which is really a combination of
+  // units (motor, battery, sometimes a petrol engine). Same click-to-reveal tile + .maint-card
+  // DrivetrainAccordion uses for its Description; the text is generic per powertrain kind
+  // (app/catalog/lib/powertrainExplainer.ts), never one car's numbers.
+  const [howOpen, setHowOpen] = useState(false);
+  const kind = powertrainKind({ fuelType: engine.fuel_type, hybridType: engine.hybrid_type });
+  const explainer = kind ? POWERTRAIN_EXPLAINERS[kind] : null;
+  // A range extender (EREV) row mixes the motor's figures (125 kW, battery, charging) with the
+  // petrol generator's (647 cm³, 2 cylinders, chain) -- shown as two labelled groups so it
+  // doesn't read as one engine that doesn't exist.
+  const isRangeExtender = kind === "EREV";
+  const engineTiles = {
+    displacement: engine.displacement_cc != null && (
+      <div className="cgrid-item">
+        <div className="cgrid-label">Displacement</div>
+        <div className="cgrid-val">{engine.displacement_cc} cm³</div>
+      </div>
+    ),
+    torque: engine.torque_nm != null && (
+      <div className="cgrid-item">
+        <div className="cgrid-label">{isRangeExtender ? "Motor torque" : "Torque"}</div>
+        <div className="cgrid-val">{engine.torque_nm} Nm</div>
+      </div>
+    ),
+    cylinders: cylinders != null && (
+      <div className="cgrid-item">
+        <div className="cgrid-label">Cylinders</div>
+        <div className="cgrid-val">{cylinders}</div>
+      </div>
+    ),
+  };
 
   return (
     <div id={`engine-${engine.id}`} className={`eng-card${isOpen ? " open" : ""}`} onClick={onToggle}>
@@ -401,25 +433,26 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
       {isOpen && (
         <div className="eng-body">
           <Chips items={engine.bodyNames} />
+          {isRangeExtender && (<>
+            <div className="sub-label">{"⛽"} Range extender — petrol generator, charges the battery only</div>
+            <div className="cgrid">
+              {engineTiles.displacement}
+              {engineTiles.cylinders}
+              {engine.timing_type && (
+                <div className="cgrid-item"><div className="cgrid-label">Timing</div><div className="cgrid-val">{cap(engine.timing_type)}</div></div>
+              )}
+            </div>
+            <div className="sub-label">{"⚡"} Electric drive — motor + battery, drives the wheels</div>
+          </>)}
           <div className="cgrid">
-            {engine.displacement_cc != null && (
+            {isRangeExtender ? (
               <div className="cgrid-item">
-                <div className="cgrid-label">Displacement</div>
-                <div className="cgrid-val">{engine.displacement_cc} cm³</div>
+                <div className="cgrid-label">Motor power</div>
+                <div className="cgrid-val">{engine.power_kw} kW</div>
               </div>
-            )}
-            {engine.torque_nm != null && (
-              <div className="cgrid-item">
-                <div className="cgrid-label">Torque</div>
-                <div className="cgrid-val">{engine.torque_nm} Nm</div>
-              </div>
-            )}
-            {cylinders != null && (
-              <div className="cgrid-item">
-                <div className="cgrid-label">Cylinders</div>
-                <div className="cgrid-val">{cylinders}</div>
-              </div>
-            )}
+            ) : engineTiles.displacement}
+            {engineTiles.torque}
+            {!isRangeExtender && engineTiles.cylinders}
             {/* Exhaust after-treatment (catalog_engines.has_dpf / has_adblue / has_gpf), by fuel:
                 - diesel: DPF and AdBlue always as an explicit Yes / No -- a diesel WITHOUT a DPF
                   is a selling point, so "No" is real information. Not recorded yet (null) is
@@ -456,19 +489,36 @@ function EngineAccordion({ engine, gapsMode, isOpen, onToggle, selected, selectD
               <div className="cgrid-item"><div className="cgrid-label">Heat pump</div><div className="cgrid-val">{HEAT_PUMP_LABELS[engine.ev.heatPump] ?? engine.ev.heatPump}</div></div>
             )}
           </div>
-          {maintRows.length > 0 || yearly ? (
+          {(explainer || maintRows.length > 0 || yearly) && (
             <div className="cgrid">
-              <div
-                className="cgrid-item cgrid-item-btn"
-                onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
-              >
-                <div className="cgrid-val">
-                  {"🔧"} Maintenance{yearly ? <span style={{ color: "#9999aa", fontWeight: 400 }}> · {yearly}</span> : null} {maintOpen ? "▴" : "▾"}
+              {explainer && (
+                <div
+                  className="cgrid-item cgrid-item-btn"
+                  onClick={(e) => { e.stopPropagation(); setHowOpen((v) => !v); }}
+                >
+                  <div className="cgrid-val">{"📄"} How it works {howOpen ? "▴" : "▾"}</div>
                 </div>
-              </div>
+              )}
+              {(maintRows.length > 0 || yearly) && (
+                <div
+                  className="cgrid-item cgrid-item-btn"
+                  onClick={(e) => { e.stopPropagation(); setMaintOpen((v) => !v); }}
+                >
+                  <div className="cgrid-val">
+                    {"🔧"} Maintenance{yearly ? <span style={{ color: "#9999aa", fontWeight: 400 }}> · {yearly}</span> : null} {maintOpen ? "▴" : "▾"}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <MissingMarker gapsMode={gapsMode} label="maintenance" />
+          )}
+          {maintRows.length === 0 && !yearly && <MissingMarker gapsMode={gapsMode} label="maintenance" />}
+          {howOpen && explainer && (
+            <div className="maint-card" onClick={(e) => e.stopPropagation()}>
+              <div className="maint-item" style={{ color: "#e4e4e7", fontWeight: 600 }}>{explainer.title}</div>
+              {splitSentences(explainer.body).map((s, si) => (
+                <div key={si} className="maint-item">{s}</div>
+              ))}
+            </div>
           )}
           {maintOpen && (maintRows.length > 0 || yearly) && (
             <div className="maint-card" onClick={(e) => e.stopPropagation()}>
