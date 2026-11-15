@@ -33,7 +33,7 @@ Evidence refs (`E…`) are listed in section 7. "Found by": **C** = Claude's own
 | M7 | rating | **4** for the REx | see 2f for the combined-row question | decided |
 | M8 | F3 coolant tank | repair **€300–500** (source M: labour-heavy, tight packaging, cracked plastic) | `estimated_cost_eur_min/max = 300/500` | decided |
 | M9 | F2 tank pressure sensor | repair **€250–400** (source M) | `estimated_cost_eur_min/max = 250/400` | decided |
-| M10 | frequency | **occasional** for pre-facelift (2013–2016), **rare** for facelift | needs a number for `annual_probability` (RESEARCH-PROCESS: rare < 1 %, occasional 1–5 %). **Proposal for Martin to confirm:** occasional = 0.02, rare = 0.005. F2's BMW build range ends 04/2017, so it doesn't reach the facelift (built from 11/2017) — F2 pre-facelift only; F3 has no build range → one row per phase | **needs Martin's numbers** |
+| M10 | frequency | **occasional** for pre-facelift (2013–2016), **rare** for facelift | `annual_probability`: occasional = **0.02**, rare = **0.005** (Martin confirmed 2026-11-15). F2's BMW build range ends 04/2017, so it doesn't reach the facelift (built from 11/2017) — F2: pre-facelift only, 0.02. F3 has no build range → one row per phase: pre-facelift 0.02, facelift 0.005 | decided |
 
 Still open from section 1: Martin's decisions imply **separate engine rows per emission
 standard** (decisions 1–2: pre-facelift Euro6, facelift Euro6c, facelift Euro6d-TEMP) — to be
