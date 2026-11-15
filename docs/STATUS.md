@@ -4,7 +4,7 @@ Read this first when picking up catalog_ schema / car-import work. Keep it curre
 end of each session — this is a living snapshot, not a historical record (git history is
 the record; see CLAUDE.md "Adding a new car / model — RULES").
 
-Last updated: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, Facelift 61 +
+Last updated: 2026-11-15 (Renault Zoe Phase 2 completion, see Open items). Earlier: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, Facelift 61 +
 Scout 5 configurations) and the "dilemma" schema landed: driven axle, HEV / CNG, bi-fuel second
 fuel, NEDC/WLTP test cycle, towing + curb weight per configuration, off-road hardware on
 drivetrain systems, ladder-frame chassis, ISOFIX / optional seats / loading sill, DPF / GPF /
@@ -138,6 +138,18 @@ report, for reviewing several cars' decisions at once before generating anything
   `20261006140000` caught it.
 
 ## Open items
+
+- **Renault Zoe (X10) Phase 2 — brought to i3 depth (2026-11-15), one file still for Martin.**
+  Research + all 13 decisions: `docs/intake/research/renault-zoe-x10-completion.md`. Live:
+  `20261115200000` (14 new faults: motor-bearing wear, A/C compressor, front suspension, rusting
+  discs, R135 12 V, five dated recalls 0DA5 / 0DKQ / 0EBN / 0D9V / 0E1E). **Waiting for Martin:**
+  `20261115200500` (UPDATE / DELETE: towing 0, CZ market 13 430 / 16 000 / 22 340 + mileage, curb
+  1 502 → 1 577, GVW 1 988, payload 486, motor rating 3 + notes / pros / cons, fault costs and
+  probabilities, trims rewritten from the Renault SK price lists and "R.S. Line / Iconic" deleted);
+  afterwards read back, re-run the tag rules, `npm test`. Phase 1 (2012–2019) is **not** in the
+  catalog — a separate import (Martin, 2026-11-15). Open: E-Tech trims 2022–2024 (no SK / CZ list
+  found), battery cooling `active_air` unverified, 12 V / suspension / brake / heat-pump repair
+  costs unknown.
 
 - **BMW i3 REx (range extender) is in the catalog (2026-11-15).** 6 engines (`hybrid_type = 'EREV'`,
   `fuel_type = 'electric'`), 6 configurations, 28 faults (`20261115120000`, after the vocabulary
