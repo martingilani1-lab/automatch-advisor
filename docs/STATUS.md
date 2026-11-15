@@ -147,10 +147,18 @@ report, for reviewing several cars' decisions at once before generating anything
   1 502 → 1 577, GVW 1 988, payload 486, motor rating 3 + notes / pros / cons, fault costs and
   probabilities, trims Life / Zen / Intens rewritten from the Renault SK price lists and
   "R.S. Line / Iconic" deleted; Martin ran it). Tag-rule preview: nothing pending catalog-wide, the
-  Zoe keeps `city_commuter` + `green_zone`. `npm test` 144/144. Phase 1 (2012–2019) is **not** in the
-  catalog — a separate import (Martin, 2026-11-15). Open: E-Tech trims 2022–2024 (no SK / CZ list
-  found), battery cooling `active_air` unverified, 12 V / suspension / brake / heat-pump repair
+  Zoe keeps `city_commuter` + `green_zone`. `npm test` 144/144. Open: E-Tech trims 2022–2024 (no SK /
+  CZ list found), battery cooling `active_air` unverified, 12 V / suspension / brake / heat-pump repair
   costs unknown.
+- **Renault Zoe (X10) Phase 1 (2013–2019) imported (2026-11-15).** Research + decisions:
+  `docs/intake/research/renault-zoe-x10-phase-1.md`. Live via MCP after Martin's review:
+  `20261115220000` (new gearbox row `generic:Single-speed EV (Zoe Ph1)`, rating 5) and `20261115220500`
+  (phase, body, 6 engines `Q210`, `R240`, `R90-22kWh`, `R90-41kWh`, `Q90`, `R110-41kWh` — the live
+  `R110` stays the 52 kWh Phase 2 motor — 6 configurations, trims Life / Intens with 23 features from
+  the Renault SK brochure 12/2016, 26 faults incl. 6 recalls). Tag rules re-run: `city_commuter` +
+  `green_zone` on all 6 configurations, `isofix_3x` on the phase. `npm test` 144/144. Open: charger /
+  A/C / suspension / 12 V repair costs, Q90 production dates, battery cooling medium, Zen / Bose /
+  Limited trims (DE / NL only), SK market (5 listings).
 
 - **BMW i3 REx (range extender) is in the catalog (2026-11-15).** 6 engines (`hybrid_type = 'EREV'`,
   `fuel_type = 'electric'`), 6 configurations, 28 faults (`20261115120000`, after the vocabulary
