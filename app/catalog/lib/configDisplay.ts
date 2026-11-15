@@ -34,14 +34,22 @@ export function axleLabel(axle: string | null): string {
 // "6.4 l/100 km · NEDC" -- the cycle next to the figure, so an NEDC car and a WLTP car are
 // never read as directly comparable (WLTP runs ~15-25 % higher for the same car). Bi-fuel
 // cars add the second fuel: "9.2 l/100 km LPG · 7.2 petrol · NEDC".
-export function consumptionDetailLabel(c: CatalogConfig): string {
+// opts.withRange = false: db-test's Configurations rows show range in a tile of their own
+// (energyStorage.ts rangeInfoOf), so the range isn't repeated in the consumption tile there.
+export function consumptionDetailLabel(c: CatalogConfig, opts: { withRange?: boolean } = {}): string {
+  const withRange = opts.withRange ?? true;
   // A pure EV's useful figure is often the range, not the kWh/100 km (BMW i3 120 Ah: WLTP range
   // published, WLTP consumption not) -- so the range is shown next to the energy figure, or on its
   // own when that's all there is, instead of the row reading "–" for a car with known data.
   if (c.engine.fuelType === "electric") {
     const parts: string[] = [];
     if (c.energyConsumptionKwh100km != null) parts.push(`${c.energyConsumptionKwh100km} kWh/100 km`);
-    if (c.evRangeKm != null) parts.push(`${c.evRangeKm} km range`);
+    if (withRange && c.evRangeKm != null) parts.push(`${c.evRangeKm} km range`);
+    // Range extender (EREV): the official weighted petrol figure (i3 REx 0.6 l/100 km) sits
+    // next to the kWh one -- secondary_* carries it (Martin's decision M2, 20261115100000).
+    if (c.secondaryFuelType && c.secondaryConsumptionL100km != null) {
+      parts.push(`+ ${c.secondaryConsumptionL100km} l ${c.secondaryFuelType}/100 km`);
+    }
     if (parts.length === 0) return "–";
     // ev_range_km follows the row's consumption_cycle exactly like the consumption figures
     // (20261109223000, Martin 2026-11-09): "190 km range · NEDC" for a 2013 i3, "285 km range ·

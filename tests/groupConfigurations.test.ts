@@ -35,7 +35,7 @@ function makeConfig(opts: {
     drivenAxle: null, secondaryFuelType: null,
     secondaryConsumptionL100km: null, consumptionCycle: null, fuelConsumptionUrbanL100km: null,
     fuelConsumptionExtraUrbanL100km: null, towingBrakedKg: null, towingUnbrakedKg: null,
-    curbWeightKg: null, tireSizes: [], tags: [],
+    curbWeightKg: null, fuelTankCapacityLiters: null, tireSizes: [], tags: [],
   };
 }
 

@@ -165,6 +165,11 @@ export interface CatalogConfig {
   towingBrakedKg: number | null;
   towingUnbrakedKg: number | null;
   curbWeightKg: number | null;
+  // Per-configuration fuel tank (20261115163000) -- wins over the body's
+  // CatalogBodyDimensions.fuelTankCapacityLiters wherever set. Exists for the case where body
+  // and engine disagree: a range-extender i3 (9 L) shares its body with the pure EV (no tank).
+  // null = use the body's value. See app/catalog/lib/energyStorage.ts.
+  fuelTankCapacityLiters: number | null;
   tireSizes: CatalogTireSize[];
   // Tier-2 tags of this exact configuration (catalog_configuration_tags) -- [] until tagged or
   // while that table doesn't exist yet. See app/catalog/lib/tags.ts.

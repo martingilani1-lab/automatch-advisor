@@ -504,6 +504,7 @@ function transformBundle(
     towingBrakedKg: numOrNull(extras.config.get(c.id)?.towing_braked_kg),
     towingUnbrakedKg: numOrNull(extras.config.get(c.id)?.towing_unbraked_kg),
     curbWeightKg: numOrNull(extras.config.get(c.id)?.curb_weight_kg),
+    fuelTankCapacityLiters: numOrNull(extras.config.get(c.id)?.fuel_tank_capacity_liters),
     tireSizes: tireSizesByConfig.get(c.id) ?? [],
     tags: tagsByConfig.get(c.id) ?? [],
   }));

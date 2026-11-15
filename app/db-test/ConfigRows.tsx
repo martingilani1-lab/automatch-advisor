@@ -1,4 +1,4 @@
-import { IconManualGearbox, IconAutomaticGearbox, IconCar, IconCar4wd, IconGasStation, IconBattery3, IconBolt } from "@tabler/icons-react";
+import { IconManualGearbox, IconAutomaticGearbox, IconCar, IconCar4wd, IconGasStation, IconBattery3, IconBolt, IconRoute } from "@tabler/icons-react";
 
 import type { CatalogConfig } from "@/app/catalog/lib/types";
 import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
@@ -6,6 +6,7 @@ import { getTagsForConfiguration } from "@/app/catalog/lib/tags";
 import TagBadge from "./TagBadge";
 import { consumptionDetailLabel, drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { gearboxTypeLabel } from "@/app/catalog/lib/gearboxLabel";
+import { rangeInfoOf } from "@/app/catalog/lib/energyStorage";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
 
 interface ConfigRowsProps {
@@ -16,6 +17,10 @@ interface ConfigRowsProps {
   // on every row would bury what makes this configuration different.
   phaseId?: string;
   phaseTags?: ModelLevelTagSlug[];
+  // Fuel tank per body name (phase_body_dimensions) -- the fallback for the range tile when a
+  // configuration has no tank of its own (energyStorage.ts tankLitersOf). Optional: without it,
+  // only configurations with their own tank get a calculated fuel range.
+  bodyTankLiters?: Record<string, number | null>;
 }
 
 // One color per field, reusing the exact drivetrain/consumption hues the car-list widget's
@@ -112,7 +117,7 @@ export function fuelGroupLabel(fuelType: string): string {
 // the same clickable-tile pattern GearboxAccordion's "Maintenance" toggle already uses)
 // instead of the Tailwind catalog-* table, which looked visually foreign dropped into this
 // page's card/pill design.
-export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTags = [] }: ConfigRowsProps) {
+export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTags = [], bodyTankLiters = {} }: ConfigRowsProps) {
   if (configs.length === 0) return null;
   const sorted = dbTestSortConfigs(configs);
 
@@ -197,8 +202,23 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
                     <IconGasStation size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
                   )}
                 </div>
-                <div className="cgrid-val">{consumptionDetailLabel(c)}</div>
+                <div className="cgrid-val">{consumptionDetailLabel(c, { withRange: false })}</div>
               </div>
+              {/* Range on a full tank / full charge (Martin, 2026-11-15) -- electric range as
+                  published, fuel range only as a labelled calculation, and for a range extender
+                  or plug-in just what backs up the battery (energyStorage.ts explains why). */}
+              {(() => {
+                const r = rangeInfoOf(c, bodyTankLiters[c.bodyName] ?? null);
+                const text = [r.electric, r.fuel].filter(Boolean).join(" ");
+                return text ? (
+                  <div className="cgrid-item">
+                    <div className="cgrid-icon-cell">
+                      <IconRoute size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
+                    </div>
+                    <div className="cgrid-val">{text}</div>
+                  </div>
+                ) : null;
+              })()}
             </div>
             {c.tags.length > 0 && (
               <div className="tag-row">

@@ -13,6 +13,7 @@ import { drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { cylindersLabel } from "@/app/catalog/lib/cylindersLabel";
 import { maintenanceRows, yearlyMaintenanceLabel } from "@/app/catalog/lib/engineMaintenance";
 import { POWERTRAIN_EXPLAINERS, powertrainKind } from "@/app/catalog/lib/powertrainExplainer";
+import { energyStorageOf, tankLitersOf } from "@/app/catalog/lib/energyStorage";
 import { tierLabel, buildTrimLayout, resolveTrimFeatures, trimComparisonLabel, buildCompareRows, safetyEquipmentAvailability, safetyEquipmentAvailabilityLabel, distinctSafetyFeatureSlugs, trimFeatureCategory, TRIM_CATEGORY_ORDER, TRIM_CATEGORY_LABELS, type CompareRow, type ResolvedFeatureRow } from "@/app/catalog/lib/trimsDisplay";
 import type { CatalogConfig, CatalogTrim } from "@/app/catalog/lib/types";
 import type { PhaseSwitcherOption } from "@/app/catalog/components/PhaseSwitcher";
@@ -1327,7 +1328,13 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
 
         {activeTab === "configurations" && (
           <div className="mp-section">
-            <ConfigRows configs={configs} onNavigate={handleConfigNavigate} phaseId={car.id} phaseTags={detail?.phaseTags ?? []} />
+            <ConfigRows
+              configs={configs}
+              onNavigate={handleConfigNavigate}
+              phaseId={car.id}
+              phaseTags={detail?.phaseTags ?? []}
+              bodyTankLiters={Object.fromEntries((detail?.dims ?? []).map((d) => [d.bodyName, d.fuelTank]))}
+            />
           </div>
         )}
 
@@ -1414,7 +1421,31 @@ export default function CarDetail({ car, detail, loading, fuelFilter, gearboxFil
                   <div className="cgrid-item"><div className="cgrid-label">Boot (max)</div><div className="cgrid-val">{d.bootMax != null ? `${d.bootMax}L` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Gross vehicle weight</div><div className="cgrid-val">{d.grossVehicleWeight != null ? `${d.grossVehicleWeight}kg` : "—"}</div></div>
                   <div className="cgrid-item"><div className="cgrid-label">Payload</div><div className="cgrid-val">{d.payload != null ? `${d.payload}kg` : "—"}</div></div>
-                  <div className="cgrid-item"><div className="cgrid-label">Fuel tank</div><div className="cgrid-val">{d.fuelTank != null ? `${d.fuelTank}L` : "—"}</div></div>
+                  {/* Stored energy follows the powertrains of THIS body's configurations
+                      (energyStorage.ts): fuel tank for combustion, net battery for EVs, both for a
+                      plug-in or range extender -- instead of an empty "Fuel tank" on an EV. A
+                      configuration's own tank (the i3 REx's 9 L) wins over the body's. */}
+                  {(() => {
+                    const fuelConfigs = bodyConfigs.filter((c) => energyStorageOf(c).fuel);
+                    const batteryConfigs = bodyConfigs.filter((c) => energyStorageOf(c).battery);
+                    const hasFuel = bodyConfigs.length === 0 || fuelConfigs.length > 0;
+                    const hasBattery = batteryConfigs.length > 0;
+                    const tankItems = breakdownOf(fuelConfigs, (c) => tankLitersOf(c, d.fuelTank));
+                    const batteryItems = breakdownOf(batteryConfigs, (c) => c.engine.ev.batteryCapacityNetKwh);
+                    const label = hasFuel && hasBattery ? "Fuel tank / Battery (net)" : hasBattery ? "Battery (net)" : "Fuel tank";
+                    const fuelVal = tankItems.length > 0 ? <RangeWithBreakdown items={tankItems} unit="L" /> : d.fuelTank != null ? `${d.fuelTank}L` : "—";
+                    const batteryVal = <RangeWithBreakdown items={batteryItems} unit="kWh" />;
+                    return (
+                      <div className="cgrid-item">
+                        <div className="cgrid-label">{label}</div>
+                        <div className="cgrid-val">
+                          {hasFuel && fuelVal}
+                          {hasFuel && hasBattery && " / "}
+                          {hasBattery && batteryVal}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="cgrid-item"><div className="cgrid-label">Seats</div><div className="cgrid-val">{d.seats ?? "—"}</div></div>
                   {/* City / highway consumption only when at least one configuration has it. */}
                   {city.length > 0 && (

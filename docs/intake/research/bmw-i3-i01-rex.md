@@ -561,7 +561,10 @@ min 30, max 65** (rounded from €31 and €64).
 1. ~~Martin: confirm `yearly_maintenance_eur` 30–65, or give his own SK figure.~~ **Confirmed
    30–65 by Martin 2026-11-15** → `20261115140000_bmw_i3_rex_yearly_maintenance.sql` (UPDATE,
    Martin runs it). The REx seed itself went live as `20261115120000_bmw_i3_rex_seed.sql`.
-2. Martin: confirm "phase price unchanged for REx" (M5), and decide whether the 60 Ah REx premium
-   goes in as a pro.
+2. ~~Martin: confirm "phase price unchanged for REx" (M5), and decide whether the 60 Ah REx premium
+   goes in as a pro.~~ **Decided 2026-11-15:** phase price unchanged for REx; the 60 Ah REx
+   premium goes in as a pro; pre-facelift price max 15 000 → 17 000 and facelift max 25 000 →
+   27 000 (source M: Martin saw facelift cars above 25 000) →
+   `20261115160000_bmw_i3_price_max_and_rex_pro.sql` (UPDATE, Martin runs it).
 3. Still open from earlier: separate engine rows per emission standard (facelift Euro6c vs
    Euro6d-TEMP). Then the import-car skill writes the seed.
