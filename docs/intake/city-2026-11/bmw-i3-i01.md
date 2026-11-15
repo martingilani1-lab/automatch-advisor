@@ -80,17 +80,17 @@ have none). Listed for when one is added:
 | year_to | 2022 |
 | display_name | i3 (I01) Facelift (LCI) |
 | platform_code | BMW LifeDrive |
-| price_range_min_eur | NULL |
-| avg_market_price_eur | NULL |
-| price_range_max_eur | NULL |
-| typical_mileage_range | NULL |
+| price_range_min_eur | 15000 |
+| avg_market_price_eur | 20545 |
+| price_range_max_eur | 27000 |
+| typical_mileage_range | 43,260 - 115,000 km |
 | resale_value_rating | depreciates_fast |
 | chassis_type | monocoque |
 | consumption_cycle | WLTP |
 
 INHERIT phase attributes FROM BMW i3 I01 Pre-facelift
 
-*(Euro NCAP 2013: 4★, 86 / 81 / 57 / 55. `towing_capacity_kg` NULL: not homologated for towing. `chassis_type` monocoque = the CFRP "Life" cell — the closer of the two values. The facelift's default cycle is WLTP; its 2017–18 94 Ah rows override it to NEDC in section J.)*
+*(Facelift market data: average and mileage from autobazar.eu 2026-11-10 (14 listings after the 10 % cut); min 15 000 (2018 94 Ah cars seen 2026-11-15) and max 27 000 (source M) set by Martin 2026-11-15. Live via `20261115180000`, source `docs/intake/research/bmw-i3-i01-facelift.md`. Euro NCAP 2013: 4★, 86 / 81 / 57 / 55. `towing_capacity_kg` 0: no trailer homologation (Martin 2026-11-12, `20261114160000`). `chassis_type` monocoque = the CFRP "Life" cell — the closer of the two values. The facelift's default cycle is WLTP; its 2017–18 94 Ah rows override it to NEDC in section J.)*
 
 ## C. BODIES × PHASE
 
@@ -144,11 +144,15 @@ INHERIT phase attributes FROM BMW i3 I01 Pre-facelift
 ## H. TRIMS
 | name | tier | phase | features |
 |---|---|---|---|
-| Atelier | 1 | Pre-facelift, Facelift | Front and side airbags, DSC, ISOFIX on the rear seats, Business navigation with 6.5-inch screen, automatic air conditioning, 19-inch alloy wheels. |
-| Loft | 2 | Pre-facelift, Facelift | Grey cloth with recycled fibres, eucalyptus or carbon-look dashboard trim, LED headlights. |
-| Lodge | 3 | Pre-facelift, Facelift | Leather / wool upholstery, open-pore eucalyptus dashboard, heated front seats. |
-| Suite | 4 | Facelift | Brown full-grain leather, eucalyptus wood trim, Harman Kardon audio. |
-| i3s | 3 | Facelift | 135 kW motor, sport suspension (-10 mm), 20-inch alloy wheels, wider track, Sport driving mode. |
+| Atelier | 1 | Pre-facelift | Front and side airbags, DSC, ISOFIX on the rear seats, Business navigation with 6.5-inch screen, automatic air conditioning, 19-inch alloy wheels. |
+| Loft | 2 | Pre-facelift | Grey cloth with recycled fibres, eucalyptus or carbon-look dashboard trim, LED headlights. |
+| Lodge | 3 | Pre-facelift | Leather / wool upholstery, open-pore eucalyptus dashboard, heated front seats. |
+| Atelier | 1 | Facelift | Front and side airbags with front and rear head airbags, DSC stability control, Tyre pressure indicator, Rear parking sensors, ISOFIX on both rear seats, LED headlights, Radio Professional with 6.5-inch screen and Bluetooth, Air conditioning (manual), Leather steering wheel, 19-inch alloy wheels (20-inch on the i3s), Neutronic cloth in Aragaz grey with dark dashboard. |
+| Loft | 2 | Facelift | Electronic cloth / Sensatec upholstery in Carum grey, Light dashboard with Electronic brown interior surfaces, LED ambient lighting and welcome light. |
+| Lodge | 3 | Facelift | Solaric wool / natural-leather upholstery, Leather dashboard with open-pore eucalyptus or dark oak wood, LED ambient lighting and welcome light. |
+| Suite | 4 | Facelift | Vernasca natural leather in Dark Truffle, Leather dashboard with dark oak or eucalyptus wood, LED ambient lighting and welcome light. |
+
+*(Facelift lines verified against the BMW Austria price list 11/2018 (`docs/intake/research/bmw-i3-i01-facelift.md`, E7) and live via `20261115180000`. The parser has no `is_optional` signal, so the Facelift **options** aren't in the table. Live, they are optional rows: on Atelier, Navigation Business (6.5-inch), Navigation Professional (10.25-inch), Apple CarPlay preparation (only with navigation; no Android Auto), Automatic climate control (Komfort-Paket), Heated front seats, Heat pump, Harman Kardon audio; on Suite, Heated front seats (must be ordered with Suite); on all four lines, the Sportpaket (`20261110230000`). **`i3s` is not a trim** (own model line in the price list): its 20-inch wheels / widening / -10 mm are the Sportpaket, standard on the i3s. The Pre-facelift rows above were NOT re-verified; they likely carry the same errors (navigation, A/C, heated seats) and need their own pass with a 2013–2017 price list.)*
 
 *(Equipment options, not trims — the i3 sold them across every trim, so they are NOT seeded as trim rows: **Professional navigation** (10.25-inch screen; Apple CarPlay as an option on iDrive 6 cars — facelift, plus some late-2016 cars, **verify** by option code 6NW; **Android Auto was never offered on the i3**), **heat pump** (option on every variant, never standard), 11 kW three-phase AC charging and 50 kW DC on early cars.)*
 
@@ -173,7 +177,7 @@ INHERIT phase attributes FROM BMW i3 I01 Pre-facelift
 |---|---|---|---|---|---|---|---|---|---|---|
 | Pre-facelift | i3-60Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 12.9 | NEDC | 1280 | 7.2 | 150 | 190 |
 | Pre-facelift | i3-94Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 12.6 | NEDC | 1320 | 7.3 | 150 | 312 |
-| Facelift | i3-94Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 13.1 | NEDC | 1320 | 7.3 | 150 | NULL |
+| Facelift | i3-94Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 13.1 | NEDC | 1320 | 7.3 | 150 | 300 |
 | Facelift | i3s-94Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | 14.3 | NEDC | 1340 | 6.9 | 160 | 280 |
 | Facelift | i3-120Ah@125kW | generic:Single-speed EV | RWD | Hatchback 5-door | 15.3 | WLTP | 1345 | 7.3 | 150 | 285 |
 | Facelift | i3s-120Ah@135kW | generic:Single-speed EV | RWD | Hatchback 5-door | 16.3 | WLTP | 1365 | 6.9 | 160 | 283 |
