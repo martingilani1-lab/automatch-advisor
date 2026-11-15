@@ -1,6 +1,6 @@
 ---
 name: research-car
-description: Researching one car phase on the web and filling the research intake document (scripts/new-car-template/GEMINI-RESEARCH-PACK.md format) with a verified quote for every value. Use when Martin asks to research / look up / fill data for a car, model, generation or phase, or to verify data an outside tool (Gemini, Perplexity) produced. Output is a document for review, never a database write.
+description: Researching one car phase on the web and filling the research intake document (scripts/new-car-template/RESEARCH-PACK.md format) with a verified quote for every value. Use when Martin asks to research / look up / fill data for a car, model, generation or phase, or to verify data an outside tool (Gemini, Perplexity) produced. Output is a document for review, never a database write.
 ---
 
 # Researching a car phase (AutoMatch)
@@ -12,8 +12,11 @@ block many source sites (BMW / VW press, ADAC, Google Docs).
 
 ## Inputs
 - Car + phase from Martin, e.g. "Kia Ceed (CD), Pre-facelift". One phase per run.
-- The format and all rules: `scripts/new-car-template/GEMINI-RESEARCH-PACK.md` — read PART 1 and
-  PART 2 in full before searching. Its hard rules apply to you exactly as to Gemini (NULL over
+- The process (five passes, gates, Perplexity budget and logging): `docs/intake/RESEARCH-PROCESS.md`.
+  Which fields are required: `docs/intake/FIELD-LEVELS.md`. Run one pass at a time; pass 1's
+  configuration list needs Martin's approval before passes 2–5.
+- The format and all rules: `scripts/new-car-template/RESEARCH-PACK.md` — read PART 1 and
+  PART 2 in full before searching. Its hard rules apply to you exactly as to any outside tool (NULL over
   guessing, N/A, evidence quote per value, no conversions, exact phase / variant scope, closed
   vocabularies, codes never guessed).
 - If the car is already in the catalog: query it first (Supabase MCP, read-only) and run in
@@ -50,6 +53,17 @@ block many source sites (BMW / VW press, ADAC, Google Docs).
    table: filled / NULL / conflicts found, plus anything that contradicts the live catalog.
 5. Converting to the import format (`scripts/new-car-template/INTAKE.md`) and seeding are the
    `import-car` skill's job, after Martin has reviewed this document.
+
+## Perplexity (MCP)
+- One topic per call, at most 8 calls per car phase; a call that times out or fails twice ends that
+  topic. Log tool, topic, duration and outcome for every call and put the log in the output document.
+- Tell it the manufacturer-wins rule explicitly; verify every value it returns by opening the source
+  yourself (the i3 run had a mis-transcribed figure and two dead links behind valid-looking citations).
+
+## Completeness
+Before handing over, check the merged result against `docs/intake/FIELD-LEVELS.md` and list every
+required / applicable conditional field that is still empty, with where you looked. Those go to
+Martin; never fill them to make the list shorter.
 
 ## Never
 - Write to the database from this skill (reads only).

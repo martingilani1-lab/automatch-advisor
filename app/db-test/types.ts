@@ -3,7 +3,7 @@
 // in the Prehľad version) has no catalog_ equivalent at all (no vehicle_safety_features-style
 // table), so it's dropped here rather than carried over empty — see CarDetail.tsx's Safety tab.
 
-import type { CatalogConfig, CatalogMediaItem, CatalogTrim, EngineMaintenance, EnginePowertrainEv } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogFault, CatalogMediaItem, CatalogTrim, EngineMaintenance, EnginePowertrainEv, TyreWear } from "@/app/catalog/lib/types";
 import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
 
 // A fault carries its own severity (catalog_component_faults.severity: 'critical' | 'moderate'
@@ -193,6 +193,11 @@ export interface DetailData {
   media: CatalogMediaItem[];
   // Tier-1 (model-level) tags of this phase -- configs carry their own tier-2 tags.
   phaseTags: ModelLevelTagSlug[];
+  // Every fault of this phase with its repair-buffer facts (cost, annual probability, years,
+  // pre-purchase check), raw -- the Costs tab picks each configuration's own (tco.ts tcoOptions).
+  costFaults: CatalogFault[];
+  // Per-axle tyre wear, or null = generic tyre figure.
+  tyreWear: TyreWear | null;
 }
 
 // One phase's full DetailData, tagged with the phase metadata the switcher needs -- POST

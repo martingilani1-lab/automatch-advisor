@@ -85,6 +85,129 @@ A personal profile per car where the owner records and keeps its service history
 
 ---
 
+## Catalog coverage plan *(the data side of Phase 1)*
+
+The Advisor is only as good as the catalog behind it. This section says which cars the
+catalog has to cover, in what order, and what has priority. Snapshot: 2026-11-11. Live
+counts and pipeline mechanics stay in `docs/STATUS.md`; import rules stay in `CLAUDE.md`.
+
+### Goal
+
+Cover the used cars that are actually bought and sold in SK/CZ, across every kind of buyer.
+
+- **Target:** 172 models in 15 categories (list below).
+- **Today:** 23 of the 172 are in the catalog.
+- **What counts as covered:** only a model described in the `catalog_*` tables. A row in
+  the legacy `vehicles` table alone does not count.
+
+### Order of work
+
+**Step 1 — tune one category at a time *(in progress)*.** For each category, use a few
+pilot models to settle which information the product shows for that kind of car and
+therefore what has to be researched. The output is that category's addition to the intake
+document.
+
+- **Now:** city cars and EVs. Pilots are BMW i3 and Renault Zoe — both in the catalog, not
+  yet at the intended depth.
+- **Proposed order after that** *(Martin may reorder)*: family → SUV → motorway cruisers →
+  hybrids → vans and pickups → off-road → large MPVs. Later: LPG/CNG, sports, coupés and
+  convertibles, luxury, classics.
+
+**Step 2 — freeze the intake document.** Revise the intake so it covers every gap found so
+far, and give each field an importance level:
+
+- **required** — the seed does not go into the DB without it
+- **conditional** — required only for a certain kind of car (battery data on an EV,
+  approach/departure angles on an off-roader)
+- **optional**
+
+A required field is a reason to research further, never a reason to invent a value
+(`CLAUDE.md`, rule 7).
+
+**Step 3 — mass import by platform.** Only once it is clear which information each kind of
+car needs. Platform-mates share engines and gearboxes, so each batch goes in layers:
+shared engines / transmission units / drivetrain systems → models and phases →
+configurations → dimensions, faults, trims, tags. Start each model with the one or two
+generations that are actually traded; older ones follow later.
+
+Proposed batch order:
+
+| # | Group | Models from the target list |
+|---|---|---|
+| 1 | VW Group — remainder | Citigo, Up!, Rapid, Yeti, Sharan, Alhambra, Touareg, Q5, Q7, A5, A6, A7, A8, Transporter, Caravelle, Crafter, Amarok, ID.3, ID.4, Enyaq, Born, e-tron, Scirocco, Eos |
+| 2 | Hyundai–Kia | Ceed, i30, Tucson, Sportage, Kona, Niro, i20, i10, Rio, Picanto, Santa Fe, Sorento, Ioniq, Ioniq 5, H-1 |
+| 3 | Renault–Dacia | Clio, Sandero, Duster, Logan, Jogger, Lodgy, Kangoo, Trafic, Master, Espace |
+| 4 | Ford | Focus, Kuga, Fiesta, Mondeo, S-Max, Galaxy, Transit, Transit Custom, Transit Connect, Tourneo Custom, Ranger, Mustang |
+| 5 | BMW | 3, 5, 7, X1, X3, X5, X6, 2, 4, Z4, Mini Cooper |
+| 6 | Stellantis | Berlingo, Partner, Traveller, Boxer, Jumper, Ducato, Doblo, Astra, Insignia, Vivaro, Zafira, C4 Grand Picasso, Panda |
+| 7 | Everything else | Toyota, Mercedes, Volvo, Mazda, Nissan, Mitsubishi, Suzuki, Honda, Tesla and others |
+
+### Not a priority right now
+
+- **Back-filling.** Gaps in already-seeded models are not being fixed now. The intake gets
+  fixed first, so new models arrive complete.
+- **The legacy `vehicles` table.** It is not being extended.
+
+### Known gaps *(input for Step 2)*
+
+From a live audit on 2026-11-11 (37 models, 91 phases, 1,661 configurations, 150 engines,
+77 transmission units, 25 drivetrain systems).
+
+Never filled:
+
+| Table | Fields |
+|---|---|
+| `catalog_vehicle_configurations` | `towing_braked_kg`, `towing_unbraked_kg`, urban / extra-urban consumption, `co2_emissions_g_km`; no `catalog_tire_sizes` rows |
+| `catalog_vehicle_configurations` | `acceleration_0_100`, `top_speed_kmh`, `curb_weight_kg` (empty on almost every row) |
+| `phase_body_dimensions` | `isofix_count`, `isofix_front_passenger`, `boot_sill_height_mm`, `nose_weight_kg`, `roof_load_kg` |
+| `phase_body_dimensions` | `boot_capacity_7_seats_liters`, `seats_optional_max`, approach / departure / breakover angles, `wading_depth_mm` |
+| `catalog_engines` | `injection_type` |
+
+Only partly filled:
+
+| Table | Fields | Missing |
+|---|---|---|
+| `transmission_units` | `reliability_rating`, `pros`/`cons`, `maker`, `speeds`, service interval and cost, faults | about 58 of 77 |
+| `drivetrain_systems` | service interval and cost | 18–23 of 25 |
+| `catalog_phase_tags` | phases with no tag | 41 of 91 |
+| `catalog_configuration_tags` | configurations with no tag | 691 of 1,661 |
+| `catalog_vehicle_configurations` | `consumption_cycle` | 500 of 1,661 |
+| `catalog_engines` | `reliability_rating`, yearly maintenance cost | 7 of 150 |
+
+Martin's own observation: newly added models tend to arrive without average purchase
+price, typical mileage and reliability tags.
+
+### Target model list
+
+✓ = in the catalog as of 2026-11-11.
+
+- **City (12), 2 done:** Škoda Fabia ✓, VW Polo ✓, Škoda Citigo, VW Up!, Hyundai i20, Hyundai i10, Kia Rio, Kia Picanto, Toyota Yaris, Ford Fiesta, Renault Clio, Dacia Sandero
+- **EVs (12), 2 done:** BMW i3 ✓, Renault Zoe ✓, Tesla Model 3, Tesla Model Y, VW ID.3, VW ID.4, Škoda Enyaq, Audi e-tron, Nissan Leaf, Cupra Born, Hyundai Kona, Hyundai Ioniq 5
+- **Family (13), 5 done:** Škoda Octavia ✓, Škoda Scala ✓, VW Golf ✓, VW Touran ✓, SEAT León ✓, Škoda Rapid, VW Sharan, Kia Ceed, Hyundai i30, Ford Focus, Ford S-Max, SEAT Alhambra, Opel Astra
+- **SUV (23), 5 done:** Škoda Kodiaq ✓, Škoda Karoq ✓, Škoda Kamiq ✓, VW Tiguan ✓, VW T-Roc ✓, Škoda Yeti, VW Touareg, Hyundai Tucson, Hyundai Santa Fe, Kia Sportage, Kia Sorento, Dacia Duster, Nissan Qashqai, Toyota RAV4, Ford Kuga, Mazda CX-5, BMW X1, BMW X3, BMW X5, Audi Q5, Audi Q7, Mercedes GLE, Volvo XC90
+- **Motorway cruisers (14), 4 done:** Škoda Superb ✓, VW Passat ✓, VW Arteon ✓, Audi A4 ✓, BMW 3, BMW 5, Audi A6, Mercedes C, Mercedes E, Ford Mondeo, Opel Insignia, Mazda 6, Volvo V60, Volvo V90
+- **Hybrids and plug-in hybrids (10), 0 done:** Toyota Corolla, Toyota C-HR, Toyota Auris, Toyota Prius, Kia Niro, Hyundai Ioniq, Lexus NX, Lexus RX, Mitsubishi Outlander, Honda CR-V
+- **Vans (19), 1 done:** VW Caddy ✓, Citroën Berlingo, Peugeot Partner, Renault Kangoo, Ford Transit Connect, Fiat Doblo, VW Transporter, Renault Trafic, Opel Vivaro, Ford Transit Custom, Mercedes Vito, Fiat Ducato, Peugeot Boxer, Citroën Jumper, Mercedes Sprinter, VW Crafter, Renault Master, Ford Transit, Iveco Daily
+- **Pickups (6), 0 done:** Ford Ranger, Toyota Hilux, Mitsubishi L200, Nissan Navara, VW Amarok, Isuzu D-Max
+- **Off-road (10), 0 done:** Suzuki Jimny, Suzuki Grand Vitara, Toyota Land Cruiser, Mitsubishi Pajero, Nissan Patrol, Land Rover Defender, Land Rover Discovery, Jeep Wrangler, Jeep Grand Cherokee, Lada Niva
+- **Large MPVs and minibuses (10), 1 done:** VW Multivan ✓, VW Caravelle, Mercedes V, Ford Tourneo Custom, Toyota Proace Verso, Peugeot Traveller, Hyundai H-1, Ford Galaxy, Renault Espace, Citroën C4 Grand Picasso
+- **LPG/CNG (5), 0 done:** Dacia Logan, Dacia Jogger, Dacia Lodgy, Opel Zafira, Fiat Panda
+- **Sports and premium compacts (11), 3 done:** Cupra Formentor ✓, Audi A3 ✓, Audi TT ✓, Honda Civic, Mercedes A, BMW 2, VW Scirocco, Mini Cooper, Subaru WRX, Ford Mustang, Porsche 911
+- **Coupés and convertibles (9), 0 done:** BMW 4, Audi A5, Audi A7, Mercedes CLA, Mercedes CLS, Mercedes SLK, BMW Z4, Mazda MX-5, VW Eos
+- **Luxury (10), 0 done:** Mercedes S, BMW 7, Audi A8, Porsche Panamera, Porsche Cayenne, Range Rover, Range Rover Sport, BMW X6, Mercedes G, Tesla Model S
+- **Classics and youngtimers (8), 0 done:** Škoda 100/110, Škoda 105/120, Škoda Favorit, Škoda Felicia, Lada 2101–2107, Trabant 601, Wartburg 353, Tatra 613
+
+Not counted as separate models — handled as an engine variant or generation of a model
+already on the list: Octavia RS, Golf GTI/R, León Cupra, Focus ST, i30 N; Superb iV,
+Passat GTE, RAV4 Hybrid, Yaris Hybrid; Octavia G-Tec, Sandero LPG, Duster LPG; BMW E30/E36
+(3 Series), Mercedes W123/W124 (E-Class).
+
+In the catalog but outside the target list: Audi A1, Audi Q2, Audi Q3, Cupra León, Cupra
+Terramar, SEAT Arona, SEAT Ateca, SEAT Ibiza, SEAT Tarraco, SEAT Toledo, VW Bora, VW New
+Beetle, VW T-Cross, VW Taigo.
+
+---
+
 ## Cross-cutting principles
 
 - **Geography:** launch CZ/SK first, then expand — build every phase so a new country can
@@ -126,6 +249,9 @@ filled in as they surface. One boundary is already clear: **AutoMatch does not s
 itself** — it hosts dealers' offers and links to the market, but is a platform, never the
 seller.
 
+Also decided (2026-11-11): **cars only for now.** Trucks, agricultural machinery and
+construction equipment were considered as a target group and set aside.
+
 ---
 
 ## Open questions
@@ -133,3 +259,4 @@ seller.
 - Explicit non-goals beyond "not the seller" (to add on the go).
 - Business model / pricing per phase.
 - Dealer onboarding is folded into Phase 2 here — confirm that's the right milestone.
+- Catalog coverage: the category order and the platform batch order are proposals — confirm or reorder.

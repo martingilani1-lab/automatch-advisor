@@ -10,12 +10,13 @@
 // Every constant below is a deliberate, coarse SK/CZ ballpark for an ESTIMATE, not live market
 // data. They are collected in one place so updating a fuel price or the vignette is a one-line
 // change, not a hunt through JSX.
-import type { CatalogConfig, UnitService } from "@/app/catalog/lib/types";
+import type { CatalogConfig, CatalogFault, TyreWear, UnitService } from "@/app/catalog/lib/types";
 import type { CarData } from "@/app/lib/carFields";
 import { drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { gearboxHeaderLabel } from "@/app/catalog/lib/gearboxLabel";
 import { reliabilityTone, type RelTone } from "./engineCompare";
 import { calculateAnnualDepreciation } from "./depreciation";
+import { calculateRepairBuffer, type BufferFault, type RepairBuffer } from "./repairBuffer";
 
 // ---- Constants ----------------------------------------------------------------------------
 export const DEFAULT_ANNUAL_KM = 15000;
@@ -125,6 +126,11 @@ export interface TcoInput {
   timingBelt: UnitService | null;
   gearbox: TcoUnit;
   drivetrain: TcoUnit | null; // null = 2WD, no AWD service line at all
+  // The faults of THIS configuration (its engine, gearbox, AWD system and the phase's vehicle
+  // faults) and the phase's per-axle tyre wear -- the repair buffer (./repairBuffer.ts). Optional
+  // so older callers and tests that predate the buffer keep the generic reserve / tyre figure.
+  faults?: BufferFault[];
+  tyreWear?: TyreWear | null;
 }
 
 export type TcoKey = "fuel" | "engine" | "gearbox" | "drivetrain" | "tires" | "repairs" | "fixed" | "vignette" | "insurance" | "depreciation";
@@ -143,6 +149,9 @@ export interface TcoResult {
   // True when at least one line was null and is therefore NOT in the total -- the UI must say
   // so instead of presenting an incomplete total as the full cost.
   incomplete: boolean;
+  // The maintenance & repair buffer behind the repairs and tyre lines -- its own breakdown for
+  // the "Recommended annual buffer" panel (RepairBuffer.tsx).
+  buffer: RepairBuffer;
 }
 
 const eur = (n: number) => `€${Math.round(n).toLocaleString("en-US").replace(/,/g, " ")}`;
@@ -204,14 +213,28 @@ export function calcTco(
   const belt = car.timingBelt ? proratedYearly(car.timingBelt, annualKm) ?? 0 : 0;
   const engine = car.engineYearlyServiceEur != null ? car.engineYearlyServiceEur + belt : null;
 
-  const tires = (costs.tireSetCostEur / TIRE_SET_LIFE_KM) * annualKm + costs.tireSwapCostEur * TIRE_SWAPS_PER_YEAR;
+  // Car-specific data first (./repairBuffer.ts): per-axle tyre wear and priced faults replace the
+  // generic tyre figure and the rating-based reserve. Year = the car's (representative or picked)
+  // build year, so a fault limited to early cars drops out for later ones.
+  // Seasonal swaps go into the buffer too, so the Wear & tear panel adds up to exactly the
+  // "Tyres & seasonal swaps" + "Wear parts" lines above it (Martin, 2026-11-14).
+  const buffer = calculateRepairBuffer(car.faults ?? [], car.tyreWear ?? null, annualKm, car.manufactureYear,
+    { count: TIRE_SWAPS_PER_YEAR, costEach: costs.tireSwapCostEur });
+  const swaps = costs.tireSwapCostEur * TIRE_SWAPS_PER_YEAR;
+  const tires = buffer.tyresYearly != null
+    ? buffer.tyresYearly + swaps
+    : (costs.tireSetCostEur / TIRE_SET_LIFE_KM) * annualKm + swaps;
 
   const scale = Math.min(RESERVE_SCALE_MAX, Math.max(RESERVE_SCALE_MIN, annualKm / DEFAULT_ANNUAL_KM));
   const eTone = reliabilityTone(car.engineReliabilityRating);
   const gTone = reliabilityTone(car.gearbox.reliabilityRating);
   const dTone = car.drivetrain ? reliabilityTone(car.drivetrain.reliabilityRating) : null;
-  const repairs =
-    (REPAIR_RESERVE_EUR[eTone] + UNIT_RESERVE_UPLIFT_EUR[gTone] + (dTone ? UNIT_RESERVE_UPLIFT_EUR[dTone] : 0)) * scale;
+  // Known wear parts (12 V battery, brakes...) -> their yearly share of the replacement cost.
+  // Possible faults are deliberately NOT here (one-off bills, listed separately -- see
+  // ./repairBuffer.ts). No wear data yet -> the rating-based reserve, unchanged.
+  const repairs = buffer.hasFaultData
+    ? buffer.partsYearly
+    : (REPAIR_RESERVE_EUR[eTone] + UNIT_RESERVE_UPLIFT_EUR[gTone] + (dTone ? UNIT_RESERVE_UPLIFT_EUR[dTone] : 0)) * scale;
   const toneWord = (t: RelTone) => (t === "unknown" ? "not rated" : t);
 
   const fixed = costs.inspectionEur / costs.inspectionEveryYears;
@@ -236,8 +259,13 @@ export function calcTco(
         ? `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`
         : "No consumption data",
     },
-    {
-      key: "engine",
+    // A pure EV has no engine servicing (no oil, filters, plugs or belt) -- the line is left
+    // out rather than shown as "no data", which would also mark the whole total incomplete.
+    // Brake fluid / cabin filter are deliberately not modelled either (Martin, 2026-11-14:
+    // nobody changes them until needed). An electric engine WITH a yearly figure -- e.g. a
+    // range extender's petrol generator -- still gets the line.
+    ...(fuelKey === "electric" && car.engineYearlyServiceEur == null ? [] : [{
+      key: "engine" as const,
       label: "Engine servicing",
       yearly: engine,
       detail: car.engineYearlyServiceEur == null
@@ -245,20 +273,28 @@ export function calcTco(
         : belt > 0
           ? `Oil, filters, plugs ${eur(car.engineYearlyServiceEur)} + timing belt ${eur(belt)} (prorated)`
           : `Oil, filters, plugs ${eur(car.engineYearlyServiceEur)}`,
-    },
-    unitServiceLine("gearbox", "Gearbox service", car.gearbox, annualKm),
+    }]),
+    // Same for an EV's single-speed reduction gear: "filled for life", no service price --
+    // left out instead of a "no data" line that would mark the total incomplete. A gearbox that
+    // does have a service price (e.g. a 2-speed unit) still shows it.
+    ...(fuelKey === "electric" && proratedYearly(car.gearbox.service, annualKm) == null
+      ? [] : [unitServiceLine("gearbox", "Gearbox service", car.gearbox, annualKm)]),
     ...(car.drivetrain ? [unitServiceLine("drivetrain", "AWD service", car.drivetrain, annualKm)] : []),
     {
       key: "tires",
       label: "Tyres & seasonal swaps",
       yearly: tires,
-      detail: `${eur(costs.tireSetCostEur)} set per ${kmText(TIRE_SET_LIFE_KM)} + ${TIRE_SWAPS_PER_YEAR}× swap`,
+      detail: buffer.tyresYearly != null && car.tyreWear
+        ? `Rear pair ${eur(car.tyreWear.rearCostEur)} per ${kmText(car.tyreWear.rearLifeKm)}, front pair ${eur(car.tyreWear.frontCostEur)} per ${kmText(car.tyreWear.frontLifeKm)} + ${TIRE_SWAPS_PER_YEAR}× swap`
+        : `${eur(costs.tireSetCostEur)} set per ${kmText(TIRE_SET_LIFE_KM)} + ${TIRE_SWAPS_PER_YEAR}× swap`,
     },
     {
       key: "repairs",
-      label: "Unexpected repairs reserve",
+      label: buffer.hasFaultData ? "Wear parts" : "Unexpected repairs reserve",
       yearly: repairs,
-      detail: `Engine ${toneWord(eTone)} · gearbox ${toneWord(gTone)}${dTone ? ` · AWD ${toneWord(dTone)}` : ""}`,
+      detail: buffer.hasFaultData
+        ? buffer.wear.filter((w) => w.kind === "time").map((w) => `${w.title} ${w.basis}`).join(" · ")
+        : `Engine ${toneWord(eTone)} · gearbox ${toneWord(gTone)}${dTone ? ` · AWD ${toneWord(dTone)}` : ""}`,
     },
     {
       key: "fixed",
@@ -279,7 +315,7 @@ export function calcTco(
   ];
 
   const yearlyTotal = lines.reduce((sum, l) => sum + (l.yearly ?? 0), 0);
-  return { lines, yearlyTotal, monthlyTotal: yearlyTotal / 12, incomplete: lines.some((l) => l.yearly == null) };
+  return { lines, yearlyTotal, monthlyTotal: yearlyTotal / 12, incomplete: lines.some((l) => l.yearly == null), buffer };
 }
 
 // ---- Configurations -> selectable options -------------------------------------------------
@@ -300,6 +336,8 @@ export function tcoOptions(
   priceMax: number,
   engineLabel: (c: CatalogConfig) => string,
   manufactureYear: number | null = null,
+  faults: CatalogFault[] = [],
+  tyreWear: TyreWear | null = null,
 ): TcoOption[] {
   const price = priceMin > 0 || priceMax > 0 ? mid(priceMin || null, priceMax || null) : null;
   const groups = new Map<string, CatalogConfig[]>();
@@ -337,6 +375,14 @@ export function tcoOptions(
         drivetrain: c.drivetrain
           ? { label: drivetrainLabel(c), reliabilityRating: c.drivetrain.reliabilityRating, service: c.drivetrain.service }
           : null,
+        // This configuration's own faults: its engine's, its gearbox's, its AWD system's, and
+        // the phase's vehicle-level ones (which every configuration shares).
+        faults: faults.filter((f) =>
+          f.componentType === "vehicle"
+          || (f.componentType === "engine" && f.engineId === e.id)
+          || (f.componentType === "transmission" && f.unitId === c.gearbox.id)
+          || (f.componentType === "drivetrain" && c.drivetrain != null && f.drivetrainId === c.drivetrain.id)),
+        tyreWear,
       },
     };
   });
@@ -366,6 +412,13 @@ export function pickCheapest(results: (TcoResult | null)[]): number | null {
 // The year a phase's cars are treated as built in, for depreciation: the middle of its
 // production years ("2001–2005" -> 2003, rounded down). A phase still in production counts up
 // to the current year. null when no year is known.
+// The phase's production years as numbers, for the Costs tab's year picker. null = unknown.
+export function phaseYearSpan(car: CarData, currentYear = new Date().getFullYear()): { from: number; to: number } | null {
+  const from = Number(car.years?.match(/\d{4}/)?.[0]);
+  if (!from) return null;
+  return { from, to: Math.max(from, car.yearTo ?? currentYear) };
+}
+
 export function representativeYear(car: CarData, currentYear = new Date().getFullYear()): number | null {
   const from = Number(car.years?.match(/\d{4}/)?.[0]);
   if (!from) return null;

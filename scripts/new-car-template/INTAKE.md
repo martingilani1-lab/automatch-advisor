@@ -20,6 +20,11 @@ same CSV shape; nothing downstream cares which one produced it. The markdown pat
 recommended whenever this car shares phase attributes, dimensions, or a config matrix with a
 sibling phase or platform-mate car — that's exactly what `INHERIT` is for.
 
+**Which fields must be filled** before a seed is generated — required / conditional / optional —
+is in `docs/intake/FIELD-LEVELS.md` (generated from `scripts/catalog-field-levels.json`). This file
+only describes the format the parser accepts. The values come from the research passes in
+`docs/intake/RESEARCH-PROCESS.md`; start a new document from `INTAKE-BLANK.md`.
+
 Section headers in the document must be literally `## A.` through `## J.` (the parser splits
 on the letter, not the title text after it — the title words below are just for readability).
 

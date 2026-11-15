@@ -515,6 +515,8 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       configs: bundle.configs,
       media: bundle.media,
       phaseTags: bundle.tags,
+      costFaults: bundle.faults,
+      tyreWear: bundle.tyreWear,
     };
 }
 
