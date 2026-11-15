@@ -2,6 +2,7 @@ import type { CatalogFault } from "../lib/types";
 import type { EngineGroup } from "../lib/groupConfigurations";
 import { countGaps, type GapField } from "../lib/gaps";
 import { cylindersLabel } from "../lib/cylindersLabel";
+import { POWERTRAIN_EXPLAINERS, powertrainKind } from "../lib/powertrainExplainer";
 import Field from "./ui/field";
 import Badge from "./ui/badge";
 import Chips from "./ui/chips";
@@ -51,11 +52,51 @@ export default function EnginePanel({ group, faults, gapsMode }: EnginePanelProp
     { label: "Hybrid system", value: hybridSystemValue },
   ];
 
+  // An electrified row is a combination of units; the explainer says in plain words how they
+  // work together (see powertrainExplainer.ts). A range extender (EREV) is additionally split
+  // into two sub-blocks -- the electric drive and the petrol generator -- the same way
+  // GearboxPanel nests a drivetrain system as its own block, because one flat list mixing
+  // "125 kW" (the motor) with "647 cm³" (the generator) reads as one engine that doesn't exist.
+  const kind = powertrainKind(engine);
+  const explainer = kind ? POWERTRAIN_EXPLAINERS[kind] : null;
+  const isRangeExtender = kind === "EREV";
+
+  const electricDriveFields: GapField[] = [
+    { label: "Motor power", value: `${engine.powerKw} kW` },
+    { label: "Motor torque", value: engine.torqueNm != null ? `${engine.torqueNm} Nm` : null },
+    { label: "Battery (net)", value: engine.ev.batteryCapacityNetKwh != null ? `${engine.ev.batteryCapacityNetKwh} kWh` : null },
+    { label: "AC charging", value: engine.ev.maxAcChargingKw != null ? `${engine.ev.maxAcChargingKw} kW` : null },
+    { label: "DC charging", value: engine.ev.maxDcChargingKw != null ? `${engine.ev.maxDcChargingKw} kW` : null },
+    { label: "Battery cooling", value: thermalLabel(engine.ev.batteryThermalManagement) },
+    { label: "Heat pump", value: engine.ev.heatPump },
+  ];
+  // Time-based oil service (the i3 REx: by the service indicator, every 24 months) is shown
+  // as months; a km interval, when a row has one, comes first.
+  const m = engine.maintenance;
+  const oilIntervalValue =
+    [m.oilChangeIntervalKm != null ? `${m.oilChangeIntervalKm} km` : null,
+     m.oilChangeIntervalMonths != null ? `${m.oilChangeIntervalMonths} months` : null]
+      .filter(Boolean).join(" / ") || null;
+  const rangeExtenderFields: GapField[] = [
+    { label: "Displacement", value: engine.displacementCc != null ? `${engine.displacementCc} cm³` : null },
+    { label: "Cylinders", value: cylindersLabel(engine.cylinders) },
+    { label: "Emission standard", value: engine.emissionStandard },
+    { label: "Timing type", value: engine.timingType },
+    { label: "Timing replacement", value: timingReplacementValue },
+    { label: "Oil capacity", value: engine.engineOilCapacityLiters != null ? `${engine.engineOilCapacityLiters} L` : null },
+    { label: "Oil change", value: oilIntervalValue },
+    { label: "Oil spec", value: m.oilSpec },
+  ];
+  const codeField: GapField = { label: "Code", value: engine.code };
+
   // catalog_component_faults now also carries drivetrain_id- and phase_id-keyed rows (the
   // latter is "vehicle" -- see fetchBundleForPhase's own comment), but exact-id equality here
   // means only this engine's own rows ever match; a vehicle-level row's engineId is null.
   const engineFaults = faults.filter((f) => f.engineId === engine.id);
-  const totalGaps = countGaps(engineFields) + (engine.reliabilityRating == null ? 1 : 0);
+  const totalGaps =
+    (isRangeExtender
+      ? countGaps([codeField, ...electricDriveFields, ...rangeExtenderFields])
+      : countGaps(engineFields)) + (engine.reliabilityRating == null ? 1 : 0);
 
   // Tire sizes are per-configuration -- union across every config this engine actually uses,
   // deduped by (tireSize, isStandard) so the same size offered on two bodies doesn't repeat.
@@ -80,10 +121,35 @@ export default function EnginePanel({ group, faults, gapsMode }: EnginePanelProp
       </div>
       <Chips items={group.bodyNames} />
 
+      {explainer && (
+        <div className="rounded-lg border border-white/5 bg-panel-2 p-3">
+          <p className="mb-1 text-sm font-medium text-primary">How it works — {explainer.title}</p>
+          <p className="text-sm text-secondary">{explainer.body}</p>
+        </div>
+      )}
+
       <div className="rounded-lg bg-panel-2 p-4">
-        {engineFields.map((f) => (
-          <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
-        ))}
+        {isRangeExtender ? (
+          <>
+            <Field label={codeField.label} value={codeField.value} gapsMode={gapsMode} />
+            <div className="mt-2 rounded-lg border border-white/5 p-3">
+              <p className="mb-1 text-sm font-medium text-primary">Electric drive — motor + battery (drives the wheels)</p>
+              {electricDriveFields.map((f) => (
+                <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
+              ))}
+            </div>
+            <div className="mt-2 mb-2 rounded-lg border border-white/5 p-3">
+              <p className="mb-1 text-sm font-medium text-primary">Range extender — petrol generator (charges the battery only)</p>
+              {rangeExtenderFields.map((f) => (
+                <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
+              ))}
+            </div>
+          </>
+        ) : (
+          engineFields.map((f) => (
+            <Field key={f.label} label={f.label} value={f.value} gapsMode={gapsMode} />
+          ))
+        )}
         <Rating value={engine.reliabilityRating} label="Reliability" />
         <ProsConsList pros={engine.pros} cons={engine.cons} gapsMode={gapsMode} />
         <FaultsList faults={engineFaults} gapsMode={gapsMode} />
@@ -113,4 +179,18 @@ export default function EnginePanel({ group, faults, gapsMode }: EnginePanelProp
       </div>
     </div>
   );
+}
+
+// catalog_engines.battery_thermal_management is a frozen vocabulary
+// (scripts/catalog-vocabularies.json); shown in words, raw value as the fallback.
+const THERMAL_LABELS: Record<string, string> = {
+  active_liquid: "Active (liquid)",
+  active_air: "Active (air)",
+  active_refrigerant: "Active (refrigerant)",
+  passive: "Passive",
+};
+
+function thermalLabel(value: string | null): string | null {
+  if (value == null) return null;
+  return THERMAL_LABELS[value] ?? value;
 }
