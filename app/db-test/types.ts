@@ -12,6 +12,23 @@ import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
 export interface DetailFaultItem {
   fault: string;
   severity: string | null;
+  // Build years the fault applies to (catalog_component_faults affected_year_from/_to,
+  // inclusive; null = open end). Optional so older payload shapes and fixtures still type-check.
+  affectedYearFrom?: number | null;
+  affectedYearTo?: number | null;
+}
+
+// One official figure across an engine's configurations on this phase (min-max when gearboxes /
+// bodies differ), always with the test cycle it came from -- figures of different cycles are
+// never compared as equals (WLTP reads ~15-25 % higher). `cycle` is "mixed" when the engine's own
+// configurations disagree, null when none recorded one. `weighted` = the plug-in / range-extender
+// test result (battery assumed to do most of the driving), not a figure for running on one source.
+export interface EngineFigure {
+  min: number;
+  max: number;
+  unit: "l/100 km" | "kWh/100 km" | "km";
+  cycle: string | null;
+  weighted: boolean;
 }
 
 // A gearbox is a real, standalone unit -- its own top-level array (see DetailData.g below),
@@ -62,8 +79,13 @@ export interface DetailEngine {
   reliability_rating: number | null;
   // catalog_engines.timing_type ('belt' | 'chain' | 'gear', frozen CHECK) -- null if unknown.
   timing_type: string | null;
-  // catalog_engines.hybrid_type ('MHEV' | 'PHEV') -- null for a plain combustion engine.
+  // catalog_engines.hybrid_type ('MHEV' | 'HEV' | 'PHEV' | 'EREV') -- null for a plain combustion
+  // engine or a pure EV.
   hybrid_type: string | null;
+  // catalog_engines.display_name / code / emission_standard, raw -- the comparison builds its own
+  // code-free title from them (engineCompare.ts compareEngineTitle). Optional for fixtures.
+  display_name?: string | null;
+  emission_standard?: string | null;
   // catalog_engines.timing_replacement_km -- belt interval; null for chains (no fixed interval).
   timing_replacement_km: number | null;
   // Service intervals + typical SK/CZ workshop prices (catalog_engines maintenance columns) --
@@ -81,6 +103,15 @@ export interface DetailEngine {
   // energy_consumption_kwh100km for electric -- the manufacturer figure, NOT a real-world one.
   // null when no configuration has a value.
   consumption: { min: number; max: number; unit: "l/100 km" | "kWh/100 km" } | null;
+  // Engine comparison, split by energy source (route.ts engineFigures). Optional so existing
+  // fixtures stay valid; the comparison treats a missing one as "not recorded".
+  //   electric_consumption: kWh/100 km (EV, PHEV, EREV)
+  //   fuel_consumption:     l/100 km (PHEV / EREV petrol figure via secondary_* or the fuel column;
+  //                         HEV, MHEV, ICE)
+  //   ev_range:             ev_range_km (EV, PHEV, EREV)
+  electric_consumption?: EngineFigure | null;
+  fuel_consumption?: EngineFigure | null;
+  ev_range?: EngineFigure | null;
   faults: DetailFaultItem[];
   pros: string[];
   cons: string[];

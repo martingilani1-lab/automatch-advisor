@@ -5,6 +5,7 @@ import { getGenerationBundlesByPhaseId } from "@/app/catalog/lib/db";
 import type { CatalogConfig, PhaseBundle } from "@/app/catalog/lib/types";
 import { groupByGearbox, groupConfigurations } from "@/app/catalog/lib/groupConfigurations";
 import { resolveBodyTiles } from "@/app/db-test/lib/filters";
+import { engineFigures, faultAppliesToYears } from "@/app/db-test/lib/engineCompare";
 import type {
   DetailData,
   DetailDrivetrainGroup,
@@ -355,6 +356,9 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
       // duplicated in app/db-test/ConfigRows.tsx's own engine label (Configurations tab),
       // which has the identical bug from the identical cause.
       const engineHasEmbeddedPower = engine.displayName != null && /\d+\s*kw\b/i.test(engine.displayName);
+      // Engine comparison: figures split by energy source, each with its test cycle and whether
+      // it is the weighted plug-in result (engineCompare.ts engineFigures).
+      const figures = engineFigures(group.configs);
       return {
         // Display-only convention: "<display_name> (<code>) <power_kw> kW", same as
         // Browse & Compare's own engine labels -- never falls back to the em-dash form,
@@ -376,6 +380,8 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
         reliability_rating: engine.reliabilityRating,
         timing_type: engine.timingType,
         hybrid_type: engine.hybridType,
+        display_name: engine.displayName,
+        emission_standard: engine.emissionStandard,
         timing_replacement_km: engine.timingReplacementKm,
         maintenance: engine.maintenance,
         has_dpf: engine.hasDpf,
@@ -384,9 +390,16 @@ function buildDetailData(bundle: PhaseBundle): DetailData {
         injection_type: engine.injectionType,
         ev: engine.ev,
         consumption: engineConsumption(group.configs, engine.fuelType === "electric"),
+        electric_consumption: figures.electric,
+        fuel_consumption: figures.fuel,
+        ev_range: figures.range,
+        // Only faults whose build years overlap this phase's years (the i3's "motor mount, up to
+        // 2015" fault was showing on the 2017+ Facelift) -- engine faults are stored per engine,
+        // and one engine row can span both phases.
         faults: bundle.faults
           .filter((f) => f.engineId === engine.id)
-          .map((f) => ({ fault: f.fault, severity: f.severity })),
+          .filter((f) => faultAppliesToYears(f, bundle.yearFrom, bundle.yearTo))
+          .map((f) => ({ fault: f.fault, severity: f.severity, affectedYearFrom: f.affectedYearFrom, affectedYearTo: f.affectedYearTo })),
         pros: engine.pros,
         cons: engine.cons,
         bodyNames: group.bodyNames,
