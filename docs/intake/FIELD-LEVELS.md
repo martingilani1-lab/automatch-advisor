@@ -2,7 +2,7 @@
 
 # Field levels for a catalog import
 
-Version 2026-11-12. Which fields an intake must fill before a seed is generated. The research
+Version 2026-11-15. Which fields an intake must fill before a seed is generated. The research
 passes are described in [RESEARCH-PROCESS.md](RESEARCH-PROCESS.md).
 
 | level | meaning |
@@ -55,9 +55,9 @@ Table: `catalog_engines`
 | field(s) | level | when | pass | note |
 |---|---|---|---|---|
 | `code`, `power_kw`, `fuel_type`, `display_name`, `torque_nm` | **required** |  | 2 technical |  |
-| `displacement_cc`, `cylinders`, `emission_standard` | **conditional** | combustion engine | 2 technical |  |
+| `displacement_cc`, `cylinders`, `emission_standard` | **conditional** | combustion engine, or the generator of an EREV | 2 technical | a change of emission stage within a phase (Euro 6c -> Euro 6d-TEMP) = separate engine rows (CLAUDE.md rule 3) |
 | `timing_type`, `injection_type`, `engine_oil_capacity_liters` | **conditional** | combustion engine | 2 technical |  |
-| `hybrid_type` | **conditional** | MHEV, HEV or PHEV | 2 technical |  |
+| `hybrid_type` | **conditional** | MHEV, HEV, PHEV or EREV (range extender) | 2 technical | EREV = electric drive + a petrol generator that never drives the wheels (BMW i3 REx): fuel_type stays electric, the generator fills displacement_cc / cylinders / timing / emission_standard / oil columns |
 | `has_dpf`, `has_adblue` | **conditional** | diesel | 2 technical |  |
 | `battery_capacity_net_kwh`, `max_ac_charging_kw`, `max_dc_charging_kw`, `battery_thermal_management`, `heat_pump` | **conditional** | EV or PHEV (max_dc_charging_kw: only where DC charging was offered) | 2 technical |  |
 | `has_gpf` | optional |  | 2 technical |  |
@@ -112,10 +112,11 @@ Table: `catalog_vehicle_configurations`
 | fuel_consumption_l100km or energy_consumption_kwh100km, `consumption_cycle` | **required** |  | 2 technical |  |
 | `acceleration_0_100`, `top_speed_kmh` | **required** |  | 2 technical |  |
 | `curb_weight_kg` | **required** |  | 2 technical |  |
-| `ev_range_km` | **conditional** | EV or PHEV | 2 technical |  |
-| `co2_emissions_g_km` | **conditional** | combustion engine or PHEV | 2 technical |  |
+| `ev_range_km` | **conditional** | EV, PHEV or EREV | 2 technical | in the row's consumption_cycle. ev_range_wltp_km is a GENERATED copy of it -- never write it. If the source gives a range ("290 to 300 km"), Martin picks the convention and it is recorded in the research doc |
+| `co2_emissions_g_km` | **conditional** | combustion engine, PHEV or EREV | 2 technical |  |
 | `towing_braked_kg`, `towing_unbraked_kg` | **conditional** | the phase permits towing (towing_capacity_kg > 0) | 2 technical |  |
-| `secondary_fuel_type`, `secondary_consumption_l100km` | **conditional** | factory LPG / CNG bi-fuel | 2 technical |  |
+| `secondary_fuel_type`, `secondary_consumption_l100km` | **conditional** | factory LPG / CNG bi-fuel, or EREV (its petrol figure) | 2 technical | EREV: the official petrol figure is WEIGHTED (battery assumed to do most of the driving, i3 REx 0.6 l) -- never compare it with a petrol car or compute a tank range from it. CHECK allows 0.1-30 |
+| fuel_tank_capacity_liters (configuration) | **conditional** | the configuration's tank differs from its body's -- e.g. a range extender sharing a body with the pure EV | 2 technical | 20261115163000. NULL = use the body's value. The import scripts do not read it yet -- add it in the seed by hand |
 | `fuel_consumption_urban_l100km`, `fuel_consumption_extra_urban_l100km` | optional |  | 2 technical | WLTP does not publish these in this form |
 | tire sizes | optional |  | 2 technical |  |
 
@@ -137,7 +138,7 @@ Table: `catalog_component_faults`
 |---|---|---|---|---|
 | at least 1 vehicle fault per phase | **required** |  | 4 reliability + service |  |
 | `estimated_cost_eur_min`, `estimated_cost_eur_max`, `annual_probability` | **required** |  | 4 reliability + service | on every fault: the cost calculator's repair buffer reads them (cost x annual probability). Wear replaced every N years = 1/N. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A |
-| `affected_year_from`, `affected_year_to` | **conditional** | the fault only hit some build years | 4 reliability + service |  |
+| `affected_year_from`, `affected_year_to` | **conditional** | the fault only hit some build years -- ALWAYS when the engine / gearbox spans more than one phase | 4 reliability + service | engine and gearbox faults are stored per unit, not per phase; the years are what keeps a 2013-2015 fault off the 2017+ phase (i3 motor mount, 2026-11-15) |
 | `pre_purchase_check` | optional |  | 4 reliability + service | a check before buying that settles the risk (i3: reinforced motor mount fitted?) |
 | engine fault | **conditional** | engine reliability_rating <= 3 | 4 reliability + service |  |
 | gearbox fault | **conditional** | gearbox reliability_rating <= 3 | 4 reliability + service |  |

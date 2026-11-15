@@ -137,6 +137,20 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
      safety-net scan for any live `transmission_units`/`drivetrain_systems` near-duplicate
      (maker non-null) not yet reviewed into `scripts/known-distinct-reference-groups.json`.
      Fix reported problems before generating the seed, not after.
+   - **Generated column — never write it:** `catalog_vehicle_configurations.ev_range_wltp_km`
+     is `GENERATED` (= `ev_range_km`); listing it in an INSERT fails with 428C9 (the i3 REx seed
+     hit this, 2026-11-15). Write `ev_range_km` in the row's `consumption_cycle` only.
+   - **Range extender (EREV)** — see INTAKE.md section D: own engine row (`fuel_type` electric,
+     `hybrid_type` EREV, the generator's cc / cylinders / timing / emission / oil columns);
+     petrol figure in `secondary_*`, `fuel_consumption_l100km` NULL; tank in the
+     configuration's own `fuel_tank_capacity_liters` (the scripts don't emit it — add it by
+     hand); the matching pure-EV engine's faults copied onto it, then the REx-only ones; a
+     change of emission stage inside the phase = separate engine + configuration rows.
+   - **Faults on a unit shared by two phases** need `affected_year_from / _to` whenever they
+     didn't hit every build year — the years are what keeps them off the other phase.
+   - **Tags:** after the seed has run, re-run the tag-rule migrations (RESEARCH-PROCESS.md,
+     Tags) — preview first which tags they would add, then run them; a new car has none until
+     then.
 
 4. **Verify** (after the human runs it, via live read queries):
    - filter by `generation_code`; config count per phase matches the spec;
@@ -149,6 +163,10 @@ the ordered mechanics. If a step here conflicts with a rule there, the rule wins
    returned" with the data missing means an uncommitted transaction from a previous run,
    not a no-op — don't re-interpret it as "nothing needed to happen." Verify in the live DB
    after running, and commit. Run `npm test` after any write that could affect scoring.
+   A review file that has waited more than a day: re-check every guard against the live DB
+   before the human runs it, and rewrite it if anything moved; a replaced file gets a
+   `SUPERSEDED — DO NOT RUN` header (RESEARCH-PROCESS.md, "Migrations written for review go
+   stale").
 
 ## Done means
 Every attribute area was addressed: filled where real data exists, NULL where genuinely

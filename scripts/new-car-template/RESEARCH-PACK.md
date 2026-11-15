@@ -130,9 +130,28 @@ Every pass still returns Q (evidence) and R (gaps & doubts) for its own values.
 
 ## Market data method (section B2)
 
-Search current listings for this exact generation + phase on autobazar.sk, autobazar.eu, sauto.cz,
+Search current listings for this exact generation + phase on autobazar.eu, sauto.cz,
 bazos.sk / bazos.cz, mobile.de (EU reference). Exclude damaged / export / parts cars and obvious
 outliers (lowest and highest ~10 %).
+
+How each site can be read (learned on the BMW i3, 2026-11-15):
+- **autobazar.eu** — `/vysledky/osobne-vozidla/<brand>/<model>/` (+ `?page=2`). autobazar.sk's own
+  model URL no longer filters (it returns the general feed); its listings are on autobazar.eu.
+  Open each detail page: year / km / fuel / engine size are in "Základné údaje".
+- **sauto.cz** — the search API returns every listing as JSON:
+  `https://www.sauto.cz/api/v1/items/search?limit=100&offset=0&category_id=838&manufacturer_model_seo=<brand>%3A<model>`;
+  one listing: `/api/v1/items/<id>` (description, `manufacturing_date`, `in_operation_date`, `engine_volume`).
+  Watch for a new model reusing the name (2026 "i3 50 xDrive").
+- **bazos.sk / .cz** — a full-text search, mostly parts; read only whole-car ads, open each.
+  The same car is often listed on sauto / autobazar too — count it once.
+- **mobile.de** — blocks scripts (403); read it in the browser. Model filter is
+  `ms=<make>%3B<model>%3B%3B` (encoded), plus `fr=%3A<year>` and `cn=DE`; the battery size is
+  often only on the detail page ("Batteriekapazität").
+- Perplexity cannot read listings — use it at most to find where listings are.
+- **Keep countries apart:** SK, CZ and DE are separate medians, never one mixed figure.
+- When the source can't tell two variants apart (e.g. a year without month across a facelift),
+  list the ad but leave it out of the medians.
+- Exchange rate: the ECB reference rate of the day (eurofxref-daily.xml), stated in the doc.
 - `price_range_min_eur` / `price_range_max_eur` = cheapest / most expensive normal listing after the cut.
 - `avg_market_price_eur` = median of those listings.
 - `typical_mileage_min_km` / `typical_mileage_max_km` = mileage range of those listings.
@@ -308,9 +327,9 @@ is inconsistent. Explain each rating in one line in `rating_reason`.
 | consumption_cycle | NEDC, WLTP |
 | resale_value_rating | holds_well, average, depreciates_fast |
 | fuel_type | petrol, diesel, electric, lpg, cng |
-| hybrid_type | MHEV, HEV, PHEV, NULL |
+| hybrid_type | MHEV, HEV, PHEV, EREV, NULL |
 | cylinders | L2, L3, L4, L5, L6, V5, VR5, VR6, V6, V8, V10, V12, W12, B4, B6 |
-| emission_standard | Euro1, Euro2, Euro3, Euro4, Euro5, Euro6, Euro6c, Euro6d, Euro6e |
+| emission_standard | Euro1, Euro2, Euro3, Euro4, Euro5, Euro6, Euro6c, Euro6d-TEMP, Euro6d, Euro6e |
 | timing_type | belt, chain, gear |
 | injection_type | port, direct, dual, common_rail, pump_injector, distributor_pump |
 | battery_thermal_management | active_liquid, active_air, active_refrigerant, passive |

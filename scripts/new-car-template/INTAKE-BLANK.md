@@ -221,7 +221,7 @@ INHERIT configs FROM <Brand> <Model> <generation_code> Pre-facelift
 
 *(The only way a required or applicable conditional field may stay empty. `target` = phase label, body, `CODE@kW` or unit code. `approved` = "Martin, <date>" — Claude never fills it. Example: `transmission_units.maker | i3 reduction gear | in-house BMW eDrive unit, no named supplier | Martin, 2026-11-12`.)*
 
-## L. ALLOWED VALUES (generated from scripts/catalog-vocabularies.json + live reference tables, 2026-11-10 — do not edit by hand)
+## L. ALLOWED VALUES (generated from scripts/catalog-vocabularies.json + live reference tables, 2026-11-15 — do not edit by hand)
 
 | field | allowed values |
 |---|---|
@@ -232,9 +232,9 @@ INHERIT configs FROM <Brand> <Model> <generation_code> Pre-facelift
 | consumption_cycle | NEDC, WLTP |
 | body_type | Cabriolet 2-door, Coupe 2-door, Estate, Estate Cross, Hatchback 3-door, Hatchback 5-door, Hatchback Cross, Liftback, MPV 5-door, Roadster 2-door, Sedan 4-door, SUV 5-door, SUV Coupe 5-door |
 | fuel_type | petrol, diesel, electric, lpg, cng |
-| hybrid_type | MHEV, HEV, PHEV (or NULL) |
+| hybrid_type | MHEV, HEV, PHEV, EREV (or NULL) |
 | cylinders | L2, L3, L4, L5, L6, V5, VR5, VR6, V6, V8, V10, V12, W12, B4, B6 |
-| emission_standard | Euro1 … Euro6, Euro6c, Euro6d, Euro6e (no space) |
+| emission_standard | Euro1 … Euro6, Euro6c, Euro6d-TEMP, Euro6d, Euro6e (no space) |
 | timing_type | belt, chain, gear |
 | injection_type | port, direct, dual, common_rail, pump_injector, distributor_pump |
 | battery_thermal_management | active_liquid, active_air, active_refrigerant, passive |

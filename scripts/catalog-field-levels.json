@@ -18,7 +18,7 @@
     "Not enforced by any script yet: validate-template.mjs reading this file is the next step (step 2",
     "of the intake revision). Until then Claude Code checks it by hand before generating a seed."
   ],
-  "version": "2026-11-12",
+  "version": "2026-11-15",
   "areas": [
     {
       "area": "Phase",
@@ -60,9 +60,9 @@
       "table": "catalog_engines",
       "fields": [
         { "fields": ["code", "power_kw", "fuel_type", "display_name", "torque_nm"], "level": "required", "pass": 2 },
-        { "fields": ["displacement_cc", "cylinders", "emission_standard"], "level": "conditional", "when": "combustion engine", "pass": 2 },
+        { "fields": ["displacement_cc", "cylinders", "emission_standard"], "level": "conditional", "when": "combustion engine, or the generator of an EREV", "pass": 2, "note": "a change of emission stage within a phase (Euro 6c -> Euro 6d-TEMP) = separate engine rows (CLAUDE.md rule 3)" },
         { "fields": ["timing_type", "injection_type", "engine_oil_capacity_liters"], "level": "conditional", "when": "combustion engine", "pass": 2 },
-        { "fields": ["hybrid_type"], "level": "conditional", "when": "MHEV, HEV or PHEV", "pass": 2 },
+        { "fields": ["hybrid_type"], "level": "conditional", "when": "MHEV, HEV, PHEV or EREV (range extender)", "pass": 2, "note": "EREV = electric drive + a petrol generator that never drives the wheels (BMW i3 REx): fuel_type stays electric, the generator fills displacement_cc / cylinders / timing / emission_standard / oil columns" },
         { "fields": ["has_dpf", "has_adblue"], "level": "conditional", "when": "diesel", "pass": 2 },
         { "fields": ["battery_capacity_net_kwh", "max_ac_charging_kw", "max_dc_charging_kw", "battery_thermal_management", "heat_pump"], "level": "conditional", "when": "EV or PHEV (max_dc_charging_kw: only where DC charging was offered)", "pass": 2 },
         { "fields": ["has_gpf"], "level": "optional", "pass": 2 },
@@ -115,10 +115,11 @@
         { "fields": ["fuel_consumption_l100km or energy_consumption_kwh100km", "consumption_cycle"], "level": "required", "pass": 2 },
         { "fields": ["acceleration_0_100", "top_speed_kmh"], "level": "required", "pass": 2 },
         { "fields": ["curb_weight_kg"], "level": "required", "pass": 2 },
-        { "fields": ["ev_range_km"], "level": "conditional", "when": "EV or PHEV", "pass": 2 },
-        { "fields": ["co2_emissions_g_km"], "level": "conditional", "when": "combustion engine or PHEV", "pass": 2 },
+        { "fields": ["ev_range_km"], "level": "conditional", "when": "EV, PHEV or EREV", "pass": 2, "note": "in the row's consumption_cycle. ev_range_wltp_km is a GENERATED copy of it -- never write it. If the source gives a range (\"290 to 300 km\"), Martin picks the convention and it is recorded in the research doc" },
+        { "fields": ["co2_emissions_g_km"], "level": "conditional", "when": "combustion engine, PHEV or EREV", "pass": 2 },
         { "fields": ["towing_braked_kg", "towing_unbraked_kg"], "level": "conditional", "when": "the phase permits towing (towing_capacity_kg > 0)", "pass": 2 },
-        { "fields": ["secondary_fuel_type", "secondary_consumption_l100km"], "level": "conditional", "when": "factory LPG / CNG bi-fuel", "pass": 2 },
+        { "fields": ["secondary_fuel_type", "secondary_consumption_l100km"], "level": "conditional", "when": "factory LPG / CNG bi-fuel, or EREV (its petrol figure)", "pass": 2, "note": "EREV: the official petrol figure is WEIGHTED (battery assumed to do most of the driving, i3 REx 0.6 l) -- never compare it with a petrol car or compute a tank range from it. CHECK allows 0.1-30" },
+        { "fields": ["fuel_tank_capacity_liters (configuration)"], "level": "conditional", "when": "the configuration's tank differs from its body's -- e.g. a range extender sharing a body with the pure EV", "pass": 2, "note": "20261115163000. NULL = use the body's value. The import scripts do not read it yet -- add it in the seed by hand" },
         { "fields": ["fuel_consumption_urban_l100km", "fuel_consumption_extra_urban_l100km"], "level": "optional", "pass": 2, "note": "WLTP does not publish these in this form" },
         { "fields": ["tire sizes"], "level": "optional", "pass": 2 }
       ]
@@ -138,7 +139,7 @@
       "fields": [
         { "fields": ["at least 1 vehicle fault per phase"], "level": "required", "pass": 4 },
         { "fields": ["estimated_cost_eur_min", "estimated_cost_eur_max", "annual_probability"], "level": "required", "pass": 4, "note": "on every fault: the cost calculator's repair buffer reads them (cost x annual probability). Wear replaced every N years = 1/N. Forum-level figures are acceptable (Martin, 2026-11-12); Martin's own figure = source M. A fixed recall: N/A" },
-        { "fields": ["affected_year_from", "affected_year_to"], "level": "conditional", "when": "the fault only hit some build years", "pass": 4 },
+        { "fields": ["affected_year_from", "affected_year_to"], "level": "conditional", "when": "the fault only hit some build years -- ALWAYS when the engine / gearbox spans more than one phase", "pass": 4, "note": "engine and gearbox faults are stored per unit, not per phase; the years are what keeps a 2013-2015 fault off the 2017+ phase (i3 motor mount, 2026-11-15)" },
         { "fields": ["pre_purchase_check"], "level": "optional", "pass": 4, "note": "a check before buying that settles the risk (i3: reinforced motor mount fitted?)" },
         { "fields": ["engine fault"], "level": "conditional", "when": "engine reliability_rating <= 3", "pass": 4 },
         { "fields": ["gearbox fault"], "level": "conditional", "when": "gearbox reliability_rating <= 3", "pass": 4 }

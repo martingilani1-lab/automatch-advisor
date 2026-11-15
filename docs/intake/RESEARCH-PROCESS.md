@@ -106,6 +106,12 @@ Claude or Martin, never by the research tool. Faults that only hit some build ye
 `affected_year_from / _to`. A fault without a price is still listed, as "repair price not known" —
 never filled in.
 
+**Engine and gearbox faults are stored per unit, not per phase.** When the same engine row is used
+on two phases (the i3 94 Ah on Pre-facelift and Facelift), the fault's build years are the only
+thing that keeps it off the wrong phase — the i3 "motor mount, up to 2015" fault showed on the 2017+
+Facelift until the comparison started filtering by years (2026-11-15). So: an engine / gearbox that
+spans phases → every fault on it gets `affected_year_from / _to` whenever it didn't hit all years.
+
 **EV sources for reliability (pass 4):** ADAC Pannenstatistik (it covers EVs), recall databases
 (EU Safety Gate, KBA, NHTSA for the same platform), manufacturer service campaigns, battery-health
 reports that name the exact model and battery. Generic "EVs are reliable" articles are not evidence.
@@ -122,12 +128,42 @@ R110, 80 kW, has no `city_commuter` tag today although the rule covers it.)
 Judgement tags (`comfort_cruiser`, `drivers_choice`, `value_choice` …) are proposed in pass 4 with a
 reason and set only when Martin agrees.
 
+## Figures that look comparable but aren't
+
+- **Weighted plug-in figures.** A PHEV's or range extender's official consumption (kWh **and**
+  l/100 km) comes from a test that assumes the battery does most of the driving (i3 REx: 11.5 kWh +
+  0.6 l, NEDC). It is not what the car uses on electricity alone or on petrol alone. Store it as
+  published, but never compare it with a pure EV's or a petrol car's figure as if it were lower, and
+  never compute a tank range from it (9 L ÷ 0.6 l = "1 500 km"). The comparison marks it "weighted
+  (hybrid test)".
+- **Cycles.** Every consumption and range value carries its cycle (NEDC / WLTP, about 15–25 %
+  apart). Figures of different cycles are never ranked against each other.
+- **A source gives a range, the column wants one number** ("290 to 300 km"): Martin picks which
+  end (or the midpoint) and the choice is written in the research doc with the source. Two sessions
+  picking differently is how the i3 Facelift went 300 → 290 → 300 (2026-11-10 / 12 / 15).
+
+## Migrations written for review go stale
+
+A migration written for Martin to run is checked against the live data **of the day it is
+written**. If it waits, other files can change the same rows: the i3 Facelift file of 2026-11-10
+expected the range to be NULL, but a later file had set it to 290, so it would have rolled back
+(2026-11-15). So:
+
+- Before Martin runs a file that is more than a day old, Claude re-checks each of its guards against
+  the live DB (a read-only query per guard) and rewrites it if anything moved.
+- A file that is replaced is never deleted: it gets a `SUPERSEDED — DO NOT RUN` header naming the
+  file that replaces it, and the research doc says so.
+- After Martin says "ran it", Claude reads the changed rows back. "Success, no rows returned" with
+  nothing changed = an old SQL editor tab with an open transaction — re-run in a fresh tab.
+
 ## Open questions (schema, not process)
 
 - **Variant body dimensions.** `phase_body_dimensions` is keyed by phase × body, so the i3 and i3s
   (different height and ground clearance on the same body) can't both be stored. Same issue will come
   with sport / raised versions. Until decided: the base variant goes in section C, the variant's
-  figures go in section R, never averaged.
+  figures go in section R, never averaged. Partly solved for the tank: a configuration can carry its
+  own `fuel_tank_capacity_liters` (20261115163000, the i3 REx's 9 L); gross weight and payload still
+  can't.
 - **Recall vs fault** as a real column instead of the `Recall:` text convention.
 - **EV-aware tag rules** beyond `city_commuter` (e.g. `ultra_efficient` reads only l/100 km, so no EV
   can get it).
@@ -138,3 +174,4 @@ reason and set only when Martin agrees.
 |---|---|---|---|---|---|
 | BMW i3 (I01) Facelift, pass 2 test | 2026-11-11 | 2 (1 stalled) | ~5 min each | $0.80 | 51/51 values verified; 9 cells left NULL despite a cited manufacturer source |
 | BMW i3 (I01) completion, both phases | 2026-11-12 | 2 | ~4 min 20 s | check console | 1 mis-transcribed quote, 2 dead links caught; yearly maintenance and towing from Martin |
+| BMW i3 (I01) REx, research + market | 2026-11-15 | 4 + 0 | short | check console | first EREV: 2 vocabulary values + 1 CHECK widened; market read straight from the sites (70 listings, SK / CZ / DE apart) — Perplexity not needed; 2026-11-10 facelift files found stale and rewritten |

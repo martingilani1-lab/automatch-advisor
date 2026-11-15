@@ -37,8 +37,10 @@ block many source sites (BMW / VW press, ADAC, Google Docs).
    forums, carcomplaints.com. Aggregator "reliability report" sites with no named source
    (e.g. carchecker.pro) are leads, not evidence.
 6. Market data (B2): only listing searches filtered to this generation + phase years
-   (autobazar.sk / .eu, sauto.cz, bazos). A page covering all years is wrong scope → NULL.
-   Under 10 listings → NULL.
+   (autobazar.eu — autobazar.sk's model URL no longer filters —, sauto.cz via its search API,
+   bazos; mobile.de in the browser, as a separate DE column). How to read each site:
+   RESEARCH-PACK.md, "Market data method". A page covering all years is wrong scope → NULL.
+   Under 10 listings → NULL. Countries are never mixed in one median.
 
 ## Procedure
 1. Section B first (years, platform, NCAP), then G (which configurations existed), then D / D2,

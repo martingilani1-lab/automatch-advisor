@@ -203,7 +203,22 @@ Notes:
   without a DPF is a selling point, so `false` is real data, never a default. `has_gpf` is
   optional (petrol particulate filter).
 - `hybrid_type`: `MHEV` (mild — no electric-only driving), `HEV` (full self-charging hybrid,
-  e.g. Yaris Hybrid), `PHEV` (plug-in).
+  e.g. Yaris Hybrid), `PHEV` (plug-in), `EREV` (range extender — electric drive plus a petrol
+  generator that never drives the wheels, e.g. BMW i3 REx, 20261115100000).
+- **Range extender (EREV)** — pilot BMW i3 REx (2026-11-15, `docs/intake/research/bmw-i3-i01-rex.md`):
+  - its own engine row, `fuel_type` `electric` + `hybrid_type` `EREV`; `power_kw` / `torque_nm` /
+    battery / charging = the electric motor's (as the matching pure EV). The generator fills
+    `displacement_cc`, `cylinders`, `timing_type`, `emission_standard`, the oil columns and
+    `yearly_maintenance_eur_*`. The generator's own kW has no column — say it in `pros`.
+  - configuration: `energy_consumption_kwh100km` + `secondary_fuel_type` `petrol` +
+    `secondary_consumption_l100km` (CHECK 0.1–30); `fuel_consumption_l100km` stays `NULL`.
+    Both official figures are the weighted plug-in test — never compare them with a pure EV or
+    a petrol car, never compute a tank range from them.
+  - its tank goes in the configuration's own `fuel_tank_capacity_liters` (20261115163000), not
+    on the body it shares with the pure EV. The scripts don't read that column yet — add it to
+    the seed by hand.
+  - copy the matching pure-EV engine's faults onto the REx row (battery, EME / KLE …), then add
+    the REx-only ones; its rating is the lower of the two.
 - `injection_type` (`port` / `direct` / `dual` / `common_rail` / `pump_injector` /
   `distributor_pump`) — optional column. A wet (in-oil) timing belt is recorded as a fault /
   con, not a column.
