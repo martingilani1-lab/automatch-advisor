@@ -139,14 +139,15 @@ report, for reviewing several cars' decisions at once before generating anything
 
 ## Open items
 
-- **Renault Zoe (X10) Phase 2 — brought to i3 depth (2026-11-15), one file still for Martin.**
-  Research + all 13 decisions: `docs/intake/research/renault-zoe-x10-completion.md`. Live:
+- **Renault Zoe (X10) Phase 2 is at i3 depth (2026-11-15).** Research + all 13 decisions:
+  `docs/intake/research/renault-zoe-x10-completion.md`. Both files live and read back:
   `20261115200000` (14 new faults: motor-bearing wear, A/C compressor, front suspension, rusting
-  discs, R135 12 V, five dated recalls 0DA5 / 0DKQ / 0EBN / 0D9V / 0E1E). **Waiting for Martin:**
-  `20261115200500` (UPDATE / DELETE: towing 0, CZ market 13 430 / 16 000 / 22 340 + mileage, curb
+  discs, R135 12 V, five dated recalls 0DA5 / 0DKQ / 0EBN / 0D9V / 0E1E; ran via MCP) and
+  `20261115200500` (towing 0, CZ market 13 430 / 16 000 / 22 340, mileage 10,860 – 128,329 km, curb
   1 502 → 1 577, GVW 1 988, payload 486, motor rating 3 + notes / pros / cons, fault costs and
-  probabilities, trims rewritten from the Renault SK price lists and "R.S. Line / Iconic" deleted);
-  afterwards read back, re-run the tag rules, `npm test`. Phase 1 (2012–2019) is **not** in the
+  probabilities, trims Life / Zen / Intens rewritten from the Renault SK price lists and
+  "R.S. Line / Iconic" deleted; Martin ran it). Tag-rule preview: nothing pending catalog-wide, the
+  Zoe keeps `city_commuter` + `green_zone`. `npm test` 144/144. Phase 1 (2012–2019) is **not** in the
   catalog — a separate import (Martin, 2026-11-15). Open: E-Tech trims 2022–2024 (no SK / CZ list
   found), battery cooling `active_air` unverified, 12 V / suspension / brake / heat-pump repair
   costs unknown.

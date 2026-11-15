@@ -35,7 +35,7 @@ Evidence refs (`E…`) are in section 8. "Found by": **C** = Claude's own search
 - `20261115200000_renault_zoe_x10_faults_insert.sql` — 14 new fault rows (additive INSERT; may run
   via MCP after Martin has reviewed it).
 - `20261115200500_renault_zoe_x10_completion_updates.sql` — phase, body, configurations, engines,
-  existing faults, trims (UPDATE / DELETE; Martin runs it in a fresh SQL editor tab).
+  existing faults, trims (UPDATE / DELETE) — Martin ran it 2026-11-15, rows read back. INSERT file ran via MCP. Tag-rule preview: nothing pending; `npm test` 144/144.
 
 ---
 
