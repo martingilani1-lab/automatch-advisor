@@ -139,10 +139,14 @@ report, for reviewing several cars' decisions at once before generating anything
 
 ## Open items
 
-- **BMW i3 REx (range extender) is not in the catalog.** The i3 60 Ah / 94 Ah / 120 Ah were also
-  sold with a 650 cc petrol range extender (Martin, 2026-11-14). When it is imported, its engine
-  row needs a yearly maintenance figure (oil, plugs for the generator): the Costs tab hides engine
-  servicing only for an electric engine WITHOUT one, so the REx line will appear by itself.
+- **BMW i3 REx (range extender) is in the catalog (2026-11-15).** 6 engines (`hybrid_type = 'EREV'`,
+  `fuel_type = 'electric'`), 6 configurations, 28 faults (`20261115120000`, after the vocabulary
+  migration `20261115100000`), yearly maintenance €30–65 (`20261115140000`, Martin ran it), and
+  `city_commuter` + `green_zone` from re-running the tag rules (`20261102233000`,
+  `20261112140000`). No 120 Ah REx in Europe. Research: `docs/intake/research/bmw-i3-i01-rex.md`.
+  Still open for the i3: facelift 94 Ah range (live 290 km vs Martin's 300 km, 2026-11-10), REx
+  phase-price / 60 Ah premium decisions, pre-facelift price max (€15 000 < 94 Ah asking prices),
+  FIELD-LEVELS secondary-consumption condition "bi-fuel or EREV".
 
 - **Intake v3 — field levels and research passes (2026-11-12), documents done, scripts next.**
   `scripts/catalog-field-levels.json` (rendered to `docs/intake/FIELD-LEVELS.md` by
