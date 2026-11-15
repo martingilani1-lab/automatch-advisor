@@ -20,7 +20,27 @@ Evidence refs (`E…`) are listed in section 7. "Found by": **C** = Claude's own
 
 ---
 
-## 1. Configuration list (pass 1) — ⚠️ NEEDS MARTIN'S APPROVAL
+## 0. Martin's decisions (2026-11-15)
+
+| # | topic | decision | what it means for the seed | status |
+|---|---|---|---|---|
+| M1 | schema | **Option C**: new `hybrid_type` value for range extenders; engine stays `fuel_type = 'electric'` | migration `20261115100000_vocab_erev_euro6d_temp_secondary_consumption.sql` adds `'EREV'` (upper case like MHEV/HEV/PHEV; Martin wrote "range_extender (or erev)") | migration written, **not run** |
+| M2 | petrol figure | store 0.6 / 0.7 l/100 km as `secondary_fuel_type = 'petrol'` + `secondary_consumption_l100km`; lower that column's CHECK from 1–30 to **0.1–30** | same migration; `fuel_consumption_l100km` stays NULL on REx rows, `energy_consumption_kwh100km` carries the kWh figure. FIELD-LEVELS condition for the secondary pair must become "bi-fuel **or EREV**" | migration written; FIELD-LEVELS follow-up |
+| M3 | emissions | add **`Euro6d-TEMP`** to `emission_standard` | same migration. Facelift REx 04/18–09/18 rows get `Euro6d-TEMP` | migration written |
+| M4 | 60 Ah REx output | **28 kW** (BMW technical data 07/2016), not the 2013 launch kit's 25 kW | one REx engine spec for all builds | decided |
+| M5 | engine code | W20 code stays **NULL** (W20K06A EU vs W20K06U0 US) | nothing in `alt_codes` | decided |
+| M6 | oil service | **24 months**, **2.6 l** | `oil_change_interval_months = 24`, `engine_oil_capacity_liters = 2.6`, `oil_change_interval_km` NULL (time-based) — source M (repareo E15 agrees) | decided |
+| M7 | rating | **4** for the REx | see 2f for the combined-row question | decided |
+| M8 | F3 coolant tank | repair **€300–500** (source M: labour-heavy, tight packaging, cracked plastic) | `estimated_cost_eur_min/max = 300/500` | decided |
+| M9 | F2 tank pressure sensor | repair **€250–400** (source M) | `estimated_cost_eur_min/max = 250/400` | decided |
+| M10 | frequency | **occasional** for pre-facelift (2013–2016), **rare** for facelift | needs a number for `annual_probability` (RESEARCH-PROCESS: rare < 1 %, occasional 1–5 %). **Proposal for Martin to confirm:** occasional = 0.02, rare = 0.005. F2's BMW build range ends 04/2017, so it doesn't reach the facelift (built from 11/2017) — F2 pre-facelift only; F3 has no build range → one row per phase | **needs Martin's numbers** |
+
+Still open from section 1: Martin's decisions imply **separate engine rows per emission
+standard** (decisions 1–2: pre-facelift Euro6, facelift Euro6c, facelift Euro6d-TEMP) — to be
+confirmed when the seed is written. Market data (pass 5) and yearly maintenance (source M) are
+still needed before any seed ("No seed without market research").
+
+## 1. Configuration list (pass 1) — approved by Martin 2026-11-15 (see section 0)
 
 Every REx configuration sold in Europe. All: same electric motor as the matching pure-EV car,
 same single-speed gearbox (fixed 9.665:1), rear-wheel drive, Hatchback 5-door, 4 seats.
@@ -285,6 +305,16 @@ Durations were not timed; all four returned without stalling or a 429.
   capacity), then the import-car skill writes the seed — not before.
 
 ---
+
+### Follow-ups from Martin's decisions (not done here)
+
+- `scripts/catalog-field-levels.json` (+ re-render FIELD-LEVELS.md): secondary pair condition
+  "factory LPG / CNG bi-fuel" → "… or EREV". Only on origin/main — local main is behind.
+- `scripts/new-car-template/RESEARCH-PACK.md` and `INTAKE-BLANK.md` section P: add `EREV` to
+  hybrid_type and `Euro6d-TEMP` to emission_standard (both files differ on origin/main).
+- App: `EnginePanel.tsx` shows `hybrid_type` raw ("EREV") — fine, or give it a label. Tag rules
+  that read `fuel_type = 'electric'` (`city_commuter`, `green_zone`) keep covering REx; check
+  any rule that treats `hybrid_type IS NOT NULL` as "not a pure EV".
 
 ## 7. Evidence
 
