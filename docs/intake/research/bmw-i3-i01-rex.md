@@ -342,3 +342,224 @@ Durations were not timed; all four returned without stalling or a 429.
 | E20 | https://static.nhtsa.gov/odi/tsbs/2014/MC-10148110-9999.pdf | BMW SI B12 09 14 (Jul 2014), fault code 121001 — "Manufacturing fluid in the exhaust system" |
 | E21 | https://static.nhtsa.gov/odi/tsbs/2021/MC-10205606-9999.pdf ; https://static.nhtsa.gov/odi/tsbs/2021/MC-10187463-9999.pdf ; https://static.nhtsa.gov/odi/tsbs/2026/MC-11032732-0001.pdf | BMW NA warranty extensions SI B01 20 21 (injectors), B01 03 21 (upstream O₂ sensor), B01 05 24 (EVAP purge valve; lists "i3 120 REx" MY 2020–21) — US PZEV/SULEV/TZEV engines |
 | E22 | https://static.nhtsa.gov/odi/tsbs/2016/MC-10151258-9999.pdf | BMW SI B22 04 15 — motor mount screws, "i3 Rex: Perform the procedure on left and right side drive mounts" (motor mount fault already in the catalog) |
+
+---
+
+## Market + REx servicing (2026-11-15)
+
+Two inputs for the REx seed: the range extender's yearly maintenance and whether REx cars need a
+price of their own. No DB writes, no seed files. All listings were fetched on **2026-11-15**. CZK
+is converted at the ECB reference rate of 2026-11-13, **24.424 CZK/EUR**. Prices are asking prices,
+not sale prices. Perplexity: **0 calls** (budget 4). Listings came from the sites' own pages and
+search APIs: sauto.cz `api/v1/items/search`, autobazar.eu results plus every detail page, bazoš
+result pages plus detail pages, and mobile.de in the browser pane.
+
+### M1. Market: method
+
+- **Sites.**
+  - autobazar.sk: its `/osobne-vozidla/bmw/i3/` URL no longer filters by model and returns the
+    general feed. Its i3 listings are on **autobazar.eu** (same operator); all 24 were read.
+  - sauto.cz: all 44 i3 listings were read. 30 of them are the 2026 Neue Klasse "i3 50 xDrive"
+    and were ignored.
+  - bazos.sk (131 hits) and bazos.cz (211 hits) are full-text searches, mostly parts. Every
+    whole-car ad was read.
+- **Configuration from the listing.**
+  - **Battery** comes from the title or description (60 / 94 Ah, 22 / 33 kWh). Where it isn't
+    stated, it comes from the first-registration date: before 07/2016 = 60 Ah, shown as
+    "60 (date)"; 12/2017 – 10/2018 = 94 Ah.
+  - **REx** means the title or description says REx / Range Extender, or the listing shows
+    647 cm³ or "Hybrid (Benzin/Elektro)".
+  - **Phase** follows first registration: up to 10/2017 = pre-facelift, from 11/2017 = facelift.
+    Registration can lag the build date by months, so a 10/2017 car is taken as pre-facelift.
+  - **Excluded from the medians:** listings whose battery or phase can't be told, duplicates, a
+    non-factory battery swap, a damaged car and inconsistent data. They are still listed.
+- **Countries kept apart.** The brief says never mix countries in one median, so SK, CZ and DE are
+  separate columns. DE is mobile.de with filter `cn=DE`, damaged cars hidden, first registration
+  up to 2018: 64 hits, of which 22 are not I01 or are mislabelled E46s / 120 Ah cars.
+
+### M2. Listings
+
+| # | country | site | URL | seen | 1st reg. | battery (Ah) | REx | km | price | configuration | note |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| L1 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-2014-75kw-mozny-odpocet-dph/Am6IQg3DaMJ/ | 2026-11-15 | 10/2014 | 60 (date) | no | 75 983 | EUR 10 990 | pre-FL 60 Ah |  |
+| L2 | SK | bazos.sk | https://auto.bazos.sk/inzerat/197220276/bmw-i3-s-tepelnym-cerpadlom.php | 2026-11-15 | 08/2015 | 60 (date) | no | 116 600 | EUR 10 499 | pre-FL 60 Ah |  |
+| L3 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-94-ah/AmG2HEFg0vn/ | 2026-11-15 | 08/2016 | 94 | no | 126 900 | EUR 12 990 | pre-FL 94 Ah |  |
+| L4 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-94ah-loft/AmeNhOwZwOr/ | 2026-11-15 | 10/2016 | 94 | no | 102 500 | EUR 14 990 | pre-FL 94 Ah |  |
+| L5 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-elektro-iperformance-a-t-125kw-94ahgarancia-kmoverene-vozidlo/AmGBkrCSirj/ | 2026-11-15 | 2017 (12/2016 in text) | 94 | no | 93 940 | EUR 16 999 | pre-FL 94 Ah |  |
+| L6 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-94ah-bev-automat-servkniha/AeDFSzuM4dq/ | 2026-11-15 | 2017 | 94 | no | 114 266 | EUR 15 000 | **excluded** | 2017 without month: pre-facelift or facelift unknown |
+| L7 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-94ah-bev-automat-sr2maj/AehOFICMJLF/ | 2026-11-15 | 2017 | 94 | no | 57 428 | EUR 18 000 | **excluded** | 2017 without month: pre-facelift or facelift unknown |
+| L8 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-94-ah-125kw170hp-a1/AematFztoOs/ | 2026-11-15 | 04/2018 | 94 | no | 129 700 | EUR 15 700 | FL i3 94 Ah | same car on bazos.sk 196470826 (counted once) |
+| L9 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-rex-2018-50-000-km-sr-povod-harman-kardon-panorama-odpocet-dph/AeuS9yv3dxn/ | 2026-11-15 | 2018 | 94 (i3s) | **yes** | 50 000 | EUR 21 990 | FL i3s 94 Ah | 647 cm3, 135 kW, "Hybrid (Elektrina - benzín)" |
+| L10 | SK | autobazar.eu | https://www.autobazar.eu/detail/bmw-i3-00-s/Ae4JaHGxs5q/ | 2026-11-15 | 2022 | ? | ? | 24 000 | EUR 30 389 | **excluded** | listed as hybrid but 2022 (no REx in EU after 09/2018) - data error |
+| L11 | CZ | sauto.cz | https://www.sauto.cz/osobni/detail/bmw/i3/211298181 | 2026-11-15 | 03/2014 | 60 (date) | **yes** | 122 090 | 329 990 CZK (~EUR 13 511) | pre-FL 60 Ah | 647 ccm; same car on bazos.cz 226339609 (counted once) |
+| L12 | CZ | sauto.cz | https://www.sauto.cz/osobni/detail/bmw/i3/199945930 | 2026-11-15 | 03/2014 | 60 (date) | **yes** | 109 890 | 349 990 CZK (~EUR 14 330) | pre-FL 60 Ah | 647 ccm; listing created 2023-11-14 (stale asking price) |
+| L13 | CZ | sauto.cz | https://www.sauto.cz/osobni/detail/bmw/i3/211019841 | 2026-11-15 | 02/2016 | 60 | no | 85 485 | 349 000 CZK (~EUR 14 289) | pre-FL 60 Ah | SoH 82.3 % |
+| L14 | CZ | bazos.cz | https://auto.bazos.cz/inzerat/226407217/bmw-i3-60ah-125kw-115tkm-super-vybava-a-stav.php | 2026-11-15 | 11/2015 | 60 | no | 115 000 | 289 000 CZK (~EUR 11 833) | pre-FL 60 Ah | Norway import |
+| L15 | CZ | sauto.cz | https://www.sauto.cz/osobni/detail/bmw/i3/211433769 | 2026-11-15 | 01/2017 | 94 | no | 72 627 | 385 990 CZK (~EUR 15 804) | pre-FL 94 Ah | US import |
+| L16 | CZ | sauto.cz | https://www.sauto.cz/osobni/detail/bmw/i3/211223426 | 2026-11-15 | 01/2018 | 94 (i3s) | no | 63 440 | 469 900 CZK (~EUR 19 239) | FL i3s 94 Ah |  |
+| L17 | CZ | bazos.cz | https://auto.bazos.cz/inzerat/226454383/bmw-i3s-2018-70-000km-soh-94.php | 2026-11-15 | 2018 | 94 (i3s) | no | 70 000 | 389 000 CZK (~EUR 15 927) | FL i3s 94 Ah | SoH 94 % |
+| L18 | CZ | sauto.cz | https://www.sauto.cz/osobni/detail/bmw/i3/211073511 | 2026-11-15 | 2020 (made) | 94 | **yes** | 56 546 | 569 999 CZK (~EUR 23 338) | **excluded** | "94Ah REX" but made 2020 / 75 kW vs 135 kW in text - inconsistent |
+| L19 | CZ | bazos.cz | https://auto.bazos.cz/inzerat/226325721/bmw-i3-94ah.php | 2026-11-15 | 2014 | 94 (retrofit) | no | 123 000 | 340 000 CZK (~EUR 13 921) | **excluded** | 2014 car with a replacement 94 Ah battery - not a factory configuration |
+| L20 | CZ | bazos.cz | https://auto.bazos.cz/inzerat/226346154/bmw-i3-edrive-bev-i01ib1-94-ah.php | 2026-11-15 | 11/2018 | 94 | no | 115 140 | 259 000 CZK (~EUR 10 604) | **excluded** | accident-damaged |
+| L21 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55828545888192 | 2026-11-15 | 11/2013 | 60 (date) | **yes** | 75 679 | EUR 14 990 | pre-FL 60 Ah |  |
+| L22 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=46604406783584 | 2026-11-15 | 04/2014 | 60 (date) | **yes** | 110 000 | EUR 12 500 | pre-FL 60 Ah |  |
+| L23 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=50247659835776 | 2026-11-15 | 04/2014 | 60 (date) | **yes** | 47 000 | EUR 13 980 | pre-FL 60 Ah | listed twice (also 50247760252672) - counted once |
+| L24 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=461846788 | 2026-11-15 | 05/2014 | 60 (date) | **yes** | 89 555 | EUR 15 000 | pre-FL 60 Ah |  |
+| L25 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=45929819259296 | 2026-11-15 | 09/2014 | 60 (date) | **yes** | 83 000 | EUR 13 999 | pre-FL 60 Ah |  |
+| L26 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=461909912 | 2026-11-15 | 01/2015 | 60 | **yes** | 98 384 | EUR 12 280 | pre-FL 60 Ah |  |
+| L27 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=460156411 | 2026-11-15 | 10/2015 | 60 (date) | **yes** | 84 727 | EUR 15 710 | pre-FL 60 Ah |  |
+| L28 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=52153262736512 | 2026-11-15 | 01/2016 | 60 | **yes** | 88 735 | EUR 13 800 | pre-FL 60 Ah |  |
+| L29 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=457343363 | 2026-11-15 | 06/2016 | 60 | **yes** | 149 900 | EUR 12 990 | pre-FL 60 Ah |  |
+| L30 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=56011119961344 | 2026-11-15 | 08/2016 | 60 (22 kWh) | **yes** | 77 757 | EUR 14 460 | pre-FL 60 Ah |  |
+| L31 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=44172675594624 | 2026-11-15 | 07/2016 | ? | **yes** | 37 000 | EUR 19 990 | **excluded** | REx 07/2016: 60 or 94 Ah not stated |
+| L32 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=54478857028608 | 2026-11-15 | 02/2017 | 94 | **yes** | 128 000 | EUR 14 990 | pre-FL 94 Ah | fuel field says Elektro, title "Range Extender" |
+| L33 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=47680347893440 | 2026-11-15 | 04/2017 | 94 | **yes** | 89 000 | EUR 16 900 | pre-FL 94 Ah | fuel field says Elektro, title "Range Extender" |
+| L34 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=51016558909632 | 2026-11-15 | 01/2018 | 94 (date) | **yes** | 58 710 | EUR 17 950 | FL i3 94 Ah |  |
+| L35 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55700823209952 | 2026-11-15 | 06/2018 | 94 (date) | **yes** | 45 752 | EUR 17 990 | FL i3 94 Ah |  |
+| L36 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=450571496 | 2026-11-15 | 07/2018 | 94 | **yes** | 62 522 | EUR 15 999 | FL i3 94 Ah |  |
+| L37 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=44375590603072 | 2026-11-15 | 08/2018 | 94 (33 kWh) | **yes** | 82 000 | EUR 16 000 | FL i3 94 Ah | 647 ccm, Euro 6c in listing |
+| L38 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55630467857504 | 2026-11-15 | 01/2018 | 94 (i3s) | **yes** | 166 340 | EUR 17 300 | FL i3s 94 Ah |  |
+| L39 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=461812457 | 2026-11-15 | 12/2013 | 60 (date) | no | 91 854 | EUR 10 999 | pre-FL 60 Ah |  |
+| L40 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=45010263878144 | 2026-11-15 | 02/2014 | 60 | no | 41 800 | EUR 12 900 | pre-FL 60 Ah |  |
+| L41 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=42233923276416 | 2026-11-15 | 02/2014 | 60 | no | 64 200 | EUR 13 999 | pre-FL 60 Ah |  |
+| L42 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=461201861 | 2026-11-15 | 01/2014 | 60 (date) | no | 69 965 | EUR 12 490 | pre-FL 60 Ah |  |
+| L43 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=56013976608000 | 2026-11-15 | 04/2014 | 60 | no | 232 700 | EUR 10 490 | pre-FL 60 Ah |  |
+| L44 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=53735861676352 | 2026-11-15 | 04/2014 | 60 | no | 58 171 | EUR 11 500 | pre-FL 60 Ah |  |
+| L45 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=51737893258848 | 2026-11-15 | 05/2014 | 60 (date) | no | 114 000 | EUR 9 300 | pre-FL 60 Ah |  |
+| L46 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=50908557921504 | 2026-11-15 | 07/2014 | 60 (date) | no | 73 000 | EUR 13 999 | pre-FL 60 Ah |  |
+| L47 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=52451646482400 | 2026-11-15 | 01/2015 | 60 (date) | no | 117 000 | EUR 11 500 | pre-FL 60 Ah |  |
+| L48 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=461720841 | 2026-11-15 | 04/2015 | 60 (date) | no | 87 653 | EUR 11 399 | pre-FL 60 Ah |  |
+| L49 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=56267178676384 | 2026-11-15 | 06/2015 | 60 | no | 100 500 | EUR 11 500 | pre-FL 60 Ah |  |
+| L50 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=41512418412160 | 2026-11-15 | 06/2015 | 60 | no | 64 300 | EUR 14 900 | pre-FL 60 Ah |  |
+| L51 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=461401195 | 2026-11-15 | 11/2015 | 60 | no | 74 174 | EUR 10 790 | pre-FL 60 Ah |  |
+| L52 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=453354856 | 2026-11-15 | 08/2016 | ? | no | 101 900 | EUR 12 490 | **excluded** | BEV 08/2016: 60 or 94 Ah not stated |
+| L53 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=52828964448576 | 2026-11-15 | 01/2017 | ? | no | 60 000 | EUR 18 990 | **excluded** | BEV 01/2017: 60 or 94 Ah not stated |
+| L54 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55617995112128 | 2026-11-15 | 08/2017 | ? | no | 57 000 | EUR 19 900 | **excluded** | BEV 08/2017: 60 or 94 Ah not stated |
+| L55 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55083729634816 | 2026-11-15 | 11/2016 | 94 | no | 72 500 | EUR 16 500 | pre-FL 94 Ah |  |
+| L56 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=47129016813376 | 2026-11-15 | 11/2016 | 94 | no | 49 950 | EUR 18 400 | pre-FL 94 Ah |  |
+| L57 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=50662318524704 | 2026-11-15 | 05/2017 | 94 | no | 47 000 | EUR 16 900 | pre-FL 94 Ah |  |
+| L58 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=56216265532672 | 2026-11-15 | 05/2017 | 94 | no | 29 950 | EUR 19 500 | pre-FL 94 Ah |  |
+| L59 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=54232415763552 | 2026-11-15 | 06/2017 | 94 (33 kWh) | no | 97 228 | EUR 14 510 | pre-FL 94 Ah | same car listed 4x (54079387835680, 53534141031680, 51923474356000) - counted once |
+| L60 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=54148467870368 | 2026-11-15 | 06/2017 | 94 | no | 79 228 | EUR 16 290 | pre-FL 94 Ah |  |
+| L61 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55526841595648 | 2026-11-15 | 07/2017 | 94 | no | 91 000 | EUR 14 900 | pre-FL 94 Ah |  |
+| L62 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=52148189801536 | 2026-11-15 | 10/2017 | 94 | no | 53 200 | EUR 13 650 | pre-FL 94 Ah | EZ 10/2017 taken as pre-facelift |
+| L63 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=52322535880384 | 2026-11-15 | 10/2017 | 94 | no | 108 000 | EUR 15 000 | pre-FL 94 Ah | EZ 10/2017 taken as pre-facelift |
+| L64 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=50583156716896 | 2026-11-15 | 10/2017 | 94 | no | 48 350 | EUR 17 990 | pre-FL 94 Ah | EZ 10/2017 taken as pre-facelift |
+| L65 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55973657778336 | 2026-11-15 | 10/2017 | 94 | no | 284 000 | EUR 11 500 | pre-FL 94 Ah | EZ 10/2017 taken as pre-facelift |
+| L66 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=462337971 | 2026-11-15 | 03/2018 | 94 | no | 38 890 | EUR 18 390 | FL i3 94 Ah |  |
+| L67 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=40625266724448 | 2026-11-15 | 03/2018 | 94 (date) | no | 75 800 | EUR 17 990 | FL i3 94 Ah |  |
+| L68 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=51896551766944 | 2026-11-15 | 09/2018 | 94 | no | 53 200 | EUR 17 890 | FL i3 94 Ah |  |
+| L69 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55248646869760 | 2026-11-15 | 10/2018 | 94 | no | 96 000 | EUR 14 999 | FL i3 94 Ah |  |
+| L70 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=55821703203840 | 2026-11-15 | 03/2018 | 94 (i3s, date) | no | 88 000 | EUR 20 990 | FL i3s 94 Ah |  |
+| L71 | DE | mobile.de | https://suchen.mobile.de/fahrzeuge/details.html?id=460434375 | 2026-11-15 | 06/2018 | 94 (i3s) | no | 26 650 | EUR 22 990 | FL i3s 94 Ah |  |
+
+### M3. Medians per configuration (EUR; excluded rows not counted)
+
+Each cell reads: n · median price · median km · price range · years.
+
+| configuration | REx / EV | SK | CZ | **DE (mobile.de, separate)** |
+|---|---|---|---|---|
+| G1 pre-FL **60 Ah** | REx | none | 2 · 13 920 · 115 990 · 13 511–14 330 · 2014 | 10 · 13 990 · 86 731 · 12 280–15 710 · 2013–2016 |
+| pre-FL 60 Ah | EV | 2 · 10 744 · 96 292 · 10 499–10 990 · 2014–2015 | 2 · 13 061 · 100 242 · 11 833–14 289 · 2015–2016 | 13 · 11 500 · 74 174 · 9 300–14 900 · 2013–2015 |
+| G2 pre-FL **94 Ah** | REx | none | none | 2 · 15 945 · 108 500 · 14 990–16 900 · 2017 |
+| pre-FL 94 Ah | EV | 3 · 14 990 · 102 500 · 12 990–16 999 · 2016–2017 | 1 · 15 804 · 72 627 · single listing · 2017 (US import) | 11 · 16 290 · 72 500 · 11 500–19 500 · 2016–2017 |
+| G3 FL **i3 94 Ah** | REx | none | none | 4 · 16 975 · 60 616 · 15 999–17 990 · 2018 |
+| FL i3 94 Ah | EV | 1 · 15 700 · 129 700 · single listing · 2018 | none | 4 · 17 940 · 64 500 · 14 999–18 390 · 2018 |
+| G4 FL **i3s 94 Ah** | REx | 1 · 21 990 · 50 000 · single listing · 2018 | none | 1 · 17 300 · 166 340 · single listing · 2018 |
+| FL i3s 94 Ah | EV | none | 2 · 17 583 · 66 720 · 15 927–19 239 · 2018 | 2 · 21 990 · 57 325 · 20 990–22 990 · 2018 |
+
+**SK and CZ together hold only 3 REx listings:** two 2014 60 Ah REx in CZ and one 2018 i3s REx in
+SK. That is under 5 for every configuration, hence the mobile.de column.
+
+### M4. REx vs EV difference (same configuration, same country)
+
+| configuration | REx vs EV, median price | read |
+|---|---|---|
+| G1 pre-FL 60 Ah | **DE +21.7 %** (13 990 vs 11 500, n 10 / 13); CZ +6.6 % (13 920 vs 13 061, n 2 / 2); SK has no REx | The only consistent premium. Part of the DE gap is age mix: the REx sample includes 2016 cars, and its median mileage is 12 600 km higher. |
+| G2 pre-FL 94 Ah | DE −2.1 % (15 945 vs 16 290, n 2 / 11) | Only 2 REx cars, with 36 000 km more median mileage. Not a usable signal. |
+| G3 FL i3 94 Ah | DE −5.4 % (16 975 vs 17 940, n 4 / 4) | Similar mileage; within listing noise. |
+| G4 FL i3s 94 Ah | DE −21.3 % (17 300 vs 21 990, n 1 / 2) | One REx at 166 000 km against EVs at ~57 000 km, so this is mileage, not REx. SK's only i3s REx (21 990, 50 000 km) sits at the DE EV median. |
+
+### M5. Recommendation: market
+
+**Keep the phase-level price as it is for REx; no schema change is needed.**
+- The REx effect has no consistent sign: −5 % to +22 %, mostly within the spread of a dozen
+  listings.
+- It is smaller than the effects the phase price already absorbs. For the pure EV, the 94 Ah
+  battery asks +27 % over the 60 Ah in SK and +42 % in DE, and mileage moves prices too.
+- Only the 60 Ah REx shows a premium (+7 % CZ, +22 % DE). If Martin wants it visible, it fits as a
+  REx engine **pro** ("60 Ah REx versions usually ask more than the 60 Ah EV"), not a separate
+  price.
+
+**Separate finding, not REx-specific.** This belongs to the next pass-5 refresh of the pure i3, not
+to this seed. The live pre-facelift phase reads `price_range 9 000–15 000`, `avg 12 000`. SK/CZ
+pre-facelift asking prices run **10 499–16 999**, and the 94 Ah EV median is ~15 000 (SK) and
+~15 800 (CZ), so the live maximum of 15 000 sits below the 94 Ah cars. The facelift phase (live
+14 000–25 000, avg 18 000) covers every listing seen.
+
+### M6. REx servicing: BMW items and intervals (from section 2d, unchanged)
+
+| item | BMW schedule | source |
+|---|---|---|
+| engine oil + filter | by CBS, time-based; **24 months** (Martin's decision M6); 2.6 l; BMW Longlife-04 SAE 0W-30 (5W-30 is an approved alternative) | E13, E14, E15; section 0 |
+| oil filter | MANN-FILTER **MW 75** (BMW 11 42 7 673 541 / 11 42 7 707 217), listed for "i3 60Ah Rex 9/2013–6/2017", "i3 94Ah Rex 7/2016–10/2017" and "11/2017–10/2018" | E24 |
+| spark plugs | long-life, **no scheduled change** | E13 |
+| air filter | long-life, **no scheduled change** | E13 |
+| REx coolant | level and antifreeze check at each vehicle check (an inspection item, no part) | E14 |
+| EV items (brake fluid, cabin filter, 12 V battery) | same as the pure i3, **not** in this figure (Martin 2026-11-14: not modelled) | none |
+
+### M7. REx servicing: cost per item
+
+| item | price | where / currency | marked as |
+|---|---|---|---|
+| oil 2.6 l, aftermarket shop | 2.6 × €13.32 = **€34.63** | uspartshop.cz (CZ e-shop): BMW TwinPower Turbo LL-04 **5W-30** 1 l, €13.32 incl. VAT, sold out on the day (E25) | CZ shop |
+| oil 2.6 l, BMW list price | 2.6 × €35.49 = **€92.27** | leebmann24 (DE BMW dealer, CZ storefront): LL-04 **0W-30** 1 l, €35.49 incl. tax (E26) | **German dealer price** |
+| oil filter MANN MW 75 | **€10.75** | leebmann24, AT storefront, incl. tax (E24) | **German dealer (AT VAT)** |
+| whole oil service at an independent CZ garage | **1 500 – 7 000 CZK** (€61 – €287), for any car "depending on vehicle type and engine" | Cebia guide (E27) | CZ, all cars. The REx sits at the small end: 2.6 l, one filter. |
+| whole oil service at an independent DE garage | **€128** incl. VAT (0.5 h labour €59.50 + oil + filter) | repareo (E15) | **German price** |
+| REx extra at the BMW dealer, per 24 months | €420 (REx) − €270 (EV) = **€150** | ADAC Gebrauchtwageninfo, "Wartung" table (E10) | **German dealer price** |
+
+No SK garage price list could be opened. The SK voucher offers (zlavomat.sk) sit behind a CAPTCHA,
+and no SK garage publishes an oil-change price for this car. No SK or CZ hourly rate was verified.
+
+### M8. Yearly figure: arithmetic
+
+The REx needs one oil and filter service every 24 months and nothing else priced, so the yearly
+figure is the per-service price / 2.
+
+- **Low (independent CZ garage, aftermarket-priced oil):** Cebia's floor for a whole oil service
+  is 1 500 CZK = €61.4. Materials alone come to €45.38 (oil €34.63 + filter €10.75), which leaves
+  ~€16 for labour. That is plausible for a 0.5 h job at an independent CZ/SK garage.
+  **€61 / 2 = €31 a year.**
+- **High (independent DE garage):** repareo's €128 / 2 = **€64 a year**. Cross-check with
+  BMW-list materials: €92.27 + €10.75 = €103 before labour, so a garage using BMW oil also lands
+  at about €64 a year or more.
+- **Dealer (DE, for reference only):** ADAC's REx extra of €150 / 2 = €75 a year.
+
+**Proposed `catalog_engines.yearly_maintenance_eur_min / max` for all three REx engine rows:
+min 30, max 65** (rounded from €31 and €64).
+- The low end comes from Cebia (CZ), the high end from repareo (DE independent garage), and the
+  ADAC dealer figure (€75) is the upper sanity check.
+- **Martin confirms the final figure (source M)**, in particular whether an SK independent garage
+  lands nearer €60 or €130 for this job.
+- With a yearly figure set, the Costs tab shows the engine-servicing line for the REx even though
+  `fuel_type = 'electric'` (`tco.ts`, commit 705d7d0).
+
+### M9. Evidence added
+
+| ref | url | what |
+|---|---|---|
+| E23 | listing URLs in M2 (autobazar.eu, sauto.cz, auto.bazos.sk/.cz, suchen.mobile.de) | all seen 2026-11-15 |
+| E24 | https://www.leebmann24.com/at/en/product/mann-filter-oil-filter-10512970 | "Manufacturer No.: MW 75 · €10.75 incl. tax"; fitment "i3 60Ah Rex … 9/1/2013 - 6/30/2017", "i3 94Ah Rex … 7/1/2016 - 10/31/2017", "i3 94Ah Rex 7Z41 … 11/1/2017 - 10/31/2018" |
+| E25 | https://www.uspartshop.cz/en/5w-30/bmw-motorovy-olej-twinpower-turbo-oil-ll04-5w-30--1l--83212465849 | "BMW engine oil TwinPower Turbo Oil LL04 5W-30 (1L) 83212465849 … 13,32 € … 13,32 € / 1 l" (sold out) |
+| E26 | https://leebmann24.com/cz/en/product/bmw-engine-oil-twinpower-turbo-ll-04-sae-0w-30-1-l-10001032 | "TwinPower Turbo LL-04 SAE 0W-30 Engine Oil … €35.49 · €35.49/l · incl. tax" |
+| E27 | https://www.cebia.cz/pruvodce/vymena-motoroveho-oleje | "Cena výměny v autoservisu se v závislosti na typu vozidla a motoru pohybuje cca od 1 500 Kč do 7 000 Kč" |
+| E28 | https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml | ECB reference rate 2026-11-13: CZK 24.424 |
+
+### M10. Still open for the seed
+
+1. Martin: confirm `yearly_maintenance_eur` 30–65, or give his own SK figure.
+2. Martin: confirm "phase price unchanged for REx" (M5), and decide whether the 60 Ah REx premium
+   goes in as a pro.
+3. Still open from earlier: separate engine rows per emission standard (facelift Euro6c vs
+   Euro6d-TEMP). Then the import-car skill writes the seed.
