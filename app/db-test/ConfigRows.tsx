@@ -4,7 +4,7 @@ import type { CatalogConfig } from "@/app/catalog/lib/types";
 import type { ModelLevelTagSlug } from "@/app/catalog/lib/tags";
 import { getTagsForConfiguration } from "@/app/catalog/lib/tags";
 import TagBadge from "./TagBadge";
-import { consumptionDetailLabel, drivetrainLabel } from "@/app/catalog/lib/configDisplay";
+import { consumptionDetailLabel, consumptionLabel, drivetrainLabel } from "@/app/catalog/lib/configDisplay";
 import { gearboxTypeLabel } from "@/app/catalog/lib/gearboxLabel";
 import { rangeInfoOf } from "@/app/catalog/lib/energyStorage";
 import type { ConfigNavTarget } from "@/app/catalog/components/ConfigurationsTable";
@@ -194,7 +194,11 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
                   <div className="cgrid-val">{drivetrainLabel(c)}</div>
                 </div>
               )}
-              <div className="cgrid-item">
+              {/* One number, like the range tile (Martin, 2026-11-15: "too many informations at
+                  once"): the primary figure only -- kWh/100 km for anything electric (a range
+                  extender too), l/100 km otherwise, an LPG car's LPG figure. Cycle, the second
+                  fuel and the REx petrol figure move to the hover title. */}
+              <div className="cgrid-item" title={consumptionDetailLabel(c, { withRange: false })}>
                 <div className="cgrid-icon-cell">
                   {c.engine.fuelType === "electric" ? (
                     <IconBolt size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
@@ -202,7 +206,7 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
                     <IconGasStation size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
                   )}
                 </div>
-                <div className="cgrid-val">{consumptionDetailLabel(c, { withRange: false })}</div>
+                <div className="cgrid-val">{consumptionLabel(c)}</div>
               </div>
               {/* Range on a full tank / full charge -- one number (energyStorage.ts rangeInfoOf);
                   how it was got is in the hover title, not in the tile. */}
