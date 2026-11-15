@@ -17,7 +17,7 @@ import type { CatalogConfig } from "./types";
 //                    long drive. A PHEV's or range extender's official l/100 km is a weighted
 //                    figure that assumes the battery does most of the work (the i3 REx's 0.6 l),
 //                    so dividing the tank by it would claim 1 500 km on 9 L -- that is never
-//                    computed; the range extender is named instead.
+//                    computed; such a configuration shows its electric range only.
 //   bi-fuel LPG / CNG: the tank column is the petrol tank, the LPG tank isn't stored, so the
 //                    petrol range is computed from the secondary (petrol) figure and the LPG
 //                    tank is mentioned, not invented.
@@ -45,39 +45,38 @@ export function tankLitersOf(c: CatalogConfig, bodyTankLiters: number | null): n
   return c.fuelTankCapacityLiters ?? bodyTankLiters;
 }
 
+// ONE number per configuration (Martin, 2026-11-15: "keep it simple, just write there one number
+// and that is range"). Anything with a battery shows its published electric range -- a range
+// extender or plug-in included; the buyer sees the extender's effect by comparing with the
+// configuration without it, so no "+ L" is mixed into a km figure. A combustion car shows the
+// calculated tank range, marked "≈". The how-it-was-got text goes in `note` (a hover title),
+// never into the number itself.
 export interface RangeInfo {
-  // e.g. "170 km electric · NEDC" -- null when the powertrain has no battery or no figure.
-  electric: string | null;
-  // e.g. "≈ 880 km per tank (calculated, 50 L ÷ 5.7 l/100 km)" or "+ range extender, 9 L petrol".
-  fuel: string | null;
+  km: number;
+  approx: boolean;
+  note: string;
 }
 
 const roundTo10 = (km: number) => Math.round(km / 10) * 10;
 
-export function rangeInfoOf(c: CatalogConfig, bodyTankLiters: number | null): RangeInfo {
+export function rangeInfoOf(c: CatalogConfig, bodyTankLiters: number | null): RangeInfo | null {
   const storage = energyStorageOf(c);
-  const tank = tankLitersOf(c, bodyTankLiters);
-  const cycle = c.consumptionCycle ? ` · ${c.consumptionCycle}` : "";
+  const cycle = c.consumptionCycle ?? "manufacturer figure";
 
-  const electric =
-    storage.battery && c.evRangeKm != null
-      ? `${c.evRangeKm} km ${c.engine.fuelType === "electric" && c.engine.hybridType == null ? "per charge" : "electric"}${cycle}`
+  if (storage.battery) {
+    return c.evRangeKm != null
+      ? { km: c.evRangeKm, approx: false, note: `Electric range, ${cycle}` }
       : null;
-
-  let fuel: string | null = null;
-  if (c.engine.hybridType === "EREV") {
-    fuel = tank != null ? `+ range extender, ${tank} L petrol` : "+ range extender";
-  } else if (c.engine.hybridType === "PHEV") {
-    fuel = `then ${c.engine.fuelType} engine${tank != null ? `, ${tank} L tank` : ""}`;
-  } else if (storage.fuel && tank != null) {
-    const isBiFuel = c.secondaryFuelType === "petrol" && (c.engine.fuelType === "lpg" || c.engine.fuelType === "cng");
-    const litres = isBiFuel ? c.secondaryConsumptionL100km : c.fuelConsumptionL100km;
-    if (litres != null && litres > 0) {
-      const km = roundTo10((tank / litres) * 100);
-      fuel = isBiFuel
-        ? `≈ ${km} km on petrol (calculated, ${tank} L ÷ ${litres} l/100 km) + ${c.engine.fuelType.toUpperCase()} tank`
-        : `≈ ${km} km per tank (calculated, ${tank} L ÷ ${litres} l/100 km${cycle})`;
-    }
   }
-  return { electric, fuel };
+
+  const tank = tankLitersOf(c, bodyTankLiters);
+  if (!storage.fuel || tank == null) return null;
+  const isBiFuel = c.secondaryFuelType === "petrol" && (c.engine.fuelType === "lpg" || c.engine.fuelType === "cng");
+  const litres = isBiFuel ? c.secondaryConsumptionL100km : c.fuelConsumptionL100km;
+  if (litres == null || litres <= 0) return null;
+  return {
+    km: roundTo10((tank / litres) * 100),
+    approx: true,
+    note: `Calculated: ${tank} L ÷ ${litres} l/100 km (${cycle})${isBiFuel ? " on petrol, LPG/CNG tank not included" : ""}`,
+  };
 }

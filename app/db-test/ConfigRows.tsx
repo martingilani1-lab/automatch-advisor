@@ -204,18 +204,16 @@ export default function ConfigRows({ configs, onNavigate, phaseId = "", phaseTag
                 </div>
                 <div className="cgrid-val">{consumptionDetailLabel(c, { withRange: false })}</div>
               </div>
-              {/* Range on a full tank / full charge (Martin, 2026-11-15) -- electric range as
-                  published, fuel range only as a labelled calculation, and for a range extender
-                  or plug-in just what backs up the battery (energyStorage.ts explains why). */}
+              {/* Range on a full tank / full charge -- one number (energyStorage.ts rangeInfoOf);
+                  how it was got is in the hover title, not in the tile. */}
               {(() => {
                 const r = rangeInfoOf(c, bodyTankLiters[c.bodyName] ?? null);
-                const text = [r.electric, r.fuel].filter(Boolean).join(" ");
-                return text ? (
-                  <div className="cgrid-item">
+                return r ? (
+                  <div className="cgrid-item" title={r.note}>
                     <div className="cgrid-icon-cell">
                       <IconRoute size={16} stroke={1.5} style={{ color: CONFIG_ICON_COLORS.consumption }} />
                     </div>
-                    <div className="cgrid-val">{text}</div>
+                    <div className="cgrid-val">{r.approx ? "≈ " : ""}{r.km} km</div>
                   </div>
                 ) : null;
               })()}
