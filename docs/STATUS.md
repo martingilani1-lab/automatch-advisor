@@ -153,11 +153,12 @@ report, for reviewing several cars' decisions at once before generating anything
   `EEJ` motor, 50 / 58 LFP and 79 kWh NMC) deferred until it has a used market; ground clearance; 12 V battery repair
   cost; four-letter VW motor codes (ADAC gives only `EBJ` / `EDC` …); the 2021–2025 SK / CZ dealer price lists are 404 and
   were read as search text only.
-- **VW ID.3 (E1) completion — pass 4 (faults) researched, waiting for Martin (2026-11-18).** Findings + decisions X1–X7:
-  `docs/intake/research/vw-id3-e1-completion.md`. Written, **nothing run**: `20261118200000` (INSERT, 6 Pre-facelift vehicle
-  faults: CO2 A/C / heat-pump circuit, brakes at the HU, front wishbone bushes, rear drive-shaft click, charging flap,
-  recall 93J9 — may run via MCP after review) and `20261118200500` (UPDATE, Martin runs: the two battery-recall texts mixed
-  campaigns 93MI / 93MF, 14 rows; 12 V cost 456 € on 2 rows). Guards checked against live 2026-11-18. Motors stay 4,
+- **VW ID.3 (E1) completion — pass 4 (faults) (2026-11-18).** Findings + decisions X1–X7:
+  `docs/intake/research/vw-id3-e1-completion.md`. **Live** (Martin approved, via MCP): `20261118200000` (INSERT, 6 Pre-facelift
+  vehicle faults: CO2 A/C / heat-pump circuit, brakes at the HU, front wishbone bushes, rear drive-shaft click, charging flap,
+  recall 93J9); read back, tag preview nothing pending, `npm test` 144/144. **Waiting for Martin to run:**
+  `20261118200500` (UPDATE: the two battery-recall texts mixed campaigns 93MI / 93MF, 14 rows; 12 V cost 456 € on 2 rows);
+  guards matched live 2026-11-18 — re-check if run after 2026-11-19. Motors stay 4,
   gearboxes 5. **Still open from the completion brief:** trims (the Internet Archive copies of the CZ 10/2021 and 08/2023
   lists stop at 1 MB and can't be read; gabriel.sk 2024 / 2025 not archived), the market re-check (run last), ground
   clearance (ADAC's field is empty on every variant), facelift weights (W2), the 4-seat Pro S note.
