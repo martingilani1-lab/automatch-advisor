@@ -156,9 +156,9 @@ report, for reviewing several cars' decisions at once before generating anything
 - **VW ID.3 (E1) completion — pass 4 (faults) (2026-11-18).** Findings + decisions X1–X7:
   `docs/intake/research/vw-id3-e1-completion.md`. **Live** (Martin approved, via MCP): `20261118200000` (INSERT, 6 Pre-facelift
   vehicle faults: CO2 A/C / heat-pump circuit, brakes at the HU, front wishbone bushes, rear drive-shaft click, charging flap,
-  recall 93J9); read back, tag preview nothing pending, `npm test` 144/144. **Waiting for Martin to run:**
-  `20261118200500` (UPDATE: the two battery-recall texts mixed campaigns 93MI / 93MF, 14 rows; 12 V cost 456 € on 2 rows);
-  guards matched live 2026-11-18 — re-check if run after 2026-11-19. Motors stay 4,
+  recall 93J9); read back, tag preview nothing pending, `npm test` 144/144. **Live** (Martin ran it): `20261118200500`
+  (UPDATE: battery-recall texts split into campaigns 93MI / 93MF, 14 rows; 12 V cost 456 € on 2 rows); read back, `npm test`
+  144/144. Open in X4: no price for the front wishbone bushes / rear drive shaft (NULL). Motors stay 4,
   gearboxes 5. **Still open from the completion brief:** trims (the Internet Archive copies of the CZ 10/2021 and 08/2023
   lists stop at 1 MB and can't be read; gabriel.sk 2024 / 2025 not archived), the market re-check (run last), ground
   clearance (ADAC's field is empty on every variant), facelift weights (W2), the 4-seat Pro S note.

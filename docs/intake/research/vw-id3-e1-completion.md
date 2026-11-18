@@ -19,8 +19,8 @@ Evidence refs continue the import doc's numbering (E1–E20 are there; E21 onwar
 | # | topic | question | Claude's recommendation | status |
 |---|---|---|---|---|
 | X1 | new faults | 5 owner-reported patterns + 1 missed recall, all on the Pre-facelift (section 3) | add them (INSERT file) | **accepted** (Martin 2026-11-18) — live |
-| X2 | battery-recall text | the live text of the two engine recall rows mixes two VW campaigns: 93MI (02/2022–08/2024, modules out of spec) and 93MF (07/2022–06/2025, overheating at a high state of charge, charge limited to 80 %). "UK R/2026/397" and the 80 % advice sit on the 93MI row, but they belong to 93MF (E27–E30) | rewrite both texts, keep the years (UPDATE file, 14 rows) | open |
-| X3 | 12 V battery cost | ADAC paid **456 €** for a new 12 V battery on its long-term car (German VW dealer, fitted) — E22 | 456 / 456 on both 12 V rows (UPDATE file), unless you have an SK / CZ independent figure | open — **your figure welcome** |
+| X2 | battery-recall text | the live text of the two engine recall rows mixes two VW campaigns: 93MI (02/2022–08/2024, modules out of spec) and 93MF (07/2022–06/2025, overheating at a high state of charge, charge limited to 80 %). "UK R/2026/397" and the 80 % advice sit on the 93MI row, but they belong to 93MF (E27–E30) | rewrite both texts, keep the years (UPDATE file, 14 rows) | **accepted** (Martin ran the UPDATE 2026-11-18) — live |
+| X3 | 12 V battery cost | ADAC paid **456 €** for a new 12 V battery on its long-term car (German VW dealer, fitted) — E22 | 456 / 456 on both 12 V rows (UPDATE file), unless you have an SK / CZ independent figure | **accepted** (Martin ran the UPDATE 2026-11-18) — live |
 | X4 | costs with no source | front-suspension bushes, rear drive shaft — no out-of-warranty price found in any source | NULL ("repair price not known"), or your SK / CZ figure (source `M`) | open — **your figure welcome** |
 | X5 | Facelift copies | the five patterns are documented on 2020–2022 cars only. The facelift uses the same brakes (rear drums, E33), flap and CO2 heat pump, but its cars are at most 3 years old and no owner / TÜV source for them was found | **don't copy** onto the Facelift yet (NULL over invention); re-check when TÜV data for 2023+ builds exists | open |
 | X6 | ratings | motors 4, gearboxes 5 | **unchanged** — every new fault is vehicle-level (body, climate, brakes, flap); the motor rows still carry only fixed recalls, and ADAC calls the drive "zuverlässige Antriebstechnik" (E21) | open |
@@ -38,8 +38,12 @@ After both: read back, preview then re-run the four tag-rule migrations, `npm te
 **2026-11-18, INSERT ran:** Martin approved; `20261118200000` ran via MCP (file unchanged since commit d26e14e).
 Read back: 10 Pre-facelift vehicle faults (4 + 6), the six new rows with the costs / probabilities / years above.
 Tag-rule preview (all four files in one transaction, rolled back): **nothing pending** — so no re-run needed
-(tags don't read faults). `npm test` 144/144. **The UPDATE file `20261118200500` has not run yet** (Martin runs it;
-X2 / X3 still open). Its guards matched the live rows on 2026-11-18 — re-check if it waits past 2026-11-19.
+(tags don't read faults). `npm test` 144/144.
+
+**2026-11-18, UPDATE ran:** Martin ran `20261118200500` (X2, X3 accepted). The first two runs did not reach the
+DB (rows unchanged, no open transaction on the server); the third did. Read back: 7 rows with the 93MI text, 7 with
+93MF, 0 old texts left, 12 V battery 456 / 456 on both phases, `n_tup_upd` on the table +16 (24 → 40). Fault totals
+unchanged (11 vehicle, 14 engine). `npm test` 144/144. No tag rule reads faults, so no new tag preview.
 
 ---
 
