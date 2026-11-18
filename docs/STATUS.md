@@ -4,7 +4,7 @@ Read this first when picking up catalog_ schema / car-import work. Keep it curre
 end of each session — this is a living snapshot, not a historical record (git history is
 the record; see CLAUDE.md "Adding a new car / model — RULES").
 
-Last updated: 2026-11-18 (VW ID.3 (E1) imported, see Open items). Before: 2026-11-15 (Renault Zoe Phase 2 completion). Earlier: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, Facelift 61 +
+Last updated: 2026-11-18 (VW ID.3 (E1) imported; completion pass 4 written for review, see Open items). Before: 2026-11-15 (Renault Zoe Phase 2 completion). Earlier: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, Facelift 61 +
 Scout 5 configurations) and the "dilemma" schema landed: driven axle, HEV / CNG, bi-fuel second
 fuel, NEDC/WLTP test cycle, towing + curb weight per configuration, off-road hardware on
 drivetrain systems, ladder-frame chassis, ISOFIX / optional seats / loading sill, DPF / GPF /
@@ -152,7 +152,15 @@ report, for reviewing several cars' decisions at once before generating anything
   both phases; segment C, so no `city_commuter`. `npm test` 144/144. Open: **ID.3 Neo** (2nd facelift, from 07/2026:
   `EEJ` motor, 50 / 58 LFP and 79 kWh NMC) deferred until it has a used market; ground clearance; 12 V battery repair
   cost; four-letter VW motor codes (ADAC gives only `EBJ` / `EDC` …); the 2021–2025 SK / CZ dealer price lists are 404 and
-  were read as search text only (re-open via the Internet Archive when it is back).
+  were read as search text only.
+- **VW ID.3 (E1) completion — pass 4 (faults) researched, waiting for Martin (2026-11-18).** Findings + decisions X1–X7:
+  `docs/intake/research/vw-id3-e1-completion.md`. Written, **nothing run**: `20261118200000` (INSERT, 6 Pre-facelift vehicle
+  faults: CO2 A/C / heat-pump circuit, brakes at the HU, front wishbone bushes, rear drive-shaft click, charging flap,
+  recall 93J9 — may run via MCP after review) and `20261118200500` (UPDATE, Martin runs: the two battery-recall texts mixed
+  campaigns 93MI / 93MF, 14 rows; 12 V cost 456 € on 2 rows). Guards checked against live 2026-11-18. Motors stay 4,
+  gearboxes 5. **Still open from the completion brief:** trims (the Internet Archive copies of the CZ 10/2021 and 08/2023
+  lists stop at 1 MB and can't be read; gabriel.sk 2024 / 2025 not archived), the market re-check (run last), ground
+  clearance (ADAC's field is empty on every variant), facelift weights (W2), the 4-seat Pro S note.
 
 - **Renault Zoe (X10) Phase 2 is at i3 depth (2026-11-15).** Research + all 13 decisions:
   `docs/intake/research/renault-zoe-x10-completion.md`. Both files live and read back:
