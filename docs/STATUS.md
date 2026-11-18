@@ -4,7 +4,7 @@ Read this first when picking up catalog_ schema / car-import work. Keep it curre
 end of each session — this is a living snapshot, not a historical record (git history is
 the record; see CLAUDE.md "Adding a new car / model — RULES").
 
-Last updated: 2026-11-15 (Renault Zoe Phase 2 completion, see Open items). Earlier: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, Facelift 61 +
+Last updated: 2026-11-18 (VW ID.3 (E1) imported, see Open items). Before: 2026-11-15 (Renault Zoe Phase 2 completion). Earlier: 2026-11-04. Octavia II (1Z) completed (Pre-facelift 47 + Scout 2, Facelift 61 +
 Scout 5 configurations) and the "dilemma" schema landed: driven axle, HEV / CNG, bi-fuel second
 fuel, NEDC/WLTP test cycle, towing + curb weight per configuration, off-road hardware on
 drivetrain systems, ladder-frame chassis, ISOFIX / optional seats / loading sill, DPF / GPF /
@@ -39,7 +39,7 @@ this snapshot, added via the linking-audit workflow earlier this session, notes 
 and live).
 
 Models seeded: Škoda Octavia/Fabia/Scala/Kamiq/Karoq/Kodiaq/Superb; Volkswagen
-Golf/Bora/New Beetle/Polo/T-Cross/Taigo/Passat/Tiguan/Touran/Multivan/Caddy/Arteon/T-Roc;
+Golf/Bora/New Beetle/Polo/T-Cross/Taigo/Passat/Tiguan/Touran/Multivan/Caddy/Arteon/T-Roc/ID.3;
 SEAT León/Toledo/Ibiza/Arona/Ateca/Tarraco; Audi A3/TT/Q2/Q3/A1/A4; Cupra León/Formentor/
 Terramar.
 
@@ -138,6 +138,21 @@ report, for reviewing several cars' decisions at once before generating anything
   `20261006140000` caught it.
 
 ## Open items
+
+- **VW ID.3 (E1) Pre-facelift (2020–2022) + Facelift (2023–2026) imported (2026-11-18).** Research + all
+  decisions (V1–V8, W1–W12): `docs/intake/research/vw-id3-e1.md`. Live via MCP after Martin's review:
+  `20261118120000` (gearbox rows `VW 0MH` for the APP310 / `EBJ` cars and `generic:Single-speed EV (MEB 2024)` for
+  the 2024+ `EDC` / `EDF` / `EEW` cars, both Volkswagen Group, rating 5; the pair added to
+  `scripts/known-distinct-reference-groups.json`) and `20261118120500` (new model ID.3, segment C; 2 phases E1 / MEB;
+  9 engines `EBJ-45kWh@110`, `EBJ-58kWh@107`, `EBJ-58kWh@150`, `EBJ-77kWh@150` — the last two shared by both phases —,
+  `EDC-52kWh@125`, `EDC-59kWh@150`, `EDC-77kWh@170`, `EDF-79kWh@210`, `EEW-79kWh@240`, all rated 4; 4 + 7
+  configurations; trims Easy (SK 10/2022) and Pure / Pro / Pro S / GTX (CZ 11/2024), 50 features; 19 faults incl. the
+  2022–2025 HV-battery recalls). Market: Pre-facelift SK 17 490 / 19 990 / 22 490 (27 ads), Facelift CZ 25 554 / 28 701
+  / 32 765 (19 ads). Tag rules re-run (preview: only ID.3 pending): `green_zone` on all 11 configurations, `isofix_3x` on
+  both phases; segment C, so no `city_commuter`. `npm test` 144/144. Open: **ID.3 Neo** (2nd facelift, from 07/2026:
+  `EEJ` motor, 50 / 58 LFP and 79 kWh NMC) deferred until it has a used market; ground clearance; 12 V battery repair
+  cost; four-letter VW motor codes (ADAC gives only `EBJ` / `EDC` …); the 2021–2025 SK / CZ dealer price lists are 404 and
+  were read as search text only (re-open via the Internet Archive when it is back).
 
 - **Renault Zoe (X10) Phase 2 is at i3 depth (2026-11-15).** Research + all 13 decisions:
   `docs/intake/research/renault-zoe-x10-completion.md`. Both files live and read back:

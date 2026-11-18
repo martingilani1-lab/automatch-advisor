@@ -182,7 +182,7 @@ price, typical mileage and reliability tags.
 ✓ = in the catalog as of 2026-11-11.
 
 - **City (12), 2 done:** Škoda Fabia ✓, VW Polo ✓, Škoda Citigo, VW Up!, Hyundai i20, Hyundai i10, Kia Rio, Kia Picanto, Toyota Yaris, Ford Fiesta, Renault Clio, Dacia Sandero
-- **EVs (12), 2 done:** BMW i3 ✓, Renault Zoe ✓, Tesla Model 3, Tesla Model Y, VW ID.3, VW ID.4, Škoda Enyaq, Audi e-tron, Nissan Leaf, Cupra Born, Hyundai Kona, Hyundai Ioniq 5
+- **EVs (12), 3 done:** BMW i3 ✓, Renault Zoe ✓, VW ID.3 ✓ (Neo 2026 deferred), Tesla Model 3, Tesla Model Y, VW ID.4, Škoda Enyaq, Audi e-tron, Nissan Leaf, Cupra Born, Hyundai Kona, Hyundai Ioniq 5
 - **Family (13), 5 done:** Škoda Octavia ✓, Škoda Scala ✓, VW Golf ✓, VW Touran ✓, SEAT León ✓, Škoda Rapid, VW Sharan, Kia Ceed, Hyundai i30, Ford Focus, Ford S-Max, SEAT Alhambra, Opel Astra
 - **SUV (23), 5 done:** Škoda Kodiaq ✓, Škoda Karoq ✓, Škoda Kamiq ✓, VW Tiguan ✓, VW T-Roc ✓, Škoda Yeti, VW Touareg, Hyundai Tucson, Hyundai Santa Fe, Kia Sportage, Kia Sorento, Dacia Duster, Nissan Qashqai, Toyota RAV4, Ford Kuga, Mazda CX-5, BMW X1, BMW X3, BMW X5, Audi Q5, Audi Q7, Mercedes GLE, Volvo XC90
 - **Motorway cruisers (14), 4 done:** Škoda Superb ✓, VW Passat ✓, VW Arteon ✓, Audi A4 ✓, BMW 3, BMW 5, Audi A6, Mercedes C, Mercedes E, Ford Mondeo, Opel Insignia, Mazda 6, Volvo V60, Volvo V90
