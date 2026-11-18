@@ -143,6 +143,32 @@ reducer). The new vehicle faults are what keeps the car honest; they don't belon
 
 ---
 
+## 4b. Cost table pasted by Martin (2026-11-18) — checked
+
+A table of 11 "estimated repair costs (parts + labour)" with no source or date. Checked against this doc's evidence and
+a few new searches. **None of its figures can be quoted to a source**; any use goes in as source `M` with Martin's
+reason (RESEARCH-PROCESS.md), never as researched.
+
+| row in the table | table | what the evidence says | verdict |
+|---|---|---|---|
+| infotainment freeze: update / ICAS3 unit | 80–150 / 1 200–1 800 | updates were free in VW's 2022 campaign (E17); no ICAS3 replacement pattern found | not used (live software row stays cost NULL) |
+| Travel / Lane Assist steering wheel | 650–950 | not found as a pattern in any source read | not used |
+| eCall / OCU | 120–200 / 550–850 | ADAC long-term car: GPS antenna 525 € took out e-Call (single case, E22) | not used (single case, section 4) |
+| 12 V battery | 160–250 | ADAC paid 456 € at a German VW dealer (E22, live) | an independent-garage figure could set **min**, if it is Martin's (`M`) |
+| inverter / HV fuse | 400–700 / 2 500–4 000 | no ID.3 pattern found (EV Clinic material is eGolf / ID.4 crash repair) | not used |
+| HV battery module | 1 800–2 800 out of warranty | the module faults found are recalls (cost N/A) | not used |
+| charging flap actuator | 110–180 | ADAC 227 € (E22, live) | could set **min**, if `M` |
+| rear drive shaft splines cleaned / bonded | 150–280 | ADAC: shaft repaired under warranty, no price; the bonding fix appears only on an aggregator site; parts-guide prices 200–600 € per shaft are generic | live row is NULL — **usable only as `M`** |
+| rear brakes seized / rusted | 120–350 | **new owner evidence**: meinid thread 6388 "Feste Bremsen" (6+ pages) — rear drums stick after standing in the wet or frost, the car jumps or won't move; a VW TPI adds a seal to the drum, done under warranty for some (E35). No ID.3 out-of-warranty price; a used-car blog says "mindestens 220 Euro" for shoes | supports N2; the text could name the sticking drums and the TPI seal (UPDATE) — cost only as `M` |
+| front sway-bar end links | 90–160 | meinid thread 10748 (5 posts) is only about which brand to buy; no failure pattern | not a fault — not used |
+| heat-pump R744 leak: valve / sensor + recharge | 350–900 | inside the live N1 range 250–2 000 (E23) | no change |
+
+New evidence (belongs with section 9):
+
+| ref | found by | source | quote |
+|---|---|---|---|
+| E35 | C | meinid.com thread "Feste Bremsen" https://www.meinid.com/thread/6388-feste-bremsen/ | PaulFr: "wenn ich im Regen gefahren bin dann sind am nächsten Tag die Bremsen etwas fest aber nach 2 Tagen sind die richtig fest"; TD82: "kommt mit den Trommelbremsen leider (vor allem bei Nässe und dann längeren Standzeiten) vor"; Fridolin12: "Hinten links ist offenbar die trommelbremse festgefroren"; Noname: "Gerade meinen ID.3 aus der Werkstatt geholt. Ab jetzt knallt da nichts mehr."; PaulFr: "Arbeiten wurden in der Werkstatt ausgeführt seither keine festen Bremsen mehr"; LadekarteX: "Die Trommeln werden auf der Rückseite abgedichtet" |
+
 ## 5. Trims (item 2) — what this session found, not finished
 
 - **Internet Archive is back.** It holds `tukas.cz …/id-3-14-10-2021.pdf` (capture 2022-08-14) and
