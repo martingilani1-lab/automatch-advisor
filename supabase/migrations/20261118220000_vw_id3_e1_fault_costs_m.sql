@@ -1,3 +1,8 @@
+-- ============================================================================================================
+-- SUPERSEDED — DO NOT RUN. Replaced by 20261118223000_vw_id3_e1_fault_costs_m_independent.sql (2026-11-18:
+-- Martin asked for independent-shop prices instead of dealer figures at the top of each range). Never ran.
+-- ============================================================================================================
+--
 -- VW ID.3 (E1) completion: fault costs from Martin's own cost table (source M, confirmed 2026-11-18) and the
 -- sticking-rear-drum wording on the brakes fault.
 -- Source: docs/intake/research/vw-id3-e1-completion.md, section 4b and decision X8.
