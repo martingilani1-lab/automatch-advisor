@@ -159,9 +159,9 @@ report, for reviewing several cars' decisions at once before generating anything
   recall 93J9); read back, tag preview nothing pending, `npm test` 144/144. **Live** (Martin ran it): `20261118200500`
   (UPDATE: battery-recall texts split into campaigns 93MI / 93MF, 14 rows; 12 V cost 456 € on 2 rows); read back, `npm test`
   144/144. Decision X8 (independent-shop costs from Martin, source M): `20261118220000` ran (dealer-topped ranges + the
-  sticking-rear-drum brake text, 120 / 760); `20261118223000` rolled back, SUPERSEDED. **Waiting for Martin to run:**
-  `20261119090000` (UPDATE top-up: 12 V 160 / 250, charging flap 80 / 180, rear drive shaft 150 / 300); guards matched live
-  2026-11-19. Front wishbone bushes stay NULL. Motors stay 4,
+  sticking-rear-drum brake text, 120 / 760); `20261118223000` rolled back, SUPERSEDED. **Live** (Martin ran it 2026-11-19, read
+  back, `npm test` 144/144): `20261119090000` (UPDATE top-up: 12 V 160 / 250, charging flap 80 / 180, rear drive shaft
+  150 / 300). Front wishbone bushes stay NULL. Motors stay 4,
   gearboxes 5. **Still open from the completion brief:** trims (the Internet Archive copies of the CZ 10/2021 and 08/2023
   lists stop at 1 MB and can't be read; gabriel.sk 2024 / 2025 not archived), the market re-check (run last), ground
   clearance (ADAC's field is empty on every variant), facelift weights (W2), the 4-seat Pro S note.
