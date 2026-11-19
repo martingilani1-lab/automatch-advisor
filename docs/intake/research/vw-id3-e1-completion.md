@@ -244,7 +244,7 @@ New evidence (belongs with section 9):
 | X9 | Pre-facelift trims | VW ČR price list "Platnost od 16.07.2021" (E36) — readable, complete — sells the ID.3 in three lines tied to the battery: **Pure** (Pure Performance 110 kW / 45 kWh), **Pro** (Pro 107 kW and Pro Performance 150 kW / 58 kWh), **Pro S** (150 kW / 77 kWh, 4- or 5-seat). The live trim "Easy" came from one Slovenská sporiteľňa fleet configuration (10/2022, options included) and is not additive with these lines | **CZ lines, drop Easy** — INSERT `20261119100000` (3 trims, 46 features), DELETE `20261119100500` (Easy + 24 features; you run it after the INSERT) | accepted — files written, not run |
 | X10 | heat pump | the 07/2021 CZ list marks "WPU Tepelné čerpadlo" standard ("●") on all three lines; the live EBJ motor rows say `optional` (ADAC DE, €1 275 option) | **trim feature only**; motor rows stay `optional` | accepted — in the INSERT |
 | X11 | ground clearance | VW Norway technical data (2024, facelift dimensions 4 264 / 1 564): "Bakkeklaring, cm 15" (E38). Pre-facelift: only third-party spec sites (150 mm, some 120 mm); ADAC's field is empty, the CZ lists have none | **Facelift 150 mm, Pre-facelift NULL** | accepted — in the UPDATE `20261119110000` |
-| X12 | market | section 12 | Pre-facelift SK **17 000 / 19 990 / 22 490**, `27,000 - 172,000 km`; Facelift CZ **26 040 / 28 701 / 32 765**, `10,000 - 45,000 km` (unchanged) | **open** — UPDATE `20261119110000` written for you |
+| X12 | market | section 12 | Pre-facelift SK **17 000 / 19 990 / 22 490**, `27,000 - 172,000 km`; Facelift CZ **26 040 / 28 701 / 32 765**, `10,000 - 45,000 km` (unchanged) | **accepted** — live 2026-11-19 (Martin ran `20261119110000`) |
 | X13 | facelift EBJ trims (2023 – 05/2024) | the only SK / CZ document is VW ČR "ID.3 People", "Platnost od 09.02.2024" (E37): one action model "Pro People 150 kW, 58 kWh" with a fixed package (18" East Derry alloys, IQ.Light matrix, Comfort pack with Discover Pro 12", heated seats and wheel, 2-zone Climatronic, Assistance pack with camera and Park Assist, heat pump, 2-level boot floor) | **not added** (an action edition, not a trim line) — recorded here | accepted |
 
 ## 11. Other gaps (item 4)
@@ -332,5 +332,9 @@ Perplexity: none used in this session (3 of 8 for the car).
 | file | kind | who runs |
 |---|---|---|
 | `20261119100000_vw_id3_e1_prefacelift_trims_cz2021_insert.sql` | INSERT: trims Pure / Pro / Pro S, 46 features | **ran via MCP 2026-11-19** (Martin approved; file unchanged since 24debb2). Read back: Pure 37 (10 optional, 13 safety slugs), Pro 0, Pro S 9 (2 optional); no row without group or slug. `npm test` 144/144; tag rules don't read trims |
-| `20261119100500_vw_id3_e1_prefacelift_delete_easy_trim.sql` | DELETE: trim Easy + 24 features (after the INSERT) | you |
-| `20261119110000_vw_id3_e1_market_clearance_updates.sql` | UPDATE: market (X12), facelift ground clearance 150 (X11) | you |
+| `20261119100500_vw_id3_e1_prefacelift_delete_easy_trim.sql` | DELETE: trim Easy + 24 features (after the INSERT) | **Martin ran it 2026-11-19** — read back: Pre-facelift trims Pure 37 / Pro 0 / Pro S 9, no orphaned features |
+| `20261119110000_vw_id3_e1_market_clearance_updates.sql` | UPDATE: market (X12), facelift ground clearance 150 (X11) | **Martin ran it 2026-11-19** (X12 accepted) — read back: Pre-facelift 17 000 / 19 990 / 22 490 `27,000 - 172,000 km`; Facelift 26 040 / 28 701 / 32 765 `10,000 - 45,000 km`; ground clearance Facelift 150, Pre-facelift NULL. `npm test` 144/144 |
+
+**Completion brief closed (2026-11-19).** Every gap is filled or NULL with a reason Martin approved: Pre-facelift ground
+clearance NULL (X11), front wishbone bush cost NULL (X4), facelift EBJ trims not added (X13). Open follow-up only: the
+facelift Pure "Park Pilot" safety slug (`parking_assist` → `reversing_detection`, section 11).
