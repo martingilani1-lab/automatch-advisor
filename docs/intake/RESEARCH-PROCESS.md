@@ -31,6 +31,10 @@ One car phase per run. Each pass fills its own sections of the research pack and
 
 After the passes, Claude Code derives (never researches) the rule-based tags — see "Tags" below.
 
+**Split the work across sessions** (Martin, 2026-11-19, after the ID.3): one session for pass 1 (+2) up to the
+configuration gate, one for passes 3–4 (trims, faults in depth), one for pass 5 + seed. A model with several phases or
+an EV variant (Citigo e iV, Up! e-up!) may take a session per phase. Leave a hand-over note at each split.
+
 ## Completeness gate
 
 Before a seed file is written, every field in FIELD-LEVELS.md is checked:
@@ -112,9 +116,46 @@ thing that keeps it off the wrong phase — the i3 "motor mount, up to 2015" fau
 Facelift until the comparison started filtering by years (2026-11-15). So: an engine / gearbox that
 spans phases → every fault on it gets `affected_year_from / _to` whenever it didn't hit all years.
 
+**Recalls: one row per manufacturer campaign code** (VW 93MI, Renault 0DKQ …). Look the code up in EU Safety
+Gate (the car-recalls.eu mirror shows code, build window and alert number) and check UK / DE references belong to the
+same code before citing them together — the ID.3 import merged 93MI and 93MF into one text (fixed 2026-11-19).
+
+**Repair costs: independent-shop SK / CZ prices** (Martin, 2026-11-19). A dealer figure (ADAC, a forum invoice) is
+evidence of the fault, not the price to store; when Martin supplies independent-shop figures they go in as source `M`.
+A part of a fault with no independent figure (ID.3 front discs) keeps the sourced figure and the text says which part.
+
+**Owner patterns: the model's own forum first** (meinid.com for MEB, zoe-forum.de …): a long thread with several
+owners, a VW field action / TPI number or a garage invoice is a pattern; a single post, a "known issues" aggregator
+(au7o, carwiki) or a dealer blog is not. ADAC's model page "Gebrauchtwageninfo" PDF (`gw0NNN-…-bericht.pdf`) and the
+ADAC Dauertest page give TÜV weak points and real repair invoices — open them first.
+
 **EV sources for reliability (pass 4):** ADAC Pannenstatistik (it covers EVs), recall databases
 (EU Safety Gate, KBA, NHTSA for the same platform), manufacturer service campaigns, battery-health
 reports that name the exact model and battery. Generic "EVs are reliable" articles are not evidence.
+
+## Trims (pass 3)
+
+- Only a manufacturer price list counts (VW ČR / SK "Ceník / Cenník"). A bank or fleet configuration of one car
+  (options included) or a one-model action edition ("People", "Limited") is not a trim line — record it, don't add it
+  (ID.3 "Easy", "Pro People", 2026-11-19).
+- Dead dealer PDFs: search the price list's **order code** (`"E113MJ02"`) — other dealers host the same file. Internet
+  Archive copies are often cut at 1 MB (unreadable); fetch with the `…/web/<ts>id_/<url>` form.
+- Read ●/○/− columns with `pdftotext -table -enc UTF-8` (plain `-layout` misaligns the marks).
+- A tier that only changes battery / charging has no feature rows of its own — fine.
+- Safety slugs: parking sensors = `reversing_detection`; `parking_assist` only for systems that steer.
+
+## Market (pass 5) — practical
+
+- **Record every listing id** with price and km in the research doc; without them the market can't be re-checked
+  (ID.3 import, 2026-11-18).
+- SK: auto.bazos.sk search + autobazar.eu `/vysledky/osobne-vozidla/<brand>/<model>/` (cards show `XX kraj`; SK
+  regions BA TT TN NR ZA BB PO KE, others / none = CZ dealers). Merge duplicates by price + km.
+- CZ: sauto.cz JSON `/api/v1/items/search?manufacturer_model_seo=<brand>%3A<model>&category_id=838&…` from a sauto tab
+  (model seo has no dash: `id3`); it has `manufacturing_date`. The Seznam consent wall needs Martin's OK (given once,
+  2026-11-19). Plus auto.bazos.cz.
+- DE reference: mobile.de model page `suchen.mobile.de/auto/<brand>-<model>.html`; for filters get the `ms=` code
+  from the page html (ID.3 = `25200;81`), then `search.html?ms=…&fr=2024:&ml=1000:&dam=false`.
+- A build year that straddles a facelift is left out unless the ad says which phase.
 
 ## Tags
 
@@ -155,6 +196,11 @@ expected the range to be NULL, but a later file had set it to 290, so it would h
   file that replaces it, and the research doc says so.
 - After Martin says "ran it", Claude reads the changed rows back. "Success, no rows returned" with
   nothing changed = an old SQL editor tab with an open transaction — re-run in a fresh tab.
+- If rows still haven't changed: check `pg_stat_activity` for an `idle in transaction` session and note
+  `pg_stat_user_tables.n_tup_upd` for the table — a run that really executed raises it by the number of rows touched
+  (ID.3 2026-11-18: two "ran it" with nothing changed, the third worked).
+- Before writing a replacement for an unrun file, read the live rows: the "superseded" file may have run after all
+  (ID.3 costs 2026-11-18). Write the replacement from the live state, and fix the old file's header to say it ran.
 
 ## Open questions (schema, not process)
 
@@ -175,3 +221,4 @@ expected the range to be NULL, but a later file had set it to 290, so it would h
 | BMW i3 (I01) Facelift, pass 2 test | 2026-11-11 | 2 (1 stalled) | ~5 min each | $0.80 | 51/51 values verified; 9 cells left NULL despite a cited manufacturer source |
 | BMW i3 (I01) completion, both phases | 2026-11-12 | 2 | ~4 min 20 s | check console | 1 mis-transcribed quote, 2 dead links caught; yearly maintenance and towing from Martin |
 | BMW i3 (I01) REx, research + market | 2026-11-15 | 4 + 0 | short | check console | first EREV: 2 vocabulary values + 1 CHECK widened; market read straight from the sites (70 listings, SK / CZ / DE apart) — Perplexity not needed; 2026-11-10 facelift files found stale and rewritten |
+| VW ID.3 (E1) import + completion | 2026-11-18/19 | 3 | — | check console | one session per whole car was too thin (Martin) → completion pass in 2 more sessions; recall texts mixed two campaigns; market ids not recorded at import; trims from a bank config replaced by the VW ČR list |
