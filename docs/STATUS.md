@@ -167,8 +167,8 @@ report, for reviewing several cars' decisions at once before generating anything
   `20261119100500` (DELETE: old trim "Easy" + 24 features) and `20261119110000` (UPDATE: market Pre-facelift SK 17 000 / 19 990 / 22 490 `27,000 - 172,000 km`,
   Facelift CZ 26 040 / 28 701 / 32 765; Facelift ground clearance 150 mm from VW Norway; Pre-facelift stays NULL). Decided:
   heat pump stays `optional` on the EBJ motors (CZ 2021 standard → trim feature), the 02/2024 "Pro People" action model
-  not added as a trim, W1 / W2 unchanged, 4-seat Pro S closed via the con + trim feature. Open follow-up: the facelift
-  Pure "Park Pilot" row uses safety slug `parking_assist` (should be `reversing_detection`). Motors stay 4,
+  not added as a trim, W1 / W2 unchanged, 4-seat Pro S closed via the con + trim feature. **Waiting for Martin:**
+  `20261119120000` (UPDATE, 1 row: facelift Pure "Park Pilot" safety slug `parking_assist` → `reversing_detection`). Motors stay 4,
   gearboxes 5. **Completion brief closed 2026-11-19**: `npm test` 144/144 after the last write; remaining NULLs are approved
   (Pre-facelift ground clearance, front wishbone bush cost).
 
