@@ -254,7 +254,7 @@ New evidence (belongs with section 9):
 - **Pre-facelift height**: the 07/2021 CZ list says "Výška 1553" (E36) against the live 1 568 (VW Austria "Höhe max." 02/2021, W1). No change — 1 568 is the documented maximum; noted here.
 - **4-seat Pro S**: the 07/2021 CZ list sells "ID.3 Pro S, 4místný" (E114MN02, 1 103 900 Kč) and "5místný" (E114MN52, 1 107 900 Kč). The body row can't hold a seat-count variant (RESEARCH-PROCESS.md, open questions); the live `EBJ-77kWh@150` con already says "4-seat on many cars … check the seat count", and the new Pro S trim feature names both versions. **Closed** without a schema change.
 - **CZ 07/2021 charging**: Pure "DC 50 kW / AC 7,2 kW" (DC 100 kW option, 17 000 Kč), Pro "DC 100 kW / AC 11 kW", Pro S "DC 125 kW / AC 11 kW" (E36). The live motor rows carry the later maxima (120 / 170 kW, ADAC from 05/2021), consistent with the existing con "DC charging 100 kW on early cars (120 kW from 05/2021)"; no change.
-- **Facelift Pure "Park Pilot" safety slug**: the live facelift row maps Park Pilot sensors to `parking_assist` (automatic steering); the new pre-facelift rows map the same sensors to `reversing_detection`. Follow-up: align the facelift row (an UPDATE) — written 2026-11-19 as `20261119120000_vw_id3_e1_facelift_park_pilot_slug.sql` (Martin runs it). Catalog-wide check: it is the only `parking_assist` row on plain sensors; the other five (Multivan, Passat, T-Roc, Tiguan, Zoe) are real steering Park Assist systems.
+- **Facelift Pure "Park Pilot" safety slug**: the live facelift row maps Park Pilot sensors to `parking_assist` (automatic steering); the new pre-facelift rows map the same sensors to `reversing_detection`. Follow-up: align the facelift row (an UPDATE) — written 2026-11-19 as `20261119120000_vw_id3_e1_facelift_park_pilot_slug.sql` — Martin ran it 2026-11-19; read back: both ID.3 Park Pilot rows `reversing_detection`, `npm test` 144/144. Catalog-wide check: it is the only `parking_assist` row on plain sensors; the other five (Multivan, Passat, T-Roc, Tiguan, Zoe) are real steering Park Assist systems.
 
 ## 12. Market (pass 5) — listings read 2026-11-19, CZK at 24.386 (ECB reference rate of 2026-11-18, E40)
 
@@ -336,5 +336,5 @@ Perplexity: none used in this session (3 of 8 for the car).
 | `20261119110000_vw_id3_e1_market_clearance_updates.sql` | UPDATE: market (X12), facelift ground clearance 150 (X11) | **Martin ran it 2026-11-19** (X12 accepted) — read back: Pre-facelift 17 000 / 19 990 / 22 490 `27,000 - 172,000 km`; Facelift 26 040 / 28 701 / 32 765 `10,000 - 45,000 km`; ground clearance Facelift 150, Pre-facelift NULL. `npm test` 144/144 |
 
 **Completion brief closed (2026-11-19).** Every gap is filled or NULL with a reason Martin approved: Pre-facelift ground
-clearance NULL (X11), front wishbone bush cost NULL (X4), facelift EBJ trims not added (X13). Open follow-up only: the
-facelift Pure "Park Pilot" safety slug (`parking_assist` → `reversing_detection`, section 11).
+clearance NULL (X11), front wishbone bush cost NULL (X4), facelift EBJ trims not added (X13). The last follow-up, the
+facelift Pure "Park Pilot" safety slug (`parking_assist` → `reversing_detection`, section 11), is live too. Nothing open.
