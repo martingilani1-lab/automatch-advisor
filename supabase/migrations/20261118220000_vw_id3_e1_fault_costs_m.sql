@@ -1,6 +1,8 @@
 -- ============================================================================================================
 -- SUPERSEDED — DO NOT RUN. Replaced by 20261118223000_vw_id3_e1_fault_costs_m_independent.sql (2026-11-18:
--- Martin asked for independent-shop prices instead of dealer figures at the top of each range). Never ran.
+-- Martin asked for independent-shop prices instead of dealer figures at the top of each range).
+-- NOTE 2026-11-19: this file DID run (read back via MCP: 12 V 160/456, flap 110/227, shaft 150/280, brakes 120/760 +
+-- TPI text). The remaining differences are applied by 20261119090000_vw_id3_e1_fault_costs_independent_topup.sql.
 -- ============================================================================================================
 --
 -- VW ID.3 (E1) completion: fault costs from Martin's own cost table (source M, confirmed 2026-11-18) and the

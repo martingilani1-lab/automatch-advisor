@@ -1,3 +1,9 @@
+-- ============================================================================================================
+-- SUPERSEDED — DO NOT RUN. Replaced by 20261119090000_vw_id3_e1_fault_costs_independent_topup.sql. Run on
+-- 2026-11-18 it rolled back ("12 V battery: expected 2 rows at 456/456, updated 0") because 20261118220000 had
+-- already run; it changed nothing.
+-- ============================================================================================================
+--
 -- VW ID.3 (E1) completion: fault costs at INDEPENDENT-SHOP prices from Martin's own figures (source M, confirmed
 -- 2026-11-18: "use independent shop") and the sticking-rear-drum wording on the brakes fault.
 -- REPLACES 20261118220000_vw_id3_e1_fault_costs_m.sql (never run; marked SUPERSEDED).
