@@ -5,9 +5,9 @@ Researched 2026-11-18 by Claude Code (local session), following `docs/intake/RES
 It continues `docs/intake/research/vw-id3-e1.md` (import of the same day). Style follows
 `renault-zoe-x10-completion.md`.
 
-**Scope of this session: item 1 of the brief (faults, pass 4) in depth.** Items 2 (trims), 3 (market
-re-check) and 4 (ground clearance, facelift weights / height, 4-seat Pro S) are **not done**. What was found
-for them on the way is in sections 5 and 6, and what is left is in section 8.
+**First session (2026-11-18): item 1 of the brief (faults, pass 4) in depth** — sections 0–9. **Second session
+(2026-11-19): items 2 (trims), 3 (market re-check) and 4 (other gaps)** — sections 10–14 at the end; sections 5, 6 and 8
+below are the first session's interim notes, superseded by them.
 
 Evidence refs continue the import doc's numbering (E1–E20 are there; E21 onwards are here). "Found by":
 **C** = Claude's own search / download; **P→C** = Perplexity lead, source opened and quote checked by Claude.
@@ -232,3 +232,105 @@ New evidence (belongs with section 9):
 | E32 | C | meinid.com thread 11278 "TPI für Wärmepumpe" https://www.meinid.com/thread/11278-tpi-f%C3%BCr-w%C3%A4rmepumpe/ | "B1903F0: Füllmenge Kältemittel ist zu gering"; "Zur Zeit ist keine zielführende Reparatur möglich." — **not used** |
 | E33 | C | ADAC Autokatalog variant pages (10, ids in section 6) https://www.adac.de/rund-ums-fahrzeug/autokatalog/marken-modelle/vw/id3/ | "Bremse vorne Scheibe", "Bremse hinten Trommel" (all 10); "Bodenfreiheit maximal" (no value, all 10); facelift "Höhe 1564 mm" |
 | E34 | C | Internet Archive https://web.archive.org/web/20220814121851/https://www.tukas.cz/wp-content/uploads/2019/05/id-3-14-10-2021.pdf, https://web.archive.org/web/20250213153021/https://www.tukas.cz/wp-content/uploads/2023/09/id-3-facelift-08-2023.pdf | both captures 1 048 576 bytes (truncated), unreadable |
+
+---
+
+# Second session (2026-11-19): trims, other gaps, market
+
+## 10. Decisions (Martin, 2026-11-19)
+
+| # | topic | finding | decision | status |
+|---|---|---|---|---|
+| X9 | Pre-facelift trims | VW ČR price list "Platnost od 16.07.2021" (E36) — readable, complete — sells the ID.3 in three lines tied to the battery: **Pure** (Pure Performance 110 kW / 45 kWh), **Pro** (Pro 107 kW and Pro Performance 150 kW / 58 kWh), **Pro S** (150 kW / 77 kWh, 4- or 5-seat). The live trim "Easy" came from one Slovenská sporiteľňa fleet configuration (10/2022, options included) and is not additive with these lines | **CZ lines, drop Easy** — INSERT `20261119100000` (3 trims, 46 features), DELETE `20261119100500` (Easy + 24 features; you run it after the INSERT) | accepted — files written, not run |
+| X10 | heat pump | the 07/2021 CZ list marks "WPU Tepelné čerpadlo" standard ("●") on all three lines; the live EBJ motor rows say `optional` (ADAC DE, €1 275 option) | **trim feature only**; motor rows stay `optional` | accepted — in the INSERT |
+| X11 | ground clearance | VW Norway technical data (2024, facelift dimensions 4 264 / 1 564): "Bakkeklaring, cm 15" (E38). Pre-facelift: only third-party spec sites (150 mm, some 120 mm); ADAC's field is empty, the CZ lists have none | **Facelift 150 mm, Pre-facelift NULL** | accepted — in the UPDATE `20261119110000` |
+| X12 | market | section 12 | Pre-facelift SK **17 000 / 19 990 / 22 490**, `27,000 - 172,000 km`; Facelift CZ **26 040 / 28 701 / 32 765**, `10,000 - 45,000 km` (unchanged) | **open** — UPDATE `20261119110000` written for you |
+| X13 | facelift EBJ trims (2023 – 05/2024) | the only SK / CZ document is VW ČR "ID.3 People", "Platnost od 09.02.2024" (E37): one action model "Pro People 150 kW, 58 kWh" with a fixed package (18" East Derry alloys, IQ.Light matrix, Comfort pack with Discover Pro 12", heated seats and wheel, 2-zone Climatronic, Assistance pack with camera and Park Assist, heat pump, 2-level boot floor) | **not added** (an action edition, not a trim line) — recorded here | accepted |
+
+## 11. Other gaps (item 4)
+
+- **Ground clearance** — X11.
+- **Facelift height / weights (W1 / W2)**: two VW ČR documents now, slightly apart: People 02/2024 (EBJ Pro) "Délka 4264, Výška 1556, Pohotovostní hmotnost 1871" (E37); 11/2024 (EDC) 4 265 / 1 552 / Pro 1 867 (E1). ADAC 1 564 / EU weight 1 821. **No change**: W1 (1 552) and W2 (ADAC EU weights) stay as approved; the CZ "pohotovostní hmotnost" runs ~50 kg above ADAC EU on every list read.
+- **Pre-facelift height**: the 07/2021 CZ list says "Výška 1553" (E36) against the live 1 568 (VW Austria "Höhe max." 02/2021, W1). No change — 1 568 is the documented maximum; noted here.
+- **4-seat Pro S**: the 07/2021 CZ list sells "ID.3 Pro S, 4místný" (E114MN02, 1 103 900 Kč) and "5místný" (E114MN52, 1 107 900 Kč). The body row can't hold a seat-count variant (RESEARCH-PROCESS.md, open questions); the live `EBJ-77kWh@150` con already says "4-seat on many cars … check the seat count", and the new Pro S trim feature names both versions. **Closed** without a schema change.
+- **CZ 07/2021 charging**: Pure "DC 50 kW / AC 7,2 kW" (DC 100 kW option, 17 000 Kč), Pro "DC 100 kW / AC 11 kW", Pro S "DC 125 kW / AC 11 kW" (E36). The live motor rows carry the later maxima (120 / 170 kW, ADAC from 05/2021), consistent with the existing con "DC charging 100 kW on early cars (120 kW from 05/2021)"; no change.
+- **Facelift Pure "Park Pilot" safety slug**: the live facelift row maps Park Pilot sensors to `parking_assist` (automatic steering); the new pre-facelift rows map the same sensors to `reversing_detection`. Follow-up: align the facelift row (an UPDATE) — not done here.
+
+## 12. Market (pass 5) — listings read 2026-11-19, CZK at 24.386 (ECB reference rate of 2026-11-18, E40)
+
+Phase from the build / first-registration year; 2023 builds left out unless the ad says facelift; excluded: Neo, new stock
+(≤ 1 000 km), damaged, sold, wanted ads, parts, ads without a year. Duplicates across sites counted once. ~10 % cut at each
+end. The import's own listing ids were not recorded (that was the gap), so this is a fresh sample, recorded in full.
+
+### 12a. Pre-facelift — SK (42 unique)
+
+autobazar.eu (SK regions), id · price € · km: AmZirIGOIYn 20 990 · 117 000; AmAGz58aLBS 15 990 · 159 194; AmTJ5cObjim
+15 999 · 118 814; AekBgbvPNi_ 16 000 · 161 000; AemQF3axodA 17 490 · 117 000; AmIbbivjdEQ 18 400 · 157 000; AetbXjxYtta
+18 500 · 71 393; Ae-A2Ab1SGP 18 790 · 102 500; AmccGc8iREJ 18 850 · 91 731; AmXrO8WaEo1 18 990 · 99 000; AmOohaRB5N4
+18 990 · 100 000; AePrYrJNswb 19 990 · 83 000; AmZPWS43-XD 19 990 · 94 000; AmkGVa5ykyP 19 990 · 95 084; AmIp9Sv-zHb
+19 990 · 80 570; Am8-Zv99FPa 19 990 · 67 640; Am4W52Bc9zf 20 990 · 88 797; Am86Mowr4uu 21 650 · 51 620; AmceG2d-YKl
+21 799 · 80 005; AeaWreH5kA1 21 999 · 50 629; AejPYkWbsHQ 21 999 · 69 000 (reserved); Am6ZAKOnHSg 22 490 · 97 710;
+AmTet5TXxBF 22 599 · 92 081; AmpJMP65Hki 23 490 · 28 000; AmjSTjQRNLl 24 490 · 40 000.
+bazos.sk (not on autobazar.eu): 197542888 21 000 · 30 100; 197445558 21 400 · ~125 000; 197067384 19 499 · 143 000;
+197628877 17 300 · 170 000; 197621637 20 900 · ~27 000; 197518939 21 990 · 49 500; 197516184 21 999 · n/a; 197503992
+20 999 · 87 000; 197499915 22 490 · ~98 000; 197489981 15 500 · 173 000; 197484614 19 990 · 84 000; 197324794 17 600 ·
+172 000; 197193507 21 990 · 5 500; 197105823 18 890 · 79 049; 197031327 18 499 · 118 000; 196985203 17 490 · n/a;
+196756508 17 000 · 111 500.
+Excluded on bazos.sk: 20 duplicates of autobazar.eu ads (same price and km / dealer), 197541876 (damaged), 197403079 /
+197415704 / 196752107 / 197286480 / 197305806 / 196699101 (no year), parts and "kúpim" ads, ads located in CZ (counted
+in CZ). autobazar.eu AeQLzsfGaa3 (2023 Pro S, not stated facelift) excluded.
+
+**Result: n 42, cut 4 / side → 17 000 / 19 990 / 22 490 €**; kept mileage 5 500 – 172 000 km (median ~90 000) →
+proposed `27,000 - 172,000 km` without the 5 500 km car. (Live: 17 490 / 19 990 / 22 490, `50,629 - 157,000 km`.)
+SK facelift: 8 ads (bazos.sk 197460610, 197354903, 197256445, 196929746, 197042468, 196710817; autobazar.eu
+Aevr4bS1FyD, AmeINHtuPKn) — below 10, as on 2026-11-18.
+
+### 12b. Facelift — CZ (20 unique)
+
+sauto.cz (API `items/search`, `manufacturer_model_seo=volkswagen:id3`, 152 ads; Martin allowed the Seznam consent once),
+id · build · km · CZK: 211063659 2023-08 "Facelift2024" · 40 000 · 623 150; 211360176 2024-01 · 15 672 · 649 000;
+211429371 2024-01 · 44 350 · 699 900; 211417719 2024-01 · 42 946 · 699 900; 211407930 2024-01 · 19 485 · 729 900;
+211384647 2024-01 · 23 780 · 729 900; 211421895 2024-01 · 21 857 · 649 000; 211381296 2024-01 · 28 335 · 635 000;
+211211661 2024-04 · 25 591 · 731 000; 211245912 2024-05 · 18 754 · 810 550; 209126724 2024-09 · 12 700 · 887 000;
+211041477 2025-01 · 23 000 · 799 000; 211035363 2025-01 · 19 198 · 799 000; 208197839 2025-01 · 10 000 · 759 000;
+211381725 (2024, = bazos.cz 225915734) · 22 590 · 699 000; 211422606 (facelift) · 30 000 · 639 990; 211444956 (2024,
+= bazos.cz 226373957) · 48 000 · 619 000; 210330677 (facelift) · 45 000 · 679 000.
+bazos.cz: 224792336 02/2024 · 27 340 · 659 000; 224700829 2024 facelift · 23 000 · 705 000.
+Excluded: new stock 210687389 / 210687374 / 207869737; Neo and 2026 builds; 2023 builds without "facelift"
+(210620612, 211418472, 211206498, 210645917, 210645602, 211466979, 211404594, 211473285, 211115922, 211473726,
+bazos.cz 225328904 / 224567450 / 226303901 / 226399646 / 225669382); 211437933 (no year); bazos.cz 226064721 (sold).
+
+**Result: n 20, cut 2 / side → 635 000 / 699 900 / 799 000 Kč = 26 040 / 28 701 / 32 765 €; kept mileage 10 000 –
+45 000 km.** (Live: 25 554 / 28 701 / 32 765, same mileage.) autobazar.eu CZ facelift: only AmYLj632oEL (= sauto 211211661).
+
+### 12c. DE reference — mobile.de, damaged hidden, first result page, sponsored ads left out
+
+- EZ 2020–2022 (model page, 4 584 hits): 20 cars, **17 499 – 25 990 €, median 20 990 €**, 54 939 – 104 000 km.
+- EZ 2024+, ≥ 1 000 km (`ms=25200;81`, 2 333 hits): 20 cars, **22 490 – 31 770 €, median 26 427 €**, 16 900 – 89 250 km.
+
+SK pre-facelift median (19 990) and DE (20 990) agree within 5 %; the CZ facelift median (28 701) is ~9 % above DE.
+
+### 12d. Resale
+
+Unchanged `average` (W11): pre-facelift cars ask about half their 2021 list price (CZ 07/2021 Pro Performance 999 900 Kč
+≈ 41 000 € → ~20 000 €), in line with the segment.
+
+## 13. Evidence added (second session)
+
+| ref | found by | source | quote |
+|---|---|---|---|
+| E36 | C | Volkswagen ČR, "Ceník, technická data a rozměry modelu ID.3", "Platnost od 16.07.2021" (dealer copy autotrendliberec.cz, Internet Archive 2022-01-20) https://web.archive.org/web/20220120193016/https://autotrendliberec.cz/app/uploads/2021/07/VW_id3_cenik.pdf | "Pure ID.3 Pure Performance 110 kW, kap.45 kWh E112DC02 888 900"; "Pro ID.3 Pro Performance 150 kW, kap.58 kWh E113MJ02 999 900"; "Pro S ID.3 Pro S, 4místný, 150 kW, kap. 77 kWh E114MN02 1 103 900"; "WPU Tepelné čerpadlo ● ● ●"; "8T8 … Adaptivní tempomat ACC ● ● ●"; "48Q … 19" kola z lehké slitiny Andoya − − ●"; "3KB 2 zadní sedadla − − ●"; "LH1 Maximální nabíjecí výkon DC 50 kW … AC 7,2 kW ● − −"; "Výška 1553" |
+| E37 | C | Volkswagen ČR, "Ceník, technická data ID.3 People", "Platnost od 09.02.2024" (dealer copy) https://www.auto-horejsek.cz/images/modely-volkswagen/id-3/doc/vw-id-3-cenik-people.pdf | "ProPeople ID.3 Pro People 150 kW, 58 kWh E123MJP2 1 061 900"; "Délka 4264 … Výška 1556 … Pohotovostní hmotnost 1871" |
+| E38 | C | Volkswagen Norge, "Brosjyre med tekniske data og utstyr — Den nye Volkswagen ID.3" (Internet Archive 2024-07-16) https://web.archive.org/web/20240716131505/https://www.volkswagen.no/idhub/content/dam/onehub_pkw/importers/no/priser-og-brosjyrer/id-3/tekniske_data_id3.pdf | "Lengde, mm 4264"; "Høyde, mm 1564"; "Bakkeklaring, cm 15" |
+| E39 | C | listing sites read 2026-11-19: auto.bazos.sk / auto.bazos.cz search "id.3", autobazar.eu `/vysledky/osobne-vozidla/volkswagen/id3/` (66 ads), sauto.cz API, suchen.mobile.de | ids in section 12 |
+| E40 | C | ECB https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml | `time='2026-11-18'`, CZK `rate='24.386'` |
+
+Perplexity: none used in this session (3 of 8 for the car).
+
+## 14. Files of the second session (nothing run yet)
+
+| file | kind | who runs |
+|---|---|---|
+| `20261119100000_vw_id3_e1_prefacelift_trims_cz2021_insert.sql` | INSERT: trims Pure / Pro / Pro S, 46 features | MCP, after your review |
+| `20261119100500_vw_id3_e1_prefacelift_delete_easy_trim.sql` | DELETE: trim Easy + 24 features (after the INSERT) | you |
+| `20261119110000_vw_id3_e1_market_clearance_updates.sql` | UPDATE: market (X12), facelift ground clearance 150 (X11) | you |
