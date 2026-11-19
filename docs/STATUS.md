@@ -162,9 +162,9 @@ report, for reviewing several cars' decisions at once before generating anything
   sticking-rear-drum brake text, 120 / 760); `20261118223000` rolled back, SUPERSEDED. **Live** (Martin ran it 2026-11-19, read
   back, `npm test` 144/144): `20261119090000` (UPDATE top-up: 12 V 160 / 250, charging flap 80 / 180, rear drive shaft
   150 / 300). Front wishbone bushes stay NULL.
-  **Second session 2026-11-19 (items 2–4), written, nothing run:** `20261119100000` (INSERT: Pre-facelift trims Pure / Pro /
-  Pro S from the VW ČR list of 16.07.2021, 46 features — MCP after review), `20261119100500` (DELETE: old trim "Easy", you,
-  after the INSERT), `20261119110000` (UPDATE: market Pre-facelift SK 17 000 / 19 990 / 22 490 `27,000 - 172,000 km`,
+  **Second session 2026-11-19 (items 2–4):** **live** `20261119100000` (INSERT via MCP: Pre-facelift trims Pure / Pro /
+  Pro S from the VW ČR list of 16.07.2021, 46 features; read back, `npm test` 144/144). **Waiting for Martin:**
+  `20261119100500` (DELETE: old trim "Easy" + 24 features — run now, the INSERT is live), `20261119110000` (UPDATE: market Pre-facelift SK 17 000 / 19 990 / 22 490 `27,000 - 172,000 km`,
   Facelift CZ 26 040 / 28 701 / 32 765; Facelift ground clearance 150 mm from VW Norway; Pre-facelift stays NULL). Decided:
   heat pump stays `optional` on the EBJ motors (CZ 2021 standard → trim feature), the 02/2024 "Pro People" action model
   not added as a trim, W1 / W2 unchanged, 4-seat Pro S closed via the con + trim feature. Open follow-up: the facelift

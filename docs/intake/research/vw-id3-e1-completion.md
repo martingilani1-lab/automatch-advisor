@@ -331,6 +331,6 @@ Perplexity: none used in this session (3 of 8 for the car).
 
 | file | kind | who runs |
 |---|---|---|
-| `20261119100000_vw_id3_e1_prefacelift_trims_cz2021_insert.sql` | INSERT: trims Pure / Pro / Pro S, 46 features | MCP, after your review |
+| `20261119100000_vw_id3_e1_prefacelift_trims_cz2021_insert.sql` | INSERT: trims Pure / Pro / Pro S, 46 features | **ran via MCP 2026-11-19** (Martin approved; file unchanged since 24debb2). Read back: Pure 37 (10 optional, 13 safety slugs), Pro 0, Pro S 9 (2 optional); no row without group or slug. `npm test` 144/144; tag rules don't read trims |
 | `20261119100500_vw_id3_e1_prefacelift_delete_easy_trim.sql` | DELETE: trim Easy + 24 features (after the INSERT) | you |
 | `20261119110000_vw_id3_e1_market_clearance_updates.sql` | UPDATE: market (X12), facelift ground clearance 150 (X11) | you |
