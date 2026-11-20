@@ -686,15 +686,131 @@ Listing ids (price, km; "cut" = trimmed):
 
 ## 28. Seed files (for review — nothing run)
 
-| file | what | how it runs |
-|---|---|---|
-| `supabase/migrations/20261120190000_transmission_units_citigo_sq100_0cz.sql` | NEW `VW SQ100` (ASG) and `VW 0CZ` (e iV) | additive INSERT — MCP after your review |
-| `supabase/migrations/20261120190500_transmission_units_vw_mq100_complete.sql` | completes the `VW MQ100` stub (maker, speeds 5, alt_codes, rating, notes) | **UPDATE — you run it** |
-| `supabase/migrations/20261120191000_seed_skoda_citigo_aa.sql` | model, 3 phases, 5 bodies, 8 engines, 39 configurations, 8 trims / 78 features, 31 faults | additive INSERT — MCP after your review; needs both files above first |
+**Superseded (2026-11-20, never run, kept per rule 6b):** `20261120190000_transmission_units_citigo_sq100_0cz.sql`,
+`20261120190500_transmission_units_vw_mq100_complete.sql`, `20261120191000_seed_skoda_citigo_aa.sql` — each now starts
+with `SUPERSEDED — DO NOT RUN`. Replaced by the single file in section 29.
 
 `scripts/known-distinct-reference-groups.json` gets the two groups the new rows create (VW Group manual 5:
 02J / 02K / MQ100 / MQ200; VW Group single_speed 1: 0CZ / 0MH / MEB 2024). Side finding: the live groups VW Group dct_wet 6
 (DQ250 / DQ400e), dct_wet 7 (DQ381 / DQ500) and the manual-5 group with MQ200 were already missing from that baseline.
 
 Still NULL for you (required fields): fault costs (R3), combustion `yearly_maintenance_eur` (M), e iV market (M2), F8 CNG
-WLTP consumption (T5), pre-facelift trim equipment (S3).
+WLTP consumption (T5), pre-facelift trim equipment (S3). *(Superseded by sections 29–34: costs and maintenance now given.)*
+
+---
+
+# Martin's review applied (2026-11-20)
+
+## 29. The seed file
+
+**One file, human-run:** `supabase/migrations/20261120210000_seed_skoda_citigo_aa.sql`, **generated** by
+`scripts/generate-citigo-seed.mjs` from `scripts/seed-data/skoda-citigo-aa/` (`engines.csv`, `configurations.csv`,
+`trim_features.csv`, `faults.csv`; author-data-sql skill — edit the CSV and regenerate, never the SQL). One transaction,
+guards first (fails on any drift since 2026-11-20, rule 6b). It UPDATEs the shared `VW MQ100` row, so Martin runs it;
+nothing goes via MCP.
+
+| table | rows | decision |
+|---|---|---|
+| transmission_units | INSERT 2 (`VW SQ100` rating 3, `VW 0CZ` rating 5) | C5, C6, R2 |
+| transmission_units | **UPDATE 1 shared row `VW MQ100`** (maker, speeds 5, alt_codes MQ100 / 0CF, rating 4, notes) — every model linked to it later inherits these; today no configuration uses it (guarded) | R2 |
+| catalog_models | 1 (Citigo, A, czech) | C1 |
+| catalog_phases | 3 (AA Pre-facelift 2011–2017, AA Facelift 2017–2019, AA-iV Facelift "CITIGOe iV (AA)" 2019–2020) | S1, S2, T1, M1, M3 |
+| phase_body_dimensions | 5 (2 + 2 + e iV) | T2, T3, T4, T7, S4 |
+| catalog_engines | 8 new (7 combustion, 1 EV); `CHYA@44` / `CHYB@55` reused, unchanged | C3, T9, R1, R5 |
+| catalog_vehicle_configurations | 39 (incl. F10 55 kW ASG Euro 6d-TEMP × 2 bodies) | T5, T6, T8, T10, S5 |
+| catalog_trims / catalog_trim_features | 8 / 78 | S3, S6 |
+| catalog_component_faults | 30 (14 engine, 3 gearbox, 13 vehicle) with Martin's costs | R3, R4, R6, costs |
+
+Changed against the superseded files: oil interval now Škoda's 30 000 km / 1 year (first service 2 years / 30 000 km);
+yearly maintenance filled; R5 note text; the fault list follows Martin's cost list (exhaust split 3a / 3b, ASG split into
+actuator 4a / selector module 4b / clutch 5, brakes split into front pads + discs 8a / rear shoes 8b, wiring = tailgate
+hinge gaiter 9); R6 = one Takata recall check per petrol phase (Pre-facelift 69KH / 69PB / 69PC, Facelift 69PC).
+**No longer seeded:** the 93J5 e iV battery recall (R6 → research notes) and the airbag-ECU software (05/2013),
+child-lock lever (2015–16), sunroof panel (2016) and towing-eye (2017) campaigns — they are not in Martin's R6 / cost
+list; kept in section 21c as research. Say if any should go back in.
+
+## 30. Decisions as applied
+
+| # | applied |
+|---|---|
+| T1 | towing 0 on all three phases; configuration towing NULL (N/A); nose_weight NULL |
+| T2 | Facelift 3 597 / 1 641 (5-door 1 645) / 1 478 |
+| T3 | Pre-facelift height 1 478. **R:** ADAC's 1 489 matches the VW up! figure, likely copied from the sister model |
+| T4 | body 934 / 1 330 / payload 396 (brochure); configurations ADAC EU for 2011–08/2018, brochure EU for 09/2018+ |
+| T5 | NEDC CNG 2,9 kg/100 km (Škoda's "4.5" is m³; Škoda states 4.4 m³ = 2.9 kg). WLTP CNG (F8): ADAC "5,6 kg" is m³ labelled kg — **not stored**; the SK brochure 02/2019 has **no kg value** (its G-TEC column is petrol mode) → primary NULL. **R:** "~3.7 kg derived from 101 g/km". Both secondary columns NULL on F8 (`secondary_pair_check`). CPGA is the first `fuel_type = 'cng'` engine |
+| T6 | G-TEC configuration tank 10 l (petrol). **R:** CNG 12 kg (2013–08/2018) / 11 kg (09/2018+) |
+| T7 | e iV own phase + own body row, tank NULL, 3 597 / 1 645 / 1 481, clearance 141, boot 250 / 923, EU 1 235, GVW 1 530 |
+| T8 | as in section 9d |
+| T9 | oil 3,4 l on all 7 new combustion rows incl. CPGA. **R:** dry fill 3,7 l; source Comma / oiltype.co (Martin) — the Comma page returned HTTP 500 here; cararac.com shows the same 3,4 / 3,7 for 44 / 55 kW and the 50 kW CNG |
+| T10 / S5 | F10 `CHYB-Euro6dT@55` × ASG, 3-door + 5-door, WLTP 5,4 l / 121 g, EU 940, 14,9 s, 173 km/h — no ADAC page exists for any 09/2018+ ASG (all 294 checked), so the brochure low end stands. **R:** not in the SK 01/2019 price list; sold in CH / DE (autosprint.ch 31.10.2018; DE listings), DE imports reach SK / CZ |
+| S1 | Pre-facelift 2011 5★ 89 / 80 / 46 / 86; Facelift + e iV 2019 3★ 81 / 83 / 46 / 55. **R:** same structure as 2011; the drop comes from the protocol (safety assist 86 → 55 %) |
+| S2 | `AA-iV` / `Facelift` / "CITIGOe iV (AA)" / 2019–2020 |
+| S3 | Pre-facelift trims Easy / Active / Ambition / Elegance, names only (auto.cz, secondary source); no Style / Monte Carlo from other markets |
+| S4 | ISOFIX 2, front passenger false, all phases |
+| S6 | `seatbelt_reminders` on the e iV only — slug verified in `safety_features` (2026-11-20) |
+| R1 | rating 4 on the 7 new combustion rows and `EBM-32kWh@61` (the 2 reused rows are already 4) |
+| R2 | `VW SQ100` 3 (new), `VW MQ100` 4 (shared, UPDATE), `VW 0CZ` 5 (new) |
+| R3 | dealer / UK figures in R only (E32, E33) |
+| R4 | probabilities on the live scale, **all proposed**: rare 0,002 (front pipe + cat) / 0,005 (starter, rear silencer, J497, gear-selector module, tailgate wiring, water ingress); occasional 0,02 (spark plugs, ASG actuator, ASG clutch, handbrake cables); wear 0,2 (front pads + discs, rear shoes, lighting) |
+| R5 | belt 210 000 km, years NULL. **R:** ADAC's 210 000 is most likely the first **inspection**, replace on condition (owners quote VW "check at 210 000"; another source says first inspection 240 000) |
+| R6 | 69DU left out (heat-country imports). One recall-check row per petrol phase, probability NULL, **cost NULL instead of 0** (the `estimated_cost_eur` CHECK requires > 0, so 0 would fail); pre_purchase_check "Verify recalls 69KH / 69PB / 69PC are done (VIN check at a Škoda dealer)". e iV battery recall 93J5 (54 cars, built 11.05–24.06.2020): R only |
+| R7 | flag only (section 34) |
+| R8 | `value_retainer` (model tier) — pass-5 recommendation M4 yes; not in the SQL, set after the seed with your OK |
+
+## 31. Fault costs as stored (EUR incl. VAT, independent SK / CZ garage, labour 35–45 €/h)
+
+| # | fault | target | cost | status |
+|---|---|---|---|---|
+| 1 | spark plugs (+ coil check; +40–80 per coil in the fault text) | 3 Euro 5 rows + CPGA@50 | 40–75 | sourced |
+| 2 | starter motor (reman) | 3 Euro 5 rows, 2012 | 135–210 | proposed (reman price unverified); **R:** used part from 70 |
+| 3a | rear silencer | 3 Euro 5 rows, 2012–14 | 80–150 | proposed |
+| 3b | front pipe with catalytic converter | 3 Euro 5 rows, 2012–14 | 450–1 450 | sourced (OE 352–1 345) |
+| 4a | ASG clutch actuator 0CT142056x | VW SQ100 | 250–400 | sourced |
+| 4b | ASG gear-selector module 0CT311097E | VW SQ100 | 950–1 050 | sourced (881,74 € OE) |
+| 5 | ASG clutch kit + flywheel | VW SQ100 | 720–810 | sourced (kit 115, flywheel 407, bearing 57, 4–5 h); **R:** kit only 310–400 |
+| 6 | e iV J497 (out of warranty) | EBM-32kWh@61 | NULL | M — needs one HV-workshop quote |
+| 7 | handbrake cables | Pre-facelift, Facelift | 70–150 | sourced parts |
+| 8a | front pads + discs | Pre-facelift, Facelift | 150–230 (pads only 60–100 in the text) | UK-derived, CZ price missing |
+| 8b | rear shoes (+ wheel cylinders) | Pre-facelift, Facelift | 100–160 | sourced |
+| 9 | tailgate wiring in the hinge gaiter | Pre-facelift, 2012 | 70–130 | proposed — confirm ADAC "Kabelbaum" means the tailgate |
+| 10 | lighting (H4 bulbs, aim) | Pre-facelift, Facelift | 25–40 | proposed |
+| 11 | water in the footwells | Pre-facelift, Facelift | 20–200 | proposed |
+| — | Takata recall check | Pre-facelift, Facelift | NULL (campaign is free) | R6 |
+
+Wear-items rule: only predictable wear is spread per year (the 0,2 rows); every other fault shows as "can happen,
+costs X".
+
+## 32. Maintenance as stored
+
+- yearly_maintenance_eur: petrol **100–140**, CNG **140–190** (CNG uplift proposed, from the ADAC ratio 210 vs 130); e iV N/A.
+- Oil 3,4 l; Škoda interval: first basic service 2 years / 30 000 km, then every 30 000 km or 1 year → stored as
+  30 000 km / 12 months, the first-service exception in maintenance_note.
+- Brake fluid first after 3 years, then every 2 years (owner's manual), 40–60 € per change — in maintenance_note.
+- Brake pads / shoes: wear-based, no time interval.
+
+## 33. Open items — blockers before the seed passes the intake gate
+
+| item | status |
+|---|---|
+| CNG tank material — Gemini claims steel (rust → STK fail → 1 500 €+), automach.cz (2026) says composite | **no CNG-tank fault row** until ADAC, a workshop manual or the tank supplier settles it |
+| J497 repair cost (cost 6) | NULL — needs one HV-workshop quote |
+| front pads + discs CZ price (8a) | UK-derived figure stored |
+| reman starter SK / CZ price (2) | proposed figure stored |
+| tailgate harness confirmation (9) | ADAC only says "Kabelbaum (2012)" |
+| SK brochure WLTP kg value for CNG (T5) | the brochure has none → F8 primary consumption NULL (section-M exception) |
+| e iV phase has **no vehicle-level fault** now that 93J5 is research-only — FIELD-LEVELS requires ≥ 1 per phase | put 93J5 back as a vehicle row, or a section-M exception |
+| market (pass 5) | done (sections 26–27); M1–M5 still need your OK; e iV market NULL (M2) |
+| pre-facelift trim prices / equipment | section-M exception until an official ŠA SK / CZ list (S3) |
+
+## 34. Follow-ups (no SQL in this import)
+
+- **Schema:** CNG kg vs l/100 km — `fuel_consumption_l100km` holds kg on the CNG rows (the LPG `CHGA` precedent stores
+  LPG litres there; no `CHGA` row was found live on 2026-11-20); the app and `ultra_efficient` read it as litres → a kg
+  column or a unit flag.
+- **Code / schema:** a BEV configuration inherits its body's fuel tank (NULL = use the body's value, 0 fails the CHECK) —
+  solved here only by giving the e iV its own phase.
+- **Source check:** the live EA211 engine rows carry an identical 120 000 km / 8-year timing belt (12 rows among CHYA,
+  CHYB, CHZB, CHZC, CHZD, DLAA, DLAB, read 2026-11-20) — looks like an unsourced default.
+- **Source or remove:** the 3 unsourced faults each on `CHYA@44` / `CHYB@55` (ignition coil, throttle body carbon, engine
+  mounts).
+- `scripts/known-distinct-reference-groups.json` was missing the live VW dct_wet 6 / 7 groups (pre-existing).

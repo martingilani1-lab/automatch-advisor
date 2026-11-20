@@ -1,0 +1,81 @@
+# Škoda Citigo (AA) trim features. Facelift: ŠA SK price list 14.01.2019 (later tiers list only what they add).
+# e iV: ŠA SK price list 18.12.2019 (one trim). Pre-facelift trims are names only (S3) -- no rows here.
+phase,trim,feature,is_optional,feature_group,safety_feature_slug
+fl,Active,"ESC with ABS, MSR, ASR, EDS and hill-hold assist",false,,esc
+fl,Active,ABS,false,,abs
+fl,Active,Driver and front passenger airbags,false,airbags,airbags
+fl,Active,Front side head-thorax airbags,false,airbags,airbags
+fl,Active,Tyre pressure monitoring,false,wheels,tyre_pressure_monitoring
+fl,Active,Hazard lights switch on automatically under emergency braking,false,headlights,emergency_stop_signal
+fl,Active,"Seatbelt warning, front seats",false,seats,
+fl,Active,Halogen headlights with daytime running lights,false,headlights,
+fl,Active,"Steel wheels 5J x 14"" with covers, 165/70 R14",false,wheels,
+fl,Active,"Radio BLUES with CD, Aux-In, SD slot, 2 speakers",false,infotainment,
+fl,Active,"Instrument panel LOW (no rev counter, digital fuel gauge)",false,instruments,
+fl,Active,"Three-spoke PUR steering wheel, height-adjustable",false,steering_wheel,
+fl,Active,"Manual locking, 2 keys",false,locking,
+fl,Active,Tinted glass; rear wiper with washer,false,windows,
+fl,Active,Black mirrors and door handles,false,mirrors,
+fl,Active,Height-adjustable rear head restraints (2),false,seats,
+fl,Active,Tyre Fit repair kit,false,wheels,
+fl,Active,Rear parking sensors,true,parking,reversing_detection
+fl,Active,Height-adjustable driver seat,true,seat_adjustment,
+fl,Active,Heated front seats,true,seat_comfort,
+fl,Active,Manual air conditioning,true,climate,
+fl,Active,Electric front windows and remote central locking,true,windows,
+fl,Active,Front fog lights (also with Corner function),true,fog_lights,
+fl,Active,LED daytime running lights,true,headlights,
+fl,Active,"Radio SWING, colour display, 6 speakers, USB, Bluetooth",true,infotainment,
+fl,Active,DAB digital radio,true,infotainment,
+fl,Active,Panoramic electric sunroof,true,windows,
+fl,Active,Front passenger airbag deactivation,true,airbags,
+fl,Ambition,Halogen headlights with LED daytime running lights,false,headlights,
+fl,Ambition,Electric front windows,false,windows,
+fl,Ambition,"Remote central locking, 1 folding key",false,locking,
+fl,Ambition,Instrument panel HIGH with rev counter,false,instruments,
+fl,Ambition,Height-adjustable driver seat,false,seat_adjustment,
+fl,Ambition,Split folding rear backrest 60:40,false,seats,
+fl,Ambition,Easy Entry (3-door),false,seats,
+fl,Ambition,Body-coloured mirrors and door handles,false,mirrors,
+fl,Ambition,Dark-tinted tail lights,false,headlights,
+fl,Ambition,"City Safe Drive with emergency braking, rain and light sensor",true,light_rain_sensors,aeb
+fl,Ambition,Cruise control with trip computer,true,cruise,
+fl,Ambition,Climatronic automatic air conditioning,true,climate,
+fl,Ambition,Leather multifunction steering wheel,true,steering_wheel,
+fl,Ambition,Electrically adjustable and heated mirrors,true,mirrors,
+fl,Ambition,Smartphone holder with apps,true,smartphone,
+fl,Ambition,Rear parking sensors,true,parking,reversing_detection
+fl,Ambition,Heated front seats,true,seat_comfort,
+fl,Style,"APUS alloy wheels 5J x 14"", 175/65 R14",false,wheels,
+fl,Style,Manual air conditioning with pollen filter,false,climate,
+fl,Style,Front fog lights,false,fog_lights,
+fl,Style,Electrically adjustable and heated mirrors,false,mirrors,
+fl,Style,Trip computer,false,instruments,
+fl,Style,"City Safe Drive with emergency braking, rain and light sensor",true,light_rain_sensors,aeb
+fl,Style,Climatronic automatic air conditioning,true,climate,
+fl,Style,Cruise control,true,cruise,
+fl,Style,"15"" and 16"" alloy wheels (CONAN, CRUX, SERPENS, SCORPIUS)",true,wheels,
+fl,Style,Rear parking sensors,true,parking,reversing_detection
+fl,Style,Heated front seats,true,seat_comfort,
+iv,iV,"ESC with ABS, MSR, ASR, EDL and hill-hold assist",false,,esc
+iv,iV,ABS,false,,abs
+iv,iV,"Driver and front passenger airbags, front side airbags and head airbags",false,airbags,airbags
+iv,iV,"Seatbelt warning, all seats",false,seats,seatbelt_reminders
+iv,iV,Tyre pressure monitoring,false,wheels,tyre_pressure_monitoring
+iv,iV,Lane Assist,false,,emergency_lane_keeping
+iv,iV,Rear parking sensors,false,parking,reversing_detection
+iv,iV,Rain and light sensor,false,light_rain_sensors,
+iv,iV,Climatronic automatic air conditioning,false,climate,
+iv,iV,Cruise control,false,cruise,
+iv,iV,"Height-adjustable, heated front seats",false,seat_comfort,
+iv,iV,"Leather multifunction steering wheel, height-adjustable",false,steering_wheel,
+iv,iV,"Radio SWING, Aux-In, SD slot, 6 speakers, DAB",false,infotainment,
+iv,iV,Phone holder and multimedia holder,false,smartphone,
+iv,iV,"Halogen headlights with LED daytime running lights, front fog lights",false,headlights,
+iv,iV,"SCORPIUS 6J x 16"" black alloy wheels, 185/50 R16",false,wheels,
+iv,iV,Electric front windows; SunSet dark rear glass,false,windows,
+iv,iV,Remote central locking,false,locking,
+iv,iV,Maxi DOT trip computer display,false,instruments,
+iv,iV,Split folding rear backrest 60:40,false,seats,
+iv,iV,CCS (Combo 2) charging socket for AC / DC and Type 2 cable,false,,
+iv,iV,Brake energy recovery,false,,

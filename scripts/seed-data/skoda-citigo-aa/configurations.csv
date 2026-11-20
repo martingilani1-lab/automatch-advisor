@@ -1,0 +1,44 @@
+# Škoda Citigo (AA) configurations. phase: pf = Pre-facelift, fl = Facelift, iv = CITIGOe iV. unit: mt = VW MQ100 (0CF), asg = VW SQ100 (0CT), ev = VW 0CZ.
+# NEDC rows: ADAC base variant (no Green tec, 165/70 R14); 2017-18 MT 0-100 / top speed from the Škoda press kit (T8).
+# WLTP rows: ADAC single value inside the Škoda range; F10 (55 kW ASG Euro 6d-TEMP) = SK brochure low end (T10 / S5).
+# CNG: fuel_l100 is kg/100 km (T5); F8 (CPGA-Euro6dT) primary NULL, secondary both NULL (secondary_pair_check). tank 10 = petrol tank (T6).
+id,phase,doors,engine_code,power_kw,unit,fuel_l100,energy_kwh100,co2,cycle,ev_range_km,curb,acc,vmax,sec_fuel,sec_l100,tank
+P1,pf,3,CHYA-Euro5,44,mt,4.5,,105,NEDC,,929,14.4,161,,,
+P1,pf,5,CHYA-Euro5,44,mt,4.5,,105,NEDC,,929,14.4,161,,,
+P2,pf,3,CHYA-Euro5,44,asg,4.4,,103,NEDC,,932,14.4,161,,,
+P2,pf,5,CHYA-Euro5,44,asg,4.4,,103,NEDC,,932,14.4,161,,,
+P3,pf,3,CHYB-Euro5,55,mt,4.7,,108,NEDC,,929,13.2,171,,,
+P3,pf,5,CHYB-Euro5,55,mt,4.7,,108,NEDC,,929,13.2,171,,,
+P4,pf,3,CHYB-Euro5,55,asg,4.5,,105,NEDC,,932,13.2,171,,,
+P4,pf,5,CHYB-Euro5,55,asg,4.5,,105,NEDC,,932,13.2,171,,,
+P5,pf,3,CPGA-Euro5,50,mt,2.9,,79,NEDC,,1031,16.3,164,petrol,4.4,10
+P5,pf,5,CPGA-Euro5,50,mt,2.9,,79,NEDC,,1031,16.3,164,petrol,4.4,10
+P6,pf,3,CHYA,44,mt,4.5,,105,NEDC,,929,14.4,161,,,
+P6,pf,5,CHYA,44,mt,4.4,,101,NEDC,,929,14.4,161,,,
+P7,pf,3,CHYA,44,asg,4.1,,95,NEDC,,931,15.3,161,,,
+P7,pf,5,CHYA,44,asg,4.1,,95,NEDC,,931,15.3,161,,,
+P8,pf,3,CHYB,55,mt,4.4,,101,NEDC,,929,13.2,171,,,
+P8,pf,5,CHYB,55,mt,4.4,,101,NEDC,,929,13.2,171,,,
+P9,pf,3,CHYB,55,asg,4.1,,95,NEDC,,931,13.9,172,,,
+P9,pf,5,CHYB,55,asg,4.1,,95,NEDC,,931,13.9,172,,,
+P10,pf,3,CPGA,50,mt,2.9,,82,NEDC,,1031,16.3,164,petrol,4.4,10
+P10,pf,5,CPGA,50,mt,2.9,,82,NEDC,,1031,16.3,164,petrol,4.4,10
+F1,fl,3,CHYA,44,mt,4.4,,101,NEDC,,929,14.4,162,,,
+F1,fl,5,CHYA,44,mt,4.4,,101,NEDC,,929,14.4,162,,,
+F2,fl,3,CHYA,44,asg,4.1,,95,NEDC,,931,15.3,161,,,
+F2,fl,5,CHYA,44,asg,4.1,,95,NEDC,,931,15.3,161,,,
+F3,fl,3,CHYB,55,mt,4.4,,101,NEDC,,929,13.5,173,,,
+F3,fl,5,CHYB,55,mt,4.4,,101,NEDC,,929,13.5,173,,,
+F4,fl,3,CHYB,55,asg,4.2,,97,NEDC,,931,13.9,172,,,
+F4,fl,5,CHYB,55,asg,4.2,,97,NEDC,,931,13.9,172,,,
+F5,fl,3,CPGA,50,mt,2.9,,82,NEDC,,1031,16.3,164,petrol,4.4,10
+F5,fl,5,CPGA,50,mt,2.9,,82,NEDC,,1031,16.3,164,petrol,4.4,10
+F6,fl,3,CHYA-Euro6dT,44,mt,5.1,,115,WLTP,,934,14.4,162,,,
+F6,fl,5,CHYA-Euro6dT,44,mt,5.1,,115,WLTP,,934,14.4,162,,,
+F7,fl,3,CHYB-Euro6dT,55,mt,5.1,,115,WLTP,,936,13.5,173,,,
+F7,fl,5,CHYB-Euro6dT,55,mt,5.1,,115,WLTP,,936,13.5,173,,,
+F10,fl,3,CHYB-Euro6dT,55,asg,5.4,,121,WLTP,,940,14.9,173,,,
+F10,fl,5,CHYB-Euro6dT,55,asg,5.4,,121,WLTP,,940,14.9,173,,,
+F8,fl,3,CPGA-Euro6dT,50,mt,,,101,WLTP,,1033,16.3,165,,,10
+F8,fl,5,CPGA-Euro6dT,50,mt,,,101,WLTP,,1033,16.3,165,,,10
+E1,iv,5,EBM-32kWh,61,ev,,14.8,0,WLTP,252,1235,12.3,130,,,
