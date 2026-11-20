@@ -101,6 +101,30 @@ export function realWorldConsumption(official: number | null): number | null {
   return official == null ? null : Math.round(official * REAL_WORLD_FACTOR * 10) / 10;
 }
 
+// A PHEV's official figure is weighted by a utility factor (the share of km on electricity)
+// that assumes near-daily charging: WLTP puts it at ~70-85 %. Real private owners in Europe
+// reach ~45-49 % and burn 4.0-4.4 l/100 km against 1.6-1.7 l WLTP (ICCT / Fraunhofer ISI,
+// June 2022, ~9,000 vehicles). One general assumption, no user choice (Martin, 2026-11-20: the
+// Costs tab is busy enough) -- the typical PRIVATE owner, since that is who buys a used car;
+// company-car PHEVs (11-15 % electric, ~8 l) would be far worse.
+//   petrol:      official × 2.5  (4.2 / 1.65; already real-world, so NOT also × REAL_WORLD_FACTOR)
+//   electricity: official × REAL_WORLD_FACTOR × 0.6  (47 % / 78 % of the km on electricity)
+// Applied to WLTP and NEDC figures alike: the study measured against WLTP; NEDC weights are even
+// more optimistic, so for an NEDC PHEV this still under-reads slightly.
+export const PHEV_PETROL_FACTOR = 2.5;
+export const PHEV_ELECTRIC_SHARE_FACTOR = 0.6;
+// An EREV (i3 REx) needs no correction beyond REAL_WORLD_FACTOR: its generator only starts once
+// the battery is nearly empty, so petrol is burnt only on days longer than the battery range --
+// the weighted figure (~0.6 l) already reflects that mostly-electric use. Owner reports put the
+// electric share at roughly 70-99 %; no fleet study was found, so no extra factor is invented.
+const round1 = (v: number) => Math.round(v * 10) / 10;
+export function realWorldPhev(officialPetrol: number | null, officialKwh: number | null) {
+  return {
+    petrol: officialPetrol == null ? null : round1(officialPetrol * PHEV_PETROL_FACTOR),
+    kwh: officialKwh == null ? null : round1(officialKwh * REAL_WORLD_FACTOR * PHEV_ELECTRIC_SHARE_FACTOR),
+  };
+}
+
 // ---- Input / output -----------------------------------------------------------------------
 // A gearbox or AWD system as the calculator needs it: its rating (for the repair reserve) and
 // its one scheduled fluid service.
@@ -125,7 +149,8 @@ export interface TcoInput {
   // 2026-11-20). NOT for a bi-fuel LPG/CNG car: its secondary figure is the OTHER mode's
   // consumption (petrol-only running), an alternative to the primary, never an addition.
   // Real-world, same unit rules as consumptionPer100. null/absent = single-energy car.
-  extraEnergy?: { fuelType: string; consumptionPer100: number } | null;
+  // basis = the short assumption shown in the line's detail ("typical private-owner charging").
+  extraEnergy?: { fuelType: string; consumptionPer100: number; basis: string } | null;
   powerKw: number;
   engineReliabilityRating: number | null;
   // Engine routine servicing per year (oil, filters, plugs) -- catalog_engines yearly_maintenance.
@@ -278,7 +303,7 @@ export function calcTco(
         : extra && extraKey
           ? `${car.consumptionPer100} ${unit} + ${extra.consumptionPer100} ${unitOf(extraKey)} per 100 km real-world`
             + ` × €${fuelPrice.toFixed(2)}/${unit} and €${extraPrice.toFixed(2)}/${unitOf(extraKey)}`
-            + " (official weighted figure -- assumes regular charging)"
+            + ` (${extra.basis})`
           : `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`,
     },
     // A pure EV has no engine servicing (no oil, filters, plugs or belt) -- the line is left
@@ -390,6 +415,8 @@ export function tcoOptions(
       : electric ? avg(list.map((x) => x.secondaryConsumptionL100km))
         : avg(list.map((x) => x.energyConsumptionKwh100km));
     const extraFuel = electric ? (c.secondaryFuelType ?? "petrol") : "electric";
+    const isPhev = e.hybridType === "PHEV" && !electric;
+    const phev = isPhev ? realWorldPhev(official, extraOfficial) : null;
     const m = e.maintenance;
     const isBelt = e.timingType === "belt";
     return {
@@ -400,10 +427,11 @@ export function tcoOptions(
         priceEur: price,
         manufactureYear,
         fuelType: e.fuelType,
-        consumptionPer100: realWorldConsumption(official),
-        extraEnergy: extraOfficial != null
-          ? { fuelType: extraFuel, consumptionPer100: realWorldConsumption(extraOfficial) as number }
-          : null,
+        consumptionPer100: phev ? phev.petrol : realWorldConsumption(official),
+        extraEnergy: extraOfficial == null ? null
+          : phev
+            ? { fuelType: extraFuel, consumptionPer100: phev.kwh as number, basis: "typical private owner: ~half the km on electricity" }
+            : { fuelType: extraFuel, consumptionPer100: realWorldConsumption(extraOfficial) as number, basis: "range extender runs only once the battery is empty" },
         powerKw: e.powerKw,
         engineReliabilityRating: e.reliabilityRating,
         engineYearlyServiceEur: mid(m.yearlyMaintenanceEurMin, m.yearlyMaintenanceEurMax),
