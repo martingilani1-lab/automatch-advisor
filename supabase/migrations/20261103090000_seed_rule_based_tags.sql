@@ -12,11 +12,16 @@
 --   head_turner       [ 6 phases]  segment S, or a car sold ONLY as 2-door coupe/cabrio/roadster
 --                                  or 4-seat 3-door (TT, New Beetle).
 --   cargo_van         [ 1 phase ]  largest boot >= 1 000 l (Caddy).
+--     ^ representative, stroller_friendly, head_turner: SUPERSEDED 2026-11-20 by
+--       20261120140500_seed_tag_rules_round4.sql (head_turner now configuration-level) -- branches
+--       removed below; the lines above are kept as the record of what ran.
 --
 -- CONFIGURATION level (catalog_configuration_tags):
 --   city_commuter     [118]  hatchback, or a B-segment SUV, with <= 81 kW, petrol or electric.
 --   highway_cruiser   [244]  diesel >= 100 kW in a C/D-segment estate, liftback, sedan, SUV or MPV.
---   roadtrip_camper   [243]  estate / SUV / MPV body with boot >= 600 l.
+--     ^ both SUPERSEDED 2026-11-20 by 20261120120000_seed_tag_rules_round3.sql -- their INSERT
+--       branches are removed below; the two lines above are kept as the record of what ran.
+--   roadtrip_camper   [243]  estate / SUV / MPV body with boot >= 600 l.  (SUPERSEDED 2026-11-20 by round 4)
 --   hot_hatch         [ 52]  petrol hatchback, >= 147 kW in a B-segment car (Polo/A1 GTI) or
 --                            >= 162 kW in a C-segment car (Golf GTI and up). Plug-in hybrids excluded.
 --   sleeper           [ 25]  estate / liftback / sedan with >= 180 kW, not a sports-segment car,
@@ -46,10 +51,10 @@ WITH ph AS (
   FROM public.catalog_phases p JOIN public.catalog_models m ON m.id = p.model_id
 )
 INSERT INTO public.catalog_phase_tags (phase_id, tag_slug)
-SELECT id, 'representative'    FROM ph WHERE segment = 'D' AND NOT coalesce(suv_mpv_only, false)
-UNION ALL SELECT id, 'family_ideal'      FROM ph WHERE boot >= 550 AND child >= 75
-UNION ALL SELECT id, 'stroller_friendly' FROM ph WHERE boot >= 500
-UNION ALL SELECT id, 'head_turner'       FROM ph WHERE segment = 'S' OR style_only
+-- representative, stroller_friendly and head_turner branches REMOVED 2026-11-20: superseded by
+-- 20261120140500_seed_tag_rules_round4.sql. head_turner is configuration-level since 20261120140000,
+-- so its old phase branch would now make the tier trigger fail this whole file.
+SELECT id, 'family_ideal'      FROM ph WHERE boot >= 550 AND child >= 75
 UNION ALL SELECT id, 'cargo_van'         FROM ph WHERE boot >= 1000
 ON CONFLICT DO NOTHING;
 
@@ -65,13 +70,12 @@ WITH c AS (
   LEFT JOIN public.phase_body_dimensions d ON d.phase_id = c.phase_id AND d.body_type_id = c.body_type_id
 )
 INSERT INTO public.catalog_configuration_tags (configuration_id, tag_slug)
-SELECT id, 'city_commuter' FROM c
- WHERE (body LIKE 'Hatchback%' OR (body = 'SUV 5-door' AND segment = 'B')) AND kw <= 81 AND fuel IN ('petrol', 'electric')
-UNION ALL SELECT id, 'highway_cruiser' FROM c
- WHERE fuel = 'diesel' AND kw >= 100 AND segment IN ('C', 'D') AND body IN ('Estate', 'Estate Cross', 'Liftback', 'Sedan 4-door', 'SUV 5-door', 'MPV 5-door')
-UNION ALL SELECT id, 'roadtrip_camper' FROM c
- WHERE body IN ('Estate', 'Estate Cross', 'SUV 5-door', 'MPV 5-door') AND boot >= 600
-UNION ALL SELECT id, 'hot_hatch' FROM c
+-- city_commuter and highway_cruiser branches REMOVED 2026-11-20: superseded by
+-- 20261120120000_seed_tag_rules_round3.sql, and the rows they gave that the new rules don't are
+-- deleted by 20261120120500. roadtrip_camper REMOVED the same day: superseded by
+-- 20261120140500_seed_tag_rules_round4.sql (adds a range >= 700 km test; clean-up 20261120141000).
+-- Left here, a re-run after an import would put those rows back.
+SELECT id, 'hot_hatch' FROM c
  WHERE body LIKE 'Hatchback%' AND fuel = 'petrol' AND coalesce(hybrid, '') <> 'PHEV'
    AND ((segment = 'B' AND kw >= 147) OR (segment = 'C' AND kw >= 162))
 UNION ALL SELECT id, 'sleeper' FROM c

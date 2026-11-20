@@ -8,6 +8,7 @@
 --
 --   green_zone              [  8]  engine is electric, or a plug-in hybrid (hybrid_type 'PHEV').
 --                                  Mild hybrids (MHEV, e.g. eTSI) are NOT green-zone cars.
+--   (winter_ready and ultra_efficient below: SUPERSEDED 2026-11-20 by 20261120140500, branches removed)
 --   winter_ready            [346]  the configuration has an AWD drivetrain system
 --                                  (Haldex / quattro / 4MOTION -- drivetrain_id set).
 --   seven_seater            [  3]  phase_body_dimensions.seats_count >= 7 for that body.
@@ -39,11 +40,9 @@ JOIN public.catalog_engines e ON e.id = c.engine_id
 WHERE e.fuel_type = 'electric' OR e.hybrid_type = 'PHEV'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO public.catalog_configuration_tags (configuration_id, tag_slug)
-SELECT c.id, 'winter_ready'
-FROM public.catalog_vehicle_configurations c
-WHERE c.drivetrain_id IS NOT NULL
-ON CONFLICT DO NOTHING;
+-- winter_ready REMOVED 2026-11-20: superseded by 20261120140500_seed_tag_rules_round4.sql
+-- (AWD AND ground clearance >= 130 mm); the rows it gave that the new rule doesn't are deleted by
+-- 20261120141000. Left here, a re-run would put them back.
 
 INSERT INTO public.catalog_configuration_tags (configuration_id, tag_slug)
 SELECT c.id, 'seven_seater'
@@ -52,14 +51,9 @@ JOIN public.phase_body_dimensions d ON d.phase_id = c.phase_id AND d.body_type_i
 WHERE d.seats_count >= 7
 ON CONFLICT DO NOTHING;
 
-INSERT INTO public.catalog_configuration_tags (configuration_id, tag_slug)
-SELECT c.id, 'ultra_efficient'
-FROM public.catalog_vehicle_configurations c
-JOIN public.catalog_engines e ON e.id = c.engine_id
-WHERE e.fuel_type IN ('petrol', 'diesel')
-  AND (e.hybrid_type IS NULL OR e.hybrid_type <> 'PHEV')
-  AND c.fuel_consumption_l100km <= 4.5
-ON CONFLICT DO NOTHING;
+-- ultra_efficient REMOVED 2026-11-20: superseded by 20261120140500_seed_tag_rules_round4.sql
+-- (one threshold per test cycle, EV branch); the rows it gave that the new rule doesn't are
+-- deleted by 20261120141000. Left here, a re-run would put them back.
 
 INSERT INTO public.catalog_configuration_tags (configuration_id, tag_slug)
 SELECT c.id, 'bulletproof_reliability'

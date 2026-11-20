@@ -215,6 +215,31 @@ report, for reviewing several cars' decisions at once before generating anything
 - **Tag-rule migrations must be re-run after every car seed** (all `ON CONFLICT DO NOTHING`). New
   `20261112140000_seed_ev_city_commuter_tag.sql` (review-only): every electric A/B-segment
   configuration gets `city_commuter`, whatever its kW.
+- **Golf 8 (CD1) and Octavia 4 (NX): body data missing (2026-11-20).** Fill body curb weight,
+  acceleration, phase towing capacity and boot for both phases. They block 44 `sport` / `hot_hatch`,
+  63 `heavy_tower` and 12 `workhorse` decisions in the round-3 tag rules (NULL never decides a tag),
+  and both phases also miss `stroller_friendly` / `family_ideal` for lack of a boot figure.
+- **Engine `AMK` is named "1.8T Cupra R" (2026-11-20)** although it is shared with the Audi A3 8L
+  (and its tags/display read wrong there). Propose a brand-neutral `display_name` as an UPDATE file
+  for Martin to run.
+- **`value_choice` is deliberately NOT rule-tagged (Martin, 2026-11-20).** The proposed rule
+  (cheapest 25 % of the segment + engine/gearbox reliability ≥ 4) was rejected: cheapest-25 % just
+  picks the oldest phases; price is a phase-level value while the tag is configuration-level; and the
+  segments have too few phases for a meaningful quartile. Redesign later: price compared with cars of
+  a similar age. **`value_retainer` likewise** (the resale rating is too coarse: 70 of 94 phases
+  "hold well"). Both have no tag rows and are hidden from UI tag filters until a price-over-age rule
+  exists — `HIDDEN_FROM_FILTERS` / `FILTERABLE_TAG_SLUGS` in `app/catalog/lib/tags.ts` (no tag filter
+  exists yet; a future one must use that list).
+- **Gearbox fault data — 02J / 02M (data task, 2026-11-20).** `VW 02J` "Differential rivet shear on
+  early models" has no `affected_year_from` / `affected_year_to`: fill them from a source. `VW 02M`
+  "Shift fork breakage under hard shifting" is `critical` but driver-induced: re-check the severity
+  (likely `moderate`). UPDATE file, Martin runs it. (Found while testing a fault-aware
+  `bulletproof_reliability`; Martin kept the plain rating rule, 90 configurations.)
+- **`consumption_cycle` missing on 500 configurations (data task, 2026-11-20).** Mostly the 2014–2020
+  phases (León 5F Facelift 53, Golf 7 Facelift 46, A3 8V Facelift 42, Octavia 3 Facelift 38, Superb 3
+  Pre-facelift 30, Passat B8 Pre-facelift 28, …). Fill NEDC / WLTP **from sources** (the brochure or
+  price list the consumption figure came from) — never guessed from the build year. Until then
+  round-4 `ultra_efficient` can't decide them (446 untagged; 54 keep their old tag).
 
 - **Reference-data duplicate-prevention audit (2026-10-08) — closed, pipeline guards now
   live.** `scripts/audit-reference-duplicates.mjs` (read-only, run anytime for a fresh

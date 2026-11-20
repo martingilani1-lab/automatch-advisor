@@ -161,13 +161,36 @@ reports that name the exact model and battery. Generic "EVs are reliable" articl
 
 Rule-based tags are computed by the tag-rule migrations, not typed by hand:
 `20261102233000_seed_auto_configuration_tags.sql`, `20261103090000_seed_rule_based_tags.sql`,
-`20261104203000_seed_dilemma_tags.sql`, `20261112140000_seed_ev_city_commuter_tag.sql`.
+`20261104203000_seed_dilemma_tags.sql`, `20261112140000_seed_ev_city_commuter_tag.sql`,
+`20261120120000_seed_tag_rules_round3.sql`, `20261120140500_seed_tag_rules_round4.sql`,
+`20261120170500_add_camper_tag.sql`.
 All are `INSERT ... ON CONFLICT DO NOTHING`, so they are safe to re-run, and **they must be re-run
 after every car seed** — they only tag what existed when they last ran. (That is why the Renault Zoe
 R110, 80 kW, has no `city_commuter` tag today although the rule covers it.)
 
-Judgement tags (`comfort_cruiser`, `drivers_choice`, `value_choice` …) are proposed in pass 4 with a
-reason and set only when Martin agrees.
+Round 3 (2026-11-20) replaces the `city_commuter` / `highway_cruiser` rules of `20261103090000`
+(those branches are removed from that file) and adds rules for `comfort_cruiser`, `sport`,
+`drivers_choice`, `heavy_tower` (temporary: phase towing), `workhorse`, more `hot_hatch` and an MPV
+branch of `family_ideal`. Its header defines the two cruiser tags; comfort_cruiser takes
+precedence over highway_cruiser. The one-off clean-up of rows the old rules gave is
+`20261120120500_remove_superseded_city_highway_tags.sql` (Martin runs it — never re-run).
+
+Round 4 (2026-11-20) takes over `sport` (sleeper wins over sport), `winter_ready` (AWD + ground
+clearance ≥ 130 mm), `roadtrip_camper` (+ range ≥ 700 km, EV ≥ 400 km), `ultra_efficient` (one
+threshold per test cycle, EV branch), `representative`, `stroller_friendly` and `head_turner`, which
+is configuration-level since `20261120140000_head_turner_to_configuration_tier.sql`. Their old
+branches are removed from the earlier files. One-off clean-up: `20261120141000_remove_superseded_round4_tags.sql`
+(Martin runs it — never re-run). Each rule now lives in exactly one file: before changing a tag
+rule, find which file owns it (the file headers say), change it there, and remove nothing else.
+
+**Coverage cap.** No tag may cover more than 25 % of all configurations. Round 3 ends with a
+post-condition that raises a NOTICE (not an error) naming every tag above it — read the NOTICE
+output each time the rule files are re-run after an import, and bring a tag over the cap to Martin
+instead of quietly changing its threshold. NULL never decides a tag: a rule that can't decide a
+configuration for missing data leaves it untagged, and the gap goes into `docs/STATUS.md`.
+
+Judgement tags with no rule (`value_choice`, `value_retainer`) are proposed in pass 4 with a reason
+and set only when Martin agrees.
 
 ## Figures that look comparable but aren't
 

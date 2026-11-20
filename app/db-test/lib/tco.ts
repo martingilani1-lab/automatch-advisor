@@ -101,6 +101,30 @@ export function realWorldConsumption(official: number | null): number | null {
   return official == null ? null : Math.round(official * REAL_WORLD_FACTOR * 10) / 10;
 }
 
+// A PHEV's official figure is weighted by a utility factor (the share of km on electricity)
+// that assumes near-daily charging: WLTP puts it at ~70-85 %. Real private owners in Europe
+// reach ~45-49 % and burn 4.0-4.4 l/100 km against 1.6-1.7 l WLTP (ICCT / Fraunhofer ISI,
+// June 2022, ~9,000 vehicles). One general assumption, no user choice (Martin, 2026-11-20: the
+// Costs tab is busy enough) -- the typical PRIVATE owner, since that is who buys a used car;
+// company-car PHEVs (11-15 % electric, ~8 l) would be far worse.
+//   petrol:      official × 2.5  (4.2 / 1.65; already real-world, so NOT also × REAL_WORLD_FACTOR)
+//   electricity: official × REAL_WORLD_FACTOR × 0.6  (47 % / 78 % of the km on electricity)
+// Applied to WLTP and NEDC figures alike: the study measured against WLTP; NEDC weights are even
+// more optimistic, so for an NEDC PHEV this still under-reads slightly.
+export const PHEV_PETROL_FACTOR = 2.5;
+export const PHEV_ELECTRIC_SHARE_FACTOR = 0.6;
+// An EREV (i3 REx) needs no correction beyond REAL_WORLD_FACTOR: its generator only starts once
+// the battery is nearly empty, so petrol is burnt only on days longer than the battery range --
+// the weighted figure (~0.6 l) already reflects that mostly-electric use. Owner reports put the
+// electric share at roughly 70-99 %; no fleet study was found, so no extra factor is invented.
+const round1 = (v: number) => Math.round(v * 10) / 10;
+export function realWorldPhev(officialPetrol: number | null, officialKwh: number | null) {
+  return {
+    petrol: officialPetrol == null ? null : round1(officialPetrol * PHEV_PETROL_FACTOR),
+    kwh: officialKwh == null ? null : round1(officialKwh * REAL_WORLD_FACTOR * PHEV_ELECTRIC_SHARE_FACTOR),
+  };
+}
+
 // ---- Input / output -----------------------------------------------------------------------
 // A gearbox or AWD system as the calculator needs it: its rating (for the repair reserve) and
 // its one scheduled fluid service.
@@ -118,6 +142,16 @@ export interface TcoInput {
   fuelType: string;
   // REAL-world consumption per 100 km in the fuel's unit (l, kg or kWh).
   consumptionPer100: number | null;
+  // A second energy the car draws ON TOP of the primary one over the same km -- a plug-in or
+  // range-extender hybrid, whose official figure is a weighted pair (Golf 8 eHybrid WLTP:
+  // 1.2 l petrol + 14.8 kWh; i3 REx NEDC: 11.5 kWh + 0.6 l). Pricing only one half made a PHEV
+  // look like a 1.2 l car with free electricity, and an EREV like a pure EV (Martin,
+  // 2026-11-20). NOT for a bi-fuel LPG/CNG car: its secondary figure is the OTHER mode's
+  // consumption (petrol-only running), an alternative to the primary, never an addition.
+  // Real-world, same unit rules as consumptionPer100. null/absent = single-energy car.
+  // basis = the short assumption shown in the line's detail. For a PHEV it also says a daily
+  // home charger lowers the figure -- a note instead of a charging choice (Martin, 2026-11-20).
+  extraEnergy?: { fuelType: string; consumptionPer100: number; basis: string } | null;
   powerKw: number;
   engineReliabilityRating: number | null;
   // Engine routine servicing per year (oil, filters, plugs) -- catalog_engines yearly_maintenance.
@@ -208,7 +242,17 @@ export function calcTco(
   const fuelPrice = costs.fuelPriceEur[fuelKey];
   const unit = fuelKey === "electric" ? "kWh" : fuelKey === "cng" ? "kg" : "l";
 
-  const fuel = car.consumptionPer100 != null ? (annualKm / 100) * car.consumptionPer100 * fuelPrice : null;
+  const energyKey = (f: string) => (f.toLowerCase() in costs.fuelPriceEur ? f.toLowerCase() : FALLBACK_FUEL);
+  const unitOf = (k: string) => (k === "electric" ? "kWh" : k === "cng" ? "kg" : "l");
+  const extra = car.extraEnergy ?? null;
+  const extraKey = extra ? energyKey(extra.fuelType) : null;
+  const extraPrice = extraKey ? costs.fuelPriceEur[extraKey] : 0;
+  // Both halves of a weighted PHEV/EREV figure are drawn over the same km, so both are priced.
+  // Missing primary figure -> the whole line is "no data" (a half-priced hybrid would look
+  // cheaper than it is).
+  const fuel = car.consumptionPer100 != null
+    ? (annualKm / 100) * (car.consumptionPer100 * fuelPrice + (extra ? extra.consumptionPer100 * extraPrice : 0))
+    : null;
 
   const belt = car.timingBelt ? proratedYearly(car.timingBelt, annualKm) ?? 0 : 0;
   const engine = car.engineYearlyServiceEur != null ? car.engineYearlyServiceEur + belt : null;
@@ -253,11 +297,15 @@ export function calcTco(
   const lines: TcoLine[] = [
     {
       key: "fuel",
-      label: "Fuel",
+      label: extra ? "Fuel & electricity" : "Fuel",
       yearly: fuel,
-      detail: car.consumptionPer100 != null
-        ? `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`
-        : "No consumption data",
+      detail: car.consumptionPer100 == null
+        ? "No consumption data"
+        : extra && extraKey
+          ? `${car.consumptionPer100} ${unit} + ${extra.consumptionPer100} ${unitOf(extraKey)} per 100 km real-world`
+            + ` × €${fuelPrice.toFixed(2)}/${unit} and €${extraPrice.toFixed(2)}/${unitOf(extraKey)}`
+            + ` (${extra.basis})`
+          : `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`,
     },
     // A pure EV has no engine servicing (no oil, filters, plugs or belt) -- the line is left
     // out rather than shown as "no data", which would also mark the whole total incomplete.
@@ -354,6 +402,22 @@ export function tcoOptions(
       .map((x) => (electric ? x.energyConsumptionKwh100km : x.fuelConsumptionL100km))
       .filter((v): v is number => v != null);
     const official = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    // Second energy of a plug-in / range-extender hybrid (see TcoInput.extraEnergy). Where the
+    // DB keeps it differs by direction: a PHEV (petrol engine) has its kWh in
+    // energy_consumption_kwh100km; an EREV (electric engine) has its generator's petrol in
+    // secondary_consumption_l100km. A bi-fuel LPG/CNG car also fills secondary_*, but that is
+    // its petrol-MODE figure, so it is excluded by hybrid_type, not by which column is set.
+    const plugIn = e.hybridType === "PHEV" || e.hybridType === "EREV";
+    const avg = (xs: (number | null)[]) => {
+      const v = xs.filter((x): x is number => x != null);
+      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+    };
+    const extraOfficial = !plugIn ? null
+      : electric ? avg(list.map((x) => x.secondaryConsumptionL100km))
+        : avg(list.map((x) => x.energyConsumptionKwh100km));
+    const extraFuel = electric ? (c.secondaryFuelType ?? "petrol") : "electric";
+    const isPhev = e.hybridType === "PHEV" && !electric;
+    const phev = isPhev ? realWorldPhev(official, extraOfficial) : null;
     const m = e.maintenance;
     const isBelt = e.timingType === "belt";
     return {
@@ -364,7 +428,11 @@ export function tcoOptions(
         priceEur: price,
         manufactureYear,
         fuelType: e.fuelType,
-        consumptionPer100: realWorldConsumption(official),
+        consumptionPer100: phev ? phev.petrol : realWorldConsumption(official),
+        extraEnergy: extraOfficial == null ? null
+          : phev
+            ? { fuelType: extraFuel, consumptionPer100: phev.kwh as number, basis: "typical private owner: ~half the km on electricity -- with a home charger used daily it can be noticeably lower" }
+            : { fuelType: extraFuel, consumptionPer100: realWorldConsumption(extraOfficial) as number, basis: "range extender runs only once the battery is empty" },
         powerKw: e.powerKw,
         engineReliabilityRating: e.reliabilityRating,
         engineYearlyServiceEur: mid(m.yearlyMaintenanceEurMin, m.yearlyMaintenanceEurMax),

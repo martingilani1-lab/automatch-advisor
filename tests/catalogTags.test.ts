@@ -5,8 +5,9 @@ import { COLOR_CATEGORIES, TAG_DEFINITIONS, getTagsForConfiguration, resolveTags
 
 describe("getTagsForConfiguration", () => {
   // Golf: model is family/value-retainer; this 2.0 TDI estate is a highway cruiser + heavy tower.
-  const model = { id: "golf-8", tags: ["value_retainer", "family_ideal", "head_turner"] as const };
-  const tdiEstate = { id: "c1", tags: ["heavy_tower", "highway_cruiser", "family_ideal", "sport"] as const };
+  // head_turner is configuration-level since 20261120140000, so it sits on the configuration here.
+  const model = { id: "golf-8", tags: ["value_retainer", "family_ideal"] as const };
+  const tdiEstate = { id: "c1", tags: ["heavy_tower", "highway_cruiser", "family_ideal", "sport", "head_turner"] as const };
 
   it("merges both levels, dedupes, and sorts by colour category then tag order", () => {
     const r = getTagsForConfiguration(model, tdiEstate);
@@ -32,8 +33,17 @@ describe("vocabulary", () => {
     const sql = readFileSync("supabase/migrations/20261102230000_create_catalog_tags.sql", "utf8");
     const rows = [...sql.matchAll(/\('([a-z0-9_]+)',\s+'((?:[^']|'')+)',\s+'(model|configuration|both)',\s+'(\w+)',\s+(\d+)\)/g)]
       .map((m) => ({ slug: m[1], label: m[2].replace(/''/g, "'"), tier: m[3], colorCategory: m[4], sortOrder: Number(m[5]) }));
+    // Later migrations that changed a seeded row or added one (keep in step with them):
+    //   20261120140000 -- head_turner tier model -> configuration
+    //   20261120170000 -- roadtrip_camper label "Roadtrip/Camper" -> "Road trip"
+    //   20261120170500 -- new tag camper
+    const changedSince: Record<string, Partial<(typeof rows)[number]>> = {
+      head_turner: { tier: "configuration" },
+      roadtrip_camper: { label: "Road trip" },
+    };
+    rows.push({ slug: "camper", label: "Camper", tier: "configuration", colorCategory: "utility", sortOrder: 35 });
     expect(rows.length).toBe(Object.keys(TAG_DEFINITIONS).length);
-    for (const r of rows) expect(TAG_DEFINITIONS[r.slug as keyof typeof TAG_DEFINITIONS]).toEqual(r);
+    for (const r of rows) expect(TAG_DEFINITIONS[r.slug as keyof typeof TAG_DEFINITIONS]).toEqual({ ...r, ...changedSince[r.slug] });
   });
   it("every colour category is used and covered by the CHECK", () => {
     const used = new Set(Object.values(TAG_DEFINITIONS).map((t) => t.colorCategory));
