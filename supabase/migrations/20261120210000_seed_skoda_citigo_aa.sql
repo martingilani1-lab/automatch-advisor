@@ -25,7 +25,7 @@
 --      yearly maintenance petrol 100-140 / CNG 140-190 EUR (maintenance, CNG proposed).
 --   7. catalog_vehicle_configurations: NEW 39 (incl. F10 55 kW ASG Euro 6d-TEMP, T10 / S5).
 --   8. catalog_trims: NEW 8 (Pre-facelift names only, S3); catalog_trim_features: NEW 78 (S6: seatbelt_reminders on the e iV only).
---   9. catalog_component_faults: NEW 31 with Martin's SK / CZ costs; probabilities proposed (R4); recall checks
+--   9. catalog_component_faults: NEW 37 with Martin's SK / CZ costs; probabilities proposed (R4); recall checks
 --      69KH / 69PB / 69PC (Pre-facelift), 69PC (Facelift), 93J5 (e iV) with cost NULL (cost CHECK forbids 0); spark plugs
 --      as a Pre-facelift vehicle row (M5); CNG-tank corrosion on each CPGA row. Nothing is written to CHYA@44 / CHYB@55 or
 --      any other existing row (R7 flag only).
@@ -463,7 +463,31 @@ BEGIN
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'iv'::text, 'electrical'::text,
      'Recall 93J5: CITIGOe iV built 11.05.2020-24.06.2020 (EU Safety Gate A12/00136/21) -- damaged high-voltage battery cells may short-circuit, with a fire risk; battery replaced free by the campaign.'::text,
      'critical'::text, NULL::numeric, NULL::integer, NULL::integer, 2020::integer, 2020::integer,
-     'Verify recall 93J5 is done (VIN check at a Škoda dealer).'::text)
+     'Verify recall 93J5 is done (VIN check at a Škoda dealer).'::text),
+    ('engine'::text, 'EBM-32kWh'::text, 61::integer, NULL::text, NULL::text, NULL::text,
+     'AC on-board charger (high-voltage charger) fails -- the car refuses AC charging at wallboxes and public AC posts while CCS (DC) still works; charger replaced (e-up! owners 2021, GoingElectric).'::text,
+     'moderate'::text, 0.005::numeric, NULL::integer, NULL::integer, 2020::integer, 2020::integer,
+     'Test AC charging at a wallbox or public AC post (not only DC); read the charger fault memory.'::text),
+    ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'iv'::text, 'electrical'::text,
+     '12 V battery drained -- after a few days or weeks parked the car will not wake up ("Bordelektronik sprang nicht an"), with 12 V / recuperation warnings, although the HV battery is charged. VW software update 90R4 reduces the standby drain; worn 12 V batteries are replaced (CITIGOe iV owners, GoingElectric).'::text,
+     'minor'::text, 0.2::numeric, NULL::integer, NULL::integer, 2020::integer, 2020::integer,
+     'Ask whether update 90R4 was done; check the 12 V battery age and that the car wakes normally.'::text),
+    ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'iv'::text, 'brakes'::text,
+     'Front brake discs and pads corrode because regenerative braking leaves them nearly unused -- uneven pad contact, rust rings, noise; discs and pads replaced (e-up! owners, GoingElectric; ADAC: most e-up! breakdowns come from the brakes).'::text,
+     'minor'::text, 0.2::numeric, 140::integer, 245::integer, NULL::integer, NULL::integer,
+     'Look at both disc faces for rust rings and a partial contact pattern; brake firmly on the test drive.'::text),
+    ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'iv'::text, 'brakes'::text,
+     'Rear drum brakes wear or stick (ADAC e-up! breakdown items: brake drums front / rear); shoes and wheel cylinders replaced.'::text,
+     'minor'::text, 0.2::numeric, 100::integer, 160::integer, NULL::integer, NULL::integer,
+     'Check the last brake service; listen for scraping from the rear wheels.'::text),
+    ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'iv'::text, 'brakes'::text,
+     'Mechanical parking brake fails -- cables or mechanism (ADAC e-up! breakdown items); cables replaced.'::text,
+     'minor'::text, 0.02::numeric, 70::integer, 150::integer, NULL::integer, NULL::integer,
+     'Check the handbrake holds on a slope.'::text),
+    ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'iv'::text, 'interior'::text,
+     'Driver''s seat heater stops working -- the button lights briefly and goes out; heating element replaced (CITIGOe iV, Mii electric and e-up! owners, GoingElectric).'::text,
+     'minor'::text, 0.005::numeric, NULL::integer, NULL::integer, 2020::integer, 2020::integer,
+     'Switch on both seat heaters and check both get warm.'::text)
   )
   INSERT INTO public.catalog_component_faults
     (component_type, engine_id, unit_id, phase_id, category, fault, severity, annual_probability,
@@ -475,7 +499,7 @@ BEGIN
          v.category, v.fault, v.severity, v.p, v.cmin, v.cmax, v.y1, v.y2, v.chk
     FROM v;
   GET DIAGNOSTICS n = ROW_COUNT;
-  IF n <> 31 THEN RAISE EXCEPTION 'Expected 31 faults, inserted % -- rolled back', n; END IF;
+  IF n <> 37 THEN RAISE EXCEPTION 'Expected 37 faults, inserted % -- rolled back', n; END IF;
 
   -- Post-checks.
   SELECT count(*) INTO n FROM public.catalog_vehicle_configurations WHERE phase_id IN (pf, fl, iv);
@@ -483,7 +507,7 @@ BEGIN
   SELECT count(*) INTO n FROM public.catalog_component_faults f
    WHERE f.phase_id IN (pf, fl, iv) OR f.unit_id = u_asg
       OR f.engine_id IN (SELECT id FROM public.catalog_engines WHERE code IN ('CHYA-Euro5', 'CHYA-Euro6dT', 'CHYB-Euro5', 'CHYB-Euro6dT', 'CPGA-Euro5', 'CPGA', 'CPGA-Euro6dT', 'EBM-32kWh'));
-  IF n <> 31 THEN RAISE EXCEPTION 'Post-check: expected 31 Citigo faults, found % -- rolled back', n; END IF;
+  IF n <> 37 THEN RAISE EXCEPTION 'Post-check: expected 37 Citigo faults, found % -- rolled back', n; END IF;
 END $$;
 
 COMMIT;

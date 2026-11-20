@@ -872,3 +872,52 @@ guard on every statement, expects the 31-fault live state):
 - Result: 37 faults. **Kept on purpose** (differs from `20261120210000`): Takata as three rows (69KH / 69PB / 69PC) and
   the four other live recall rows (airbag ECU 05/2013, child lock 2015–16, sunroof panel 2016, towing eye 2017) —
   delete those only on Martin's word.
+
+Martin ran the top-up (2026-11-20; live: e iV market 10 999 / 12 260 / 14 900, 21 Citigo vehicle faults).
+
+## 37. Pass 4 for the CITIGOe iV (2026-11-20)
+
+Live before: e iV phase only Recall 93J5 (vehicle) and J497 (engine `EBM-32kWh@61`). The CITIGOe iV is the VW e-up!
+(2020+, 32,3 kWh) / SEAT Mii electric — ADAC: "Als Alternativen sind auch die Geschwistermodelle von Seat und Skoda als
+Elektrovarianten mit identischer Technik verfügbar" (E38) — so their owner patterns count. Perplexity: 1 ×
+`perplexity_research` (call 6 of 8); every value below was opened (ADAC PDF by curl, GoingElectric and EV Clinic in the
+browser pane).
+
+**File for review:** `supabase/migrations/20261120233000_skoda_citigo_eiv_faults_insert.sql` — additive INSERT of 6 rows
+(guards: exactly 1 live e iV vehicle fault and 1 live EBM fault). The same rows are in `faults.csv`, so the target-state
+`20261120210000` now lists 37 faults. Nothing executed.
+
+| # | target | fault | severity | years | prob. (proposed) | cost | evidence |
+|---|---|---|---|---|---|---|---|
+| 1 | engine EBM-32kWh@61 | AC on-board charger fails — AC refused, CCS works; charger replaced | moderate | 2020 | 0,005 (rare) | **NULL — Martin** (R: one owner quotes a ~5 000 € out-of-warranty dealer estimate, Perplexity lead, not opened) | E39 |
+| 2 | vehicle e iV, electrical | 12 V battery drained, car won't wake; VW update 90R4; 12 V battery replaced | minor | 2020 | 0,2 (wear, as the ID.3) | **NULL — Martin** | E40 |
+| 3 | vehicle e iV, brakes | front discs / pads corrode from little use (regen) | minor | — | 0,2 (wear) | 140–245 € **proposed** (Martin's petrol 8a; same parts family) | E41, E38 |
+| 4 | vehicle e iV, brakes | rear drum brakes wear / stick | minor | — | 0,2 (wear) | 100–160 € **proposed** (petrol 8b) | E38 |
+| 5 | vehicle e iV, brakes | mechanical parking brake fails | minor | — | 0,02 | 70–150 € **proposed** (petrol 7) | E38 |
+| 6 | vehicle e iV, interior | driver's seat heater element fails | minor | 2020 | 0,005 (rare) | **NULL — Martin** | E42 |
+
+ADAC Pannenstatistik 2024 for the e-up! (E38): 3,8 / 3,2 / 1,8 breakdowns per 1 000 cars for first registration
+2019 / 2020 / 2021 — "leicht überdurchschnittlich"; for 2020 ADAC's bands are ≤ 1,8 / ≤ 8,1 / ≤ 14,4 …, so 3,2 sits in
+the second-best band. Rating of `EBM-32kWh@61` stays 4.
+
+**Not added (R):**
+- Charging plug not released / charging stops (GoingElectric t=62378): 2 owners, different causes — lead.
+- Charge-lock actuator, charge flap (single cases; flap estimate 250–300 € quoted by one owner) — leads.
+- HV battery SoH 91–92 % (one owner) — not a pattern.
+- VW e-up! steering-corrosion recall 48R7 (Safety Gate A12/00186/24, e-up! built 2013–2023) — **no Škoda Citigo
+  equivalent found** in the Safety Gate mirror (E37 search lists none); check before adding.
+- VW 93I9 e-up! battery recall = the e-up! twin of 93J5 (already live for the Citigo).
+- EV Clinic e-up! "32 000 € battery repaired for 500 €" (E43) — a **2015** e-up! (old 18,7 kWh pack, interlock service
+  switch), not the 2020 car; a lead for independent HV-repair pricing only.
+- Heater / heat pump / A/C compressor, suspension, infotainment: no recurring pattern found.
+
+| ref | source | quote |
+|---|---|---|
+| E38 | ADAC Gebrauchtwageninfo "VW e-up! (2013-2023)" https://assets.adac.de/image/upload/Autodatenbank/GWInfo/gw0485-vw-e-up-2013-2023-bericht.pdf | "Die häufigsten Probleme verursachen die Bremsen"; "wobei die meisten Pannen durch die Bremsanlage entstehen"; "Häufige Bauteilfehler Bremsbelag (2013-2019), Bremstrommel vorne/hinten (2014-2018), Feststellbremse mechanisch (2013-2019)"; "Zuverlässigkeit (Pannenstatistik 2024) … 2019 2020 2021 … 3,8 3,2 1,8"; "Geschwistermodelle von Seat und Skoda als Elektrovarianten mit identischer Technik" |
+| E39 | GoingElectric, "VW e-up! lädt nicht an öffentlichen AC-Ladestationen" https://www.goingelectric.de/forum/viewtopic.php?t=70157 | "bei mir war das Ladegerät defekt!! CCS geht, weil DC direkt in die Batterie geht"; "Mein Auto konnte ebenfalls nicht mehr an AC laden. CCS hat durchgehend tadellos funktioniert. Letzte Woche wurde dann das Hochvoltladegerät erneuert." |
+| E40 | GoingElectric, "12 volt batterie bei neuem skoda nach 3 wochen urlaub leer??" https://www.goingelectric.de/forum/viewtopic.php?t=71814 | "mein grad 3-monate-alter citigo … heute sprang der auf einmal nicht an"; "ein Softwareupdate mit der Bezeichnung 90R4 … Vampirverlust (zu hoher dauerhafter Stromverbrauch aus der 12V Batterie"; "12 volt batterie war kaputt und wurde erstmal ersetzt"; second owner: "Auto ging nicht auf, Bordelektronik sprang nicht an." |
+| E41 | GoingElectric, "Hilfe, meine Bremsen rosten am e-Up! weg" (303 posts) https://www.goingelectric.de/forum/viewtopic.php?f=388&t=81027 | "Nach 2Jahren und 30tkm … dass meine Bremsscheiben nur teilweise arbeiten"; "Meine schauen bei vergleichbarer Fahrleistung auch so Scheiße aus"; "die Möhre bremst erst unter 10 km/h mit den Scheiben, solange Reku reicht" |
+| E42 | GoingElectric, "Sitzheizung Fahrerseite defekt!!!" https://www.goingelectric.de/forum/viewtopic.php?t=72434 | "Hatte den selben Fehler vor 4 Wochen im Citigo-E. Ist auf Garantie repariert worden"; "mein Citigo hat den Fehler aktuell auch"; "Sitzheizung Fahrerseite beim Seat Mii defekt. Erstzulassung 2021"; "Fahrersitzheizung/ Heizelement wurde ausgetauscht" |
+| E43 | EV Clinic, "32000€ Battery repaired for 500€ - VW eUP", 09.01.2024 https://evclinic.eu/2024/01/09/32000e-battery-repaired-for-500e-vw-eup/ | "on a 2015 VW eUp"; "the battery error was an interlock issue"; "the issue was not with the battery but with the 'service' interlock switch" |
+
+**For Martin:** independent SK / CZ costs for rows 1, 2, 6; confirm the proposed brake costs 3–5 for the e iV.
