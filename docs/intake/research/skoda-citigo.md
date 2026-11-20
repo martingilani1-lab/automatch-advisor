@@ -310,3 +310,179 @@ ADAC gives identical figures for every 3-door / 5-door pair except P6 consumptio
   e iV 12/2019 one trim "iV"), faults, service (oil capacity T9), ratings for 0CF / 0CT (ASG) / 0CZ.
 - ADAC parser: the page's `ApilTechnicalData` JSON → name=value; ids per configuration in section 9d. Each ADAC page also
   shows recalls and the Pannenstatistik (e.g. 295452: "Feststellbremse mechanisch").
+
+## 14. Martin's pass-2 decisions (2026-11-20) — sources re-opened
+
+| # | decision | verification |
+|---|---|---|
+| T1, T2, T4, T6, T8 | as written | — |
+| T3 | **1 478** (ADAC 1 489 in R — looks like the VW up! figure) | Škoda 2017 "height (1,478 mm) remain unchanged" (E3); Honest John launch page (Martin's source) did not load (DNS / JS) — not used as evidence |
+| T5 | NEDC **2,9 kg** kept. WLTP: ADAC "5,6 kg/100 km" is m³ labelled kg (101 g CO₂ ≈ 3,7 kg) — **never store 5,6**. SK brochure 02/2019 has **no kg figure**: its G-TEC column "5,3 – 6,1" is l/100 km in petrol mode (footnote "Pri verzii CNG hodnota platí pri režime jazdy na benzín"). So F8 primary consumption **NULL** (required → section-M exception), ~3,7 kg derived in R. **Seed rule:** `secondary_pair_check` needs secondary_fuel_type and secondary_consumption both NULL or both set → on F8 both NULL (or, your call, petrol-mode WLTP from the brochure range 5,3–6,1 with `secondary_fuel_type = 'petrol'`) | ADAC 295452 "5,6 kg/100 km", "101 g/km"; 295460 (Clever) "5,7 kg/100 km", "103 g/km"; 235445 NEDC "2,9 kg/100 km", "79 g/km" — re-read 2026-11-20 |
+| T7 | **option A: the e iV becomes its own phase** with its own 5-door body row (real dimensions, boot, clearance; tank NULL). **Changes pass-1 C8** (e iV inside Facelift) — Facelift is now 2017–**2019**. Label → S2 | — |
+| T9 | **3,4 l** service fill on all new combustion rows incl. CPGA; dry fill 3,7 l in R | cararac.com "Citigo 1.0 (44 kW)", "(55 kW)", "1.0 CNG (50 kW)": "3,4 L (service fill), 3,7 L (dry fill)" (E25, aggregator). Comma Oil 91084165 page returned HTTP 500 — not verified |
+| T10 | **add F10: `CHYB-Euro6dT@55` × ASG**, 3d + 5d | autosprint.ch, 31.10.2018 (E26): "Der Citigo ist in Verbindung mit dem 75 PS starken 1,0-MPI-Motor mit dem automatisierten Schaltgetriebe ASG erhältlich" and "auf die Abgasnorm Euro 6d-Temp umgestellt" (Swiss magazine, not the importer); SK brochure 02/2019 column "55 kW (75 k) 5° ASG" (E22). The autoscout24 listing was not opened |
+
+**F10 data (SK brochure E22):** EU 940 kg, 0–100 14,9 s, top 173 km/h, WLTP 5,4 – 6,0 l, CO₂ 121,2 – 135,4 g — a range:
+**Martin picks** the end (S5). No ADAC page (DE sold no 09/2018+ ASG).
+
+| ref | source | quote |
+|---|---|---|
+| E25 | cararac.com, engine oil Škoda Citigo https://cararac.com/engine_oil/skoda/citigo.html | "Citigo 1.0 CNG (50 kW)": "3,4 L (service fill), 3,7 L (dry fill)" (same on the 44 and 55 kW rows) |
+| E26 | autosprint.ch, "Skoda: Stadtflitzer Citigo fit für 2019", 31.10.2018 https://autosprint.ch/?p=22534 | "Der Citigo ist in Verbindung mit dem 75 PS starken 1,0-MPI-Motor mit dem automatisierten Schaltgetriebe ASG erhältlich." |
+
+---
+
+# Pass 3 — safety + equipment (2026-11-20)
+
+## 15. Decisions for Martin (pass 3 gate)
+
+| # | topic | finding | recommendation |
+|---|---|---|---|
+| S1 | Euro NCAP | **2011:** 5★, 89 / 80 / 46 / 86 % — the VW up! result applied to the Citigo ("structurally identical to the Volkswagen up! … the star rating of the up! can also be applied to the Škoda CITIGO", E27). **2019 re-rating:** 3★, 81 / 83 / 46 / 55 %, published 2019-12-18, tested a VW e-up!, "Rating applies to: all CITIGOs", variants "1.0 MPI - CITIGO" and "Battery electric - CITIGOe iV" (E28); both are marked expired today | Pre-facelift **2011 5★**; Facelift and e iV **2019 3★** (Euro NCAP names the 1.0 MPI and the e iV). Alternative: 2011 on the facelift too (same structure) |
+| S2 | e iV phase label (T7) | unique key (model, generation_code, phase_label); `Facelift` is taken by the 2017–2019 petrol phase | **generation_code `AA-iV`, phase_label `Facelift`**, display "CITIGOe iV" (ADAC files it as its own Baureihe "CITIGOe iV (AA)"), years 2019–2020. Alternative: `AA` + `Phase 3` |
+| S3 | Pre-facelift trims | no SK / CZ price list 2011–2016 found (ŠA SK archive starts 01/2019; CZ only journalist articles: Ambition / Elegance at launch, Easy / Active from 2012) | **section-M exception: no pre-facelift trims** until a ŠA SK / CZ list turns up — or send one if you have it |
+| S4 | ISOFIX | 2 outer rear seats with Top Tether; none on the front passenger seat (passenger airbag deactivation is a key switch / option) | `isofix_count = 2`, `isofix_front_passenger = false`, all phases |
+| S5 | F10 consumption (T10) | brochure range 5,4 – 6,0 l / 121,2 – 135,4 g | your pick (low end = base wheels, as the other WLTP rows) |
+| S6 | Seatbelt reminder | SK list: "Signalizácia nezapnutých bezpečnostných pásov na predných sedadlách" (front only) on the petrol car; the e iV list says "pre všetky sedadlá" | `seatbelt_reminders` slug only on the e iV (the slug means all seats) |
+
+## 16. Data (pass 3)
+
+### 16a. Safety (phase)
+
+| field | Pre-facelift | Facelift | e iV | evidence |
+|---|---|---|---|---|
+| safety_rating / ncap_year | 5 / 2011 | 3 / 2019 | 3 / 2019 | E27, E28 (S1) |
+| adult / child / pedestrian / safety assist % | 89 / 80 / 46 / 86 | 81 / 83 / 46 / 55 | 81 / 83 / 46 / 55 | E27, E28 |
+| isofix_count / front passenger | 2 / false | 2 / false | 2 / false | E29, E30, E1 "Isofix - Bezeichnung Nur hinten mit Top-Tether" |
+
+### 16b. Trims (H) — from ŠA SK price lists only
+
+| phase | trim | tier | evidence |
+|---|---|---|---|
+| Facelift | Active | 1 | E4 (01/2019) |
+| Facelift | Ambition | 2 | E4 |
+| Facelift | Style | 3 | E4 |
+| e iV | iV | 1 | E13b (12/2019) — the one SK trim ("CITIGOe iV … 21 190 €") |
+
+Not trims: Monte Carlo, Fresh, Clever, Cool Edition, Fun, Sport (editions / packs; not in the SK 01/2019 list).
+
+### 16c. Trim features (H2) — S = standard, O = optional
+
+**Facelift — Active (standard, E4 "ZÁKLADNÁ VÝBAVA … ACTIVE")**
+
+| feature | avail. | feature_group | slug |
+|---|---|---|---|
+| ESC with ABS, MSR, ASR, EDS, hill-hold (HHC) | S | — (`esc`) | esc |
+| ABS | S | — | abs |
+| Driver and front passenger airbags | S | airbags | airbags |
+| Front side head-thorax airbags | S | airbags | airbags |
+| Tyre pressure monitoring | S | wheels | tyre_pressure_monitoring |
+| Emergency brake hazard-light activation | S | headlights | emergency_stop_signal (E30 "automatická aktivace varovných světel během nouzového brzdění") |
+| Seatbelt warning, front seats | S | seats | — (S6) |
+| Halogen headlights with daytime running lights | S | headlights | — |
+| Steel wheels 5J × 14" with covers, 165/70 R14 | S | wheels | — |
+| Radio BLUES, CD, Aux-In, SD slot, 2 speakers | S | infotainment | — |
+| Instrument panel LOW (no rev counter, digital fuel gauge) | S | instruments | — |
+| Three-spoke PUR steering wheel, height-adjustable | S | steering_wheel | — |
+| Manual locking, 2 keys | S | locking | — |
+| Tinted glass; rear wiper with washer | S | windows | — |
+| Black mirrors and door handles | S | mirrors | — |
+| Rear head restraints ×2, height-adjustable | S | seats | — |
+| Tyre Fit repair kit | S | wheels | — |
+| Rear parking sensors (7X1, 279 €) | O | parking | reversing_detection |
+| Height-adjustable driver seat (3L1) | O | seat_adjustment | — |
+| Heated front seats (PW0) | O | seat_comfort | — |
+| Manual air conditioning (PHA) | O | climate | — |
+| Electric front windows + remote central locking (PKA) | O | windows | — |
+| Front fog lights (PW3) / with Corner (PW5) | O | fog_lights | — |
+| LED daytime running lights (8IE) | O | headlights | — |
+| Radio SWING colour display, 6 speakers, USB, Bluetooth (RAL) | O | infotainment | — |
+| DAB (QV3) | O | infotainment | — |
+| Panoramic electric sunroof (PH0) | O | windows | — |
+| Passenger airbag deactivation (PE1) | O | airbags | — |
+
+**Facelift — Ambition (adds to Active, E4 "AMBITION (NAVYŠE OPROTI ACTIVE)")**
+
+| feature | avail. | feature_group | slug |
+|---|---|---|---|
+| Halogen headlights with LED daytime running lights | S | headlights | — |
+| Electric front windows | S | windows | — |
+| Remote central locking, 1 folding key | S | locking | — |
+| Instrument panel HIGH (rev counter) | S | instruments | — |
+| Height-adjustable driver seat | S | seat_adjustment | — |
+| Split folding rear backrest 60:40 | S | seats | — |
+| Easy Entry (3-door) | S | seats | — |
+| Body-coloured mirrors and door handles | S | mirrors | — |
+| Dark-tinted tail lights | S | headlights | — |
+| City Safe Drive with emergency braking + rain / light sensor (PSC, 296 €) | O | light_rain_sensors | aeb |
+| Cruise control with trip computer (PGR) | O | cruise | — |
+| Climatronic (PHB) | O | climate | — |
+| Leather multifunction steering wheel (PLD) | O | steering_wheel | — |
+| Electric and heated mirrors (PW1) | O | mirrors | — |
+| Smartphone holder with apps (PNC) | O | smartphone | — |
+| Rear parking sensors (7X1) | O | parking | reversing_detection |
+| Heated front seats (PW0) | O | seat_comfort | — |
+
+**Facelift — Style (adds to Ambition, E4 "STYLE (NAVYŠE OPROTI AMBITION)")**
+
+| feature | avail. | feature_group | slug |
+|---|---|---|---|
+| APUS alloy wheels 5J × 14", 175/65 R14 | S | wheels | — |
+| Manual air conditioning with pollen filter | S | climate | — |
+| Front fog lights | S | fog_lights | — |
+| Electric and heated mirrors | S | mirrors | — |
+| Trip computer | S | instruments | — |
+| City Safe Drive with emergency braking + rain / light sensor (PSC) | O | light_rain_sensors | aeb |
+| Climatronic (PHB, 279 €) | O | climate | — |
+| Cruise control (PGR) | O | cruise | — |
+| 15" / 16" alloy wheels (CONAN, CRUX, SERPENS, SCORPIUS) | O | wheels | — |
+| Rear parking sensors (7X1) | O | parking | reversing_detection |
+| Heated front seats (PW0) | O | seat_comfort | — |
+
+**e iV — iV (E13b "ZÁKLADNÁ VÝBAVA … IV")**
+
+| feature | avail. | feature_group | slug |
+|---|---|---|---|
+| ESC with ABS, MSR, ASR, EDL, HHC | S | — | esc |
+| ABS | S | — | abs |
+| Driver and front passenger airbags; front side + head airbags | S | airbags | airbags |
+| Seatbelt warning, all seats | S | seats | seatbelt_reminders |
+| Tyre pressure monitoring | S | wheels | tyre_pressure_monitoring |
+| Lane Assist | S | — | emergency_lane_keeping |
+| Rear parking sensors | S | parking | reversing_detection |
+| Rain and light sensor | S | light_rain_sensors | — |
+| Climatronic | S | climate | — |
+| Cruise control | S | cruise | — |
+| Height-adjustable, heated front seats | S | seat_comfort | — |
+| Leather multifunction steering wheel, height-adjustable | S | steering_wheel | — |
+| Radio SWING, Aux-In, SD, 6 speakers, DAB | S | infotainment | — |
+| Phone holder; multimedia holder | S | smartphone | — |
+| Halogen headlights with LED DRL + front fog lights | S | headlights | — |
+| SCORPIUS 6J × 16" black alloys, 185/50 R16 | S | wheels | — |
+| Electric front windows; SunSet rear glass | S | windows | — |
+| Remote central locking | S | locking | — |
+| Maxi DOT display | S | instruments | — |
+| Split folding rear backrest 60:40 | S | seats | — |
+| CCS (Combo 2) charging socket + Type 2 cable | S | — | — |
+| Brake energy recovery | S | — | — |
+
+Features with "—" in feature_group have no fitting group in the closed list (esc / abs / lane assist / charging) —
+the slug carries them; flag if the seed needs a group on every row (FIELD-LEVELS says required).
+
+## 17. Evidence added (pass 3)
+
+| ref | source | quote |
+|---|---|---|
+| E27 | Euro NCAP 2011 Citigo result (euroncap.com 10996 does not render outside a browser; text from the 2019 record E28 and angurten.de) https://www.angurten.de/is/1317-Citigo/sicherheit | E28: "the car is structurally identical to the Volkswagen up! … Euro NCAP believes that the star rating of the up! can also be applied to the Škoda CITIGO"; angurten: "Gesamt (Sterne): 5 von 5", "Erwachsene: 89", "Kinder: 80", "Fußgänger: 46", "Assistenzsysteme: 86", "Getestetes Auto: VW up! 1.0" — percentages from a secondary site, to re-open on euroncap.com in a browser |
+| E28 | Euro NCAP, Škoda CITIGO 2019 https://www.euroncap.com/en/results/skoda/citigo/39973 | "Expired 2019"; "Tested model VW e-up! 'Move Up', LHD"; "Adult Occupant 81%", "Child Occupant 83%", "Vulnerable Road Users 46%", "Safety Assist 55%"; page data: "safetyRatingStars":3, "publicationDate":"2019-12-18", "resultApplicability":"all CITIGOs", variants "1.0 MPI - CITIGO", "Battery electric - CITIGOe iV" |
+| E29 | ŠA SK price list 01/2019 (E4) | "Príprava na uchytenie dvoch detských sedačiek na zadných sedadlách systémom ISOFIX"; "Deaktivácia airbagu spolujazdca PE1 56 56 56" |
+| E30 | Škoda Storyboard CZ, "ŠKODA CITIGO: malá, obratná a šarmantní", 27.06.2017 https://www.skoda-storyboard.com/cs/tiskove-zpravy/skoda-citigo-mala-obratna-sarmantni/ | "příprava Isofix na vnějších zadních sedadlech (včetně upevnění TopTether), automatická aktivace varovných světel během nouzového brzdění"; "Na výběr jsou tři výbavové stupně: Active, Ambition a Style" |
+
+## 18. Hand-over (pass 4 session)
+
+- On Martin's OK of S1–S6: pass 4 = faults / recalls (ADAC pages list recalls per variant — e.g. 230695 "Bauzeitraum 04/2014 -
+  06/2016", September 2025), ADAC Pannenstatistik, ADAC Gebrauchtwageninfo `gw0311-skoda-citigo-2012-2020-bericht.pdf`
+  (open first), TÜV; service data for the engines (3,4 l agreed) and ratings for 0CF / 0CT (ASG) / 0CZ; the e iV phase's
+  12 V battery / charging faults.
+- Section-M exceptions so far: F8 primary consumption (T5), pre-facelift trims (S3, if approved).
+- Pass-1 list now: P1–P10, F1–F8, **F10** (55 kW ASG Euro 6d-TEMP), and the e iV as its own phase (former F9).
