@@ -814,3 +814,40 @@ costs X".
 - **Source or remove:** the 3 unsourced faults each on `CHYA@44` / `CHYB@55` (ignition coil, throttle body carbon, engine
   mounts).
 - `scripts/known-distinct-reference-groups.json` was missing the live VW dct_wet 6 / 7 groups (pre-existing).
+
+## 35. Open items resolved and M1–M5 applied (Martin, 2026-11-20)
+
+Regenerated `20261120210000_seed_skoda_citigo_aa.sql` (same file, nothing run): 8 engines, 39 configurations, 78 trim
+features, **31 faults** (13 engine, 3 gearbox, 15 vehicle). Supersedes the blocker table in section 33.
+
+| item | applied | source check |
+|---|---|---|
+| 1 CNG tank | material **steel, under the floor**. NEW fault "CNG tank / valve corrosion found at the gas-system inspection" on **each CPGA row** with build years — `CPGA-Euro5@50` 2013–2015, `CPGA@50` 2015–2018, `CPGA-Euro6dT@50` 2018–2019; component engine, category NULL, probability 0,002 (rare), cost NULL (replacement unsourced), pre-purchase check "Inspect CNG tank surface and valve seats for corrosion; ask for the last gas-system inspection record." | gibgas.de, Škoda Citigo 1.0 G-TEC (opened 2026-11-20) https://www.gibgas.de/Fahrzeuge/Auslaufmodelle/Skoda-Citigo-1.0-G-TEC?id=102 : "Erdgastank: Stahl, Unterflur"; "Tankinhalt: 11 kg 10 l"; "Alle Angaben sind Herstellerangaben" |
+| 2 e iV recall | NEW vehicle row 93J5 (e iV phase, category electrical), probability NULL, **cost NULL** (the cost CHECK forbids 0), pre-purchase check "Verify recall 93J5 is done (VIN check at a Škoda dealer)." — also closes the "no vehicle fault on the e iV phase" gap | E37 |
+| 3 J497 | cost NULL; text adds "Repair requires opening the sealed HV battery pack (HV-certified workshop / dealer)". Martin-review item | — |
+| 4 front pads + discs | **140–245 €** (pads only 60–100 € in the text), replaces the UK-derived 150–230 | skoda-parts.com (opened 2026-11-20): front disc 256×22 mm, part 1S0 615 301 L — TRW "43,05 €", alternatives "34,88 €" (Zimmermann), "50,47 €" (Brembo), up to "96,40 €" per disc, "disc brakes should always be changed in pairs"; "Brake Pads Front (8 items) … 19,06-95,54 € incl. VAT". Martin's 34,54–81,42 €/disc and ≈37 € pad set sit inside today's ranges |
+| 5 starter | **70–210 €**, proposed (used part 30–50 €, part no. 02M 911 021 G; reman price unverified) | Martin's figures — part page not opened here |
+| 6 wiring harness | "Wiring harness fault (location not specified by ADAC)", Pre-facelift, 70–130 € proposed, years NULL, pre-purchase check "Scan for electrical fault codes; check the wiring in the tailgate hinge gaiter." **R:** the ADAC Gebrauchtwageninfo (E32) prints "Kabelbaum (2012)" — the year is kept out of the row per Martin's text | E32 |
+| 7 WLTP CNG consumption | **approved exception**: F8 primary consumption NULL. **R:** "~3.7 kg/100 km derived from 101 g/km" | — |
+| M1 | Pre-facelift SK 2 800 / 4 700 / 6 300 €, 26 916 – 231 782 km; Facelift CZ 5 681 / 6 948 / 7 765 €, 30 412 – 185 800 km | section 26 |
+| M2 | e iV SK + CZ combined, n = 9: **10 999 / 12 260 / 14 900 €**, **18 150 – 164 920 km**. Min / max as Martin gave them; 12 260 = median of the 9 ads; km = range of the 8 ads with a km figure. **R:** "low confidence, n=9 (SK 4, CZ 5) — revisit". The 9 ads actually span 10 013 – 14 900 € (CZ sa:211407690 at 10 013); the usual 10 % cut would give 10 999 / 12 260 / 14 263 € | section 26 |
+| M3 | resale holds_well / holds_well / average | — |
+| M4 | `value_retainer` on Pre-facelift + Facelift — **not in the seed; manual post-seed step** | — |
+| M5 | spark plugs = **vehicle row**, category electrical, Pre-facelift phase, 2012–2016, 40–75 € (+ coil note); the four engine rows of the earlier file are gone; nothing on `CHYA` / `CHYB` | — |
+| CHECK fixes | recall rows (69KH, 69PB / 69PC, 93J5) cost NULL; vehicle categories 93J5 electrical, Takata interior; CNG-tank rows engine / category NULL | generator stops on cost 0 or a category / component mismatch |
+
+### Remaining open (Martin review, not blocking the file)
+
+- J497 out-of-warranty cost (NULL).
+- CNG tank replacement cost (NULL).
+- Reman starter SK / CZ price (70–210 € proposed).
+- Wiring harness location (ADAC gives none; 70–130 € proposed).
+- e iV market — low confidence, n = 9.
+- Pre-facelift trim prices / equipment — section-M exception until an official ŠA SK / CZ list (S3).
+
+### Post-seed steps (manual, after Martin runs the file)
+
+1. Read back the counts (3 phases, 5 bodies, 8 engines, 39 configurations, 8 trims / 78 features, 31 faults, 2 + 1
+   gearbox rows) and run `npm test`.
+2. Re-run the tag-rule migrations (preview first).
+3. Set `value_retainer` on the Pre-facelift and Facelift phases (M4).

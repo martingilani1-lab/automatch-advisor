@@ -14,17 +14,20 @@
 --      (R2). It is a shared row -- every model linked to it gets these values; today NO configuration uses it (guarded).
 --   3. catalog_models: NEW 'Citigo' (Škoda, segment A, czech) (C1).
 --   4. catalog_phases: NEW AA Pre-facelift 2011-2017, AA Facelift 2017-2019, AA-iV Facelift 'CITIGOe iV (AA)' 2019-2020
---      (S2); NCAP 2011 5* / 2019 3* (S1); towing 0 (T1); market M1, resale M3 (pass-5 recommendations).
+--      (S2); NCAP 2011 5* / 2019 3* (S1); towing 0 (T1); market M1 / M2 and resale M3 (Martin, 2026-11-20).
 --   5. phase_body_dimensions: NEW 5 rows (T2, T3, T4, T7; ISOFIX S4).
 --   6. catalog_engines: NEW 8 (7 combustion incl. the first fuel_type 'cng' rows, 1 electric). REUSE live
 --      CHYA@44 / CHYB@55 (Euro 6) unchanged. Oil 3.4 l (T9), belt 210 000 km / years NULL (R5), rating 4 (R1),
 --      yearly maintenance petrol 100-140 / CNG 140-190 EUR (maintenance, CNG proposed).
 --   7. catalog_vehicle_configurations: NEW 39 (incl. F10 55 kW ASG Euro 6d-TEMP, T10 / S5).
 --   8. catalog_trims: NEW 8 (Pre-facelift names only, S3); catalog_trim_features: NEW 78 (S6: seatbelt_reminders on the e iV only).
---   9. catalog_component_faults: NEW 30 with Martin's SK / CZ costs; probabilities proposed (R4); one Takata recall
---      check per petrol phase (R6). Nothing is written to CHYA@44 / CHYB@55 or any other existing row (R7 flag only).
--- Deliberately NULL: J497 cost (M), F8 CNG WLTP consumption (T5), e iV market, oil spec, battery thermal management,
--- heat pump. Not here: 69DU (R6, out), 93J5 e iV battery recall (R6, research notes only), CNG-tank fault (blocker).
+--   9. catalog_component_faults: NEW 31 with Martin's SK / CZ costs; probabilities proposed (R4); recall checks
+--      69KH / 69PB / 69PC (Pre-facelift), 69PC (Facelift), 93J5 (e iV) with cost NULL (cost CHECK forbids 0); spark plugs
+--      as a Pre-facelift vehicle row (M5); CNG-tank corrosion on each CPGA row. Nothing is written to CHYA@44 / CHYB@55 or
+--      any other existing row (R7 flag only).
+-- Deliberately NULL: J497 cost (Martin review), CNG-tank cost (unsourced), F8 CNG WLTP consumption (approved exception,
+-- T5 / item 7), oil spec, battery thermal management, heat pump. Not here: 69DU (R6, out); the value_retainer tag (M4,
+-- manual post-seed step).
 
 BEGIN;
 
@@ -92,7 +95,8 @@ BEGIN
 
   -- 4. Phases. NCAP S1 (Pre-facelift: 2011 VW up! result applied to the Citigo; Facelift + e iV: 2019 re-rating "all
   --    CITIGOs"). Towing 0 (T1, owner's manual "not approved for towing a trailer"). Market: Pre-facelift SK n=25,
-  --    Facelift CZ n=25 (M1); e iV NULL (fewer than 10 ads per country, M2). Resale M3.
+  --    Facelift CZ n=25 (M1); e iV SK + CZ combined n=9, low confidence -- revisit (M2: Martin's 10 999 - 14 900 EUR,
+  --    median of the 9 ads 12 260, km 18 150 - 164 920). Resale M3.
   INSERT INTO public.catalog_phases
     (model_id, generation_code, phase_label, year_from, year_to, display_name, platform_code, chassis_type,
      safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,
@@ -110,7 +114,7 @@ BEGIN
      safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,
      towing_capacity_kg, price_range_min_eur, avg_market_price_eur, price_range_max_eur, typical_mileage_range, resale_value_rating)
   VALUES (mid, 'AA-iV', 'Facelift', 2019, 2020, 'CITIGOe iV (AA)', 'NSF', 'monocoque', 3, 2019, 81, 83, 46, 55,
-          0, NULL, NULL, NULL, NULL, 'average') RETURNING id INTO iv;
+          0, 10999, 12260, 14900, '18,150 - 164,920 km', 'average') RETURNING id INTO iv;
 
   -- 5. Bodies. Pre-facelift: ADAC EU weights, height 1 478 (T3); Facelift: SK brochure 02/2019 (T2, T4); e iV: own row,
   --    tank NULL (T7). 4 seats; ISOFIX 2 rear outer, none front (S4).
@@ -333,32 +337,16 @@ BEGIN
   --    recall rows: probability and cost NULL (fixed free by the campaign; the cost CHECK forbids 0).
   WITH v(ctype, ecode, ekw, ucode, phase, category, fault, severity, p, cmin, cmax, y1, y2, chk) AS (VALUES
     ('engine'::text, 'CHYA-Euro5'::text, 44::integer, NULL::text, NULL::text, NULL::text,
-     'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, ignition coils checked (add 40-80 EUR per failed coil).'::text,
-     'minor'::text, 0.02::numeric, 40::integer, 75::integer, 2012::integer, 2016::integer,
-     'Ask when the spark plugs were last replaced; check for misfire at idle.'::text),
-    ('engine'::text, 'CHYB-Euro5'::text, 55::integer, NULL::text, NULL::text, NULL::text,
-     'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, ignition coils checked (add 40-80 EUR per failed coil).'::text,
-     'minor'::text, 0.02::numeric, 40::integer, 75::integer, 2012::integer, 2016::integer,
-     'Ask when the spark plugs were last replaced; check for misfire at idle.'::text),
-    ('engine'::text, 'CPGA-Euro5'::text, 50::integer, NULL::text, NULL::text, NULL::text,
-     'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, ignition coils checked (add 40-80 EUR per failed coil).'::text,
-     'minor'::text, 0.02::numeric, 40::integer, 75::integer, 2013::integer, 2015::integer,
-     'Ask when the spark plugs were last replaced; check for misfire at idle.'::text),
-    ('engine'::text, 'CPGA'::text, 50::integer, NULL::text, NULL::text, NULL::text,
-     'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, ignition coils checked (add 40-80 EUR per failed coil).'::text,
-     'minor'::text, 0.02::numeric, 40::integer, 75::integer, 2015::integer, 2016::integer,
-     'Ask when the spark plugs were last replaced; check for misfire at idle.'::text),
-    ('engine'::text, 'CHYA-Euro5'::text, 44::integer, NULL::text, NULL::text, NULL::text,
-     'Starter motor fails -- the engine will not crank (ADAC breakdown statistics: 2012 cars); remanufactured starter fitted.'::text,
-     'moderate'::text, 0.005::numeric, 135::integer, 210::integer, 2012::integer, 2012::integer,
+     'Starter motor fails -- the engine will not crank (ADAC breakdown statistics: 2012 cars); starter replaced (used part 30-50 EUR or remanufactured; part no. 02M 911 021 G).'::text,
+     'moderate'::text, 0.005::numeric, 70::integer, 210::integer, 2012::integer, 2012::integer,
      NULL::text),
     ('engine'::text, 'CHYB-Euro5'::text, 55::integer, NULL::text, NULL::text, NULL::text,
-     'Starter motor fails -- the engine will not crank (ADAC breakdown statistics: 2012 cars); remanufactured starter fitted.'::text,
-     'moderate'::text, 0.005::numeric, 135::integer, 210::integer, 2012::integer, 2012::integer,
+     'Starter motor fails -- the engine will not crank (ADAC breakdown statistics: 2012 cars); starter replaced (used part 30-50 EUR or remanufactured; part no. 02M 911 021 G).'::text,
+     'moderate'::text, 0.005::numeric, 70::integer, 210::integer, 2012::integer, 2012::integer,
      NULL::text),
     ('engine'::text, 'CPGA-Euro5'::text, 50::integer, NULL::text, NULL::text, NULL::text,
-     'Starter motor fails -- the engine will not crank (ADAC breakdown statistics: 2012 cars); remanufactured starter fitted.'::text,
-     'moderate'::text, 0.005::numeric, 135::integer, 210::integer, 2013::integer, 2013::integer,
+     'Starter motor fails -- the engine will not crank (ADAC breakdown statistics: 2012 cars); starter replaced (used part 30-50 EUR or remanufactured; part no. 02M 911 021 G).'::text,
+     'moderate'::text, 0.005::numeric, 70::integer, 210::integer, 2013::integer, 2013::integer,
      NULL::text),
     ('engine'::text, 'CHYA-Euro5'::text, 44::integer, NULL::text, NULL::text, NULL::text,
      'Rear exhaust silencer rusts through on early cars (ADAC: anfällige Abgasanlage, nur frühe Exemplare).'::text,
@@ -384,8 +372,20 @@ BEGIN
      'Front exhaust pipe with catalytic converter fails on early cars (ADAC: early exhaust systems prone to defects).'::text,
      'moderate'::text, 0.002::numeric, 450::integer, 1450::integer, 2013::integer, 2014::integer,
      'Check the exhaust for leaks and the engine-light / emissions result.'::text),
+    ('engine'::text, 'CPGA-Euro5'::text, 50::integer, NULL::text, NULL::text, NULL::text,
+     'CNG tank / valve corrosion found at the gas-system inspection (steel tanks under the floor, gibgas.de: Erdgastank Stahl, Unterflur).'::text,
+     'moderate'::text, 0.002::numeric, NULL::integer, NULL::integer, 2013::integer, 2015::integer,
+     'Inspect CNG tank surface and valve seats for corrosion; ask for the last gas-system inspection record.'::text),
+    ('engine'::text, 'CPGA'::text, 50::integer, NULL::text, NULL::text, NULL::text,
+     'CNG tank / valve corrosion found at the gas-system inspection (steel tanks under the floor, gibgas.de: Erdgastank Stahl, Unterflur).'::text,
+     'moderate'::text, 0.002::numeric, NULL::integer, NULL::integer, 2015::integer, 2018::integer,
+     'Inspect CNG tank surface and valve seats for corrosion; ask for the last gas-system inspection record.'::text),
+    ('engine'::text, 'CPGA-Euro6dT'::text, 50::integer, NULL::text, NULL::text, NULL::text,
+     'CNG tank / valve corrosion found at the gas-system inspection (steel tanks under the floor, gibgas.de: Erdgastank Stahl, Unterflur).'::text,
+     'moderate'::text, 0.002::numeric, NULL::integer, NULL::integer, 2018::integer, 2019::integer,
+     'Inspect CNG tank surface and valve seats for corrosion; ask for the last gas-system inspection record.'::text),
     ('engine'::text, 'EBM-32kWh'::text, 61::integer, NULL::text, NULL::text, NULL::text,
-     'High-voltage battery controller (J497) fails -- "Electrical system fault, stop the vehicle" and the car is immobilised; the controller (sometimes wiring or modules) is replaced, under the 8-year battery warranty, often weeks off the road (e-up! / Mii / Citigo e owners, 2020).'::text,
+     'High-voltage battery controller (J497) fails -- "Electrical system fault, stop the vehicle" and the car is immobilised; the controller (sometimes wiring or modules) is replaced, under the 8-year battery warranty, often weeks off the road (e-up! / Mii / Citigo e owners, 2020). Repair requires opening the sealed HV battery pack (HV-certified workshop / dealer).'::text,
      'critical'::text, 0.005::numeric, NULL::integer, NULL::integer, 2020::integer, 2020::integer,
      'Ask for the battery health (SoH) report and any battery work done under warranty.'::text),
     ('transmission'::text, NULL::text, NULL::integer, 'VW SQ100'::text, NULL::text, NULL::text,
@@ -400,6 +400,10 @@ BEGIN
      'ASG clutch and flywheel worn -- loss of drive with the engine warning light; clutch kit, flywheel and release bearing replaced.'::text,
      'moderate'::text, 0.02::numeric, 720::integer, 810::integer, 2012::integer, 2018::integer,
      'Check for slipping or judder when moving off uphill.'::text),
+    ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'pf'::text, 'electrical'::text,
+     'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, ignition coils checked (add 40-80 EUR per failed coil).'::text,
+     'minor'::text, 0.02::numeric, 40::integer, 75::integer, 2012::integer, 2016::integer,
+     'Ask when the spark plugs were last replaced; check for misfire at idle.'::text),
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'pf'::text, 'brakes'::text,
      'Mechanical parking brake fails -- cables or mechanism; a breakdown item in the ADAC statistics (2014-2016 cars); cables replaced.'::text,
      'minor'::text, 0.02::numeric, 70::integer, 150::integer, 2014::integer, 2016::integer,
@@ -410,11 +414,11 @@ BEGIN
      'Check the handbrake holds on a slope.'::text),
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'pf'::text, 'brakes'::text,
      'Front brake pads and discs wear -- reduced braking at the technical inspection (TÜV: funktionseingeschränkte Bremsen; ADAC breakdowns: pads); pads and discs replaced (pads only 60-100 EUR).'::text,
-     'minor'::text, 0.2::numeric, 150::integer, 230::integer, NULL::integer, NULL::integer,
+     'minor'::text, 0.2::numeric, 140::integer, 245::integer, NULL::integer, NULL::integer,
      'Check the last brake service and the inspection report.'::text),
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'fl'::text, 'brakes'::text,
      'Front brake pads and discs wear -- reduced braking at the technical inspection; pads and discs replaced (pads only 60-100 EUR).'::text,
-     'minor'::text, 0.2::numeric, 150::integer, 230::integer, NULL::integer, NULL::integer,
+     'minor'::text, 0.2::numeric, 140::integer, 245::integer, NULL::integer, NULL::integer,
      'Check the last brake service and the inspection report.'::text),
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'pf'::text, 'brakes'::text,
      'Rear drum brake shoes (and wheel cylinders) wear (ADAC breakdowns: brake drums 2015 cars); shoes and cylinders replaced.'::text,
@@ -425,9 +429,9 @@ BEGIN
      'minor'::text, 0.2::numeric, 100::integer, 160::integer, NULL::integer, NULL::integer,
      'Check the last brake service and the inspection report.'::text),
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'pf'::text, 'electrical'::text,
-     'Wiring harness breaks in the tailgate hinge gaiter -- rear lights, wiper or boot release stop working (ADAC breakdown statistics: wiring harness, 2012 cars); wires repaired.'::text,
-     'moderate'::text, 0.005::numeric, 70::integer, 130::integer, 2012::integer, 2012::integer,
-     'Check the rear wiper and all rear lights work.'::text),
+     'Wiring harness fault (location not specified by ADAC).'::text,
+     'moderate'::text, 0.005::numeric, 70::integer, 130::integer, NULL::integer, NULL::integer,
+     'Scan for electrical fault codes; check the wiring in the tailgate hinge gaiter.'::text),
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'pf'::text, 'electrical'::text,
      'Lighting defects at the technical inspection -- bulbs, headlight aim (TÜV: Lichtmängel des öfteren); H4 bulbs replaced and aimed.'::text,
      'minor'::text, 0.2::numeric, 25::integer, 40::integer, NULL::integer, NULL::integer,
@@ -451,7 +455,11 @@ BEGIN
     ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'fl'::text, 'interior'::text,
      'Recall: Takata driver airbag -- 69PC (built 23.05.2016-07.12.2017, EU Safety Gate 25/2026): the inflator can rupture and throw metal fragments; driver airbag replaced free by the campaign.'::text,
      'critical'::text, NULL::numeric, NULL::integer, NULL::integer, 2017::integer, 2017::integer,
-     'Verify recall 69PC is done (VIN check at a Škoda dealer).'::text)
+     'Verify recall 69PC is done (VIN check at a Škoda dealer).'::text),
+    ('vehicle'::text, NULL::text, NULL::integer, NULL::text, 'iv'::text, 'electrical'::text,
+     'Recall 93J5: CITIGOe iV built 11.05.2020-24.06.2020 (EU Safety Gate A12/00136/21) -- damaged high-voltage battery cells may short-circuit, with a fire risk; battery replaced free by the campaign.'::text,
+     'critical'::text, NULL::numeric, NULL::integer, NULL::integer, 2020::integer, 2020::integer,
+     'Verify recall 93J5 is done (VIN check at a Škoda dealer).'::text)
   )
   INSERT INTO public.catalog_component_faults
     (component_type, engine_id, unit_id, phase_id, category, fault, severity, annual_probability,
@@ -463,7 +471,7 @@ BEGIN
          v.category, v.fault, v.severity, v.p, v.cmin, v.cmax, v.y1, v.y2, v.chk
     FROM v;
   GET DIAGNOSTICS n = ROW_COUNT;
-  IF n <> 30 THEN RAISE EXCEPTION 'Expected 30 faults, inserted % -- rolled back', n; END IF;
+  IF n <> 31 THEN RAISE EXCEPTION 'Expected 31 faults, inserted % -- rolled back', n; END IF;
 
   -- Post-checks.
   SELECT count(*) INTO n FROM public.catalog_vehicle_configurations WHERE phase_id IN (pf, fl, iv);
@@ -471,7 +479,7 @@ BEGIN
   SELECT count(*) INTO n FROM public.catalog_component_faults f
    WHERE f.phase_id IN (pf, fl, iv) OR f.unit_id = u_asg
       OR f.engine_id IN (SELECT id FROM public.catalog_engines WHERE code IN ('CHYA-Euro5', 'CHYA-Euro6dT', 'CHYB-Euro5', 'CHYB-Euro6dT', 'CPGA-Euro5', 'CPGA', 'CPGA-Euro6dT', 'EBM-32kWh'));
-  IF n <> 30 THEN RAISE EXCEPTION 'Post-check: expected 30 Citigo faults, found % -- rolled back', n; END IF;
+  IF n <> 31 THEN RAISE EXCEPTION 'Post-check: expected 31 Citigo faults, found % -- rolled back', n; END IF;
 END $$;
 
 COMMIT;
