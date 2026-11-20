@@ -139,6 +139,17 @@ report, for reviewing several cars' decisions at once before generating anything
 
 ## Open items
 
+- **Škoda Citigo (AA) — seed written for review, nothing run (2026-11-20).** Research + all decisions (C1–C9, T1–T10,
+  S1–S6, R1–R8 approved; M1–M5 open): `docs/intake/research/skoda-citigo.md`. Files, in order:
+  `20261120190000` (INSERT `VW SQ100` ASG + `VW 0CZ`, MCP after review), `20261120190500` (UPDATE completing the
+  `VW MQ100` stub — **Martin runs**), `20261120191000` (new model Citigo, first segment-A model; phases AA Pre-facelift
+  2011–2017, AA Facelift 2017–2019, AA-iV CITIGOe iV 2019–2020; 8 new engines incl. the first CNG rows and an emission
+  split per the i3 REx pattern; 39 configurations; 8 trims / 78 features; 31 faults incl. 9 recall campaigns).
+  Still NULL for Martin: fault costs, combustion yearly maintenance, e iV market, F8 CNG WLTP consumption, pre-facelift
+  trim equipment. After the seed: tag rules re-run + `value_retainer` (M4). Side findings: live `CHYA@44` / `CHYB@55`
+  carry unsourced faults and a 120 000 km / 8-year belt with no source; `known-distinct-reference-groups.json` was missing
+  the live VW dct_wet 6 / 7 groups.
+
 - **VW ID.3 (E1) Pre-facelift (2020–2022) + Facelift (2023–2026) imported (2026-11-18).** Research + all
   decisions (V1–V8, W1–W12): `docs/intake/research/vw-id3-e1.md`. Live via MCP after Martin's review:
   `20261118120000` (gearbox rows `VW 0MH` for the APP310 / `EBJ` cars and `generic:Single-speed EV (MEB 2024)` for

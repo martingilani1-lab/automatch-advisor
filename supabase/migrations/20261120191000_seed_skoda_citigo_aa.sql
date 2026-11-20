@@ -1,0 +1,398 @@
+-- Škoda Citigo (AA): Pre-facelift (2011-2017), Facelift (2017-2019) and CITIGOe iV (2019-2020). Seed written by the
+-- import-car skill from docs/intake/research/skoda-citigo.md (passes 1-5; Martin approved C1-C9, T1-T10, S1-S6, R1-R8 on
+-- 2026-11-20; M1-M5 of pass 5 are recommendations in this file, open for his review).
+--
+-- REQUIRES first: 20261120190000_transmission_units_citigo_sq100_0cz.sql (VW SQ100, VW 0CZ)
+--                 20261120190500_transmission_units_vw_mq100_complete.sql (VW MQ100 completed -- Martin runs it)
+--
+-- REUSE / CREATE (live DB read via MCP 2026-11-20):
+--   brand Škoda; body types Hatchback 3-door / Hatchback 5-door ..... REUSE
+--   model Citigo (segment A, czech) .................................. NEW (C1; first segment-A model)
+--   phases: AA Pre-facelift, AA Facelift, AA-iV Facelift (S2) ........ NEW (3)
+--   phase x body dimensions .......................................... NEW (5: 2 + 2 + e iV 5-door)
+--   engines: REUSE CHYA@44 and CHYB@55 (Euro 6, live from Fabia NJ / Polo AW -- same code, power, 95 Nm, 999 cc).
+--            NEW (8): CHYA-Euro5@44, CHYA-Euro6dT@44, CHYB-Euro5@55, CHYB-Euro6dT@55 (emission split, C3, i3 REx
+--            pattern), CPGA-Euro5@50, CPGA@50, CPGA-Euro6dT@50 (first CNG engines), EBM-32kWh@61 (ADAC motor code EBM).
+--            Rule 1c: no live engine with the same cc / kW / Nm / fuel / emission stage under another code.
+--   gearboxes VW MQ100 (0CF), VW SQ100 (0CT, ASG), VW 0CZ ........... REUSE after the two files above
+--   drivetrain ........................................................ none (front-wheel drive, driven_axle 'front')
+--   configurations ..................................................... NEW 39 = Pre-facelift 10 x 2 bodies, Facelift
+--                                                                         9 x 2 bodies, e iV 1 (5-door)
+--   trims: Pre-facelift Easy / Active / Ambition / Elegance (names only, S3); Facelift Active / Ambition / Style (ŠA SK
+--          01/2019); e iV "iV" (ŠA SK 12/2019) ..................... NEW 8 trims, 78 features
+--   faults: 11 engine, 2 gearbox, 18 vehicle (9 of them recall campaigns) ........... NEW 31
+--
+-- Deliberately NULL (required fields, waiting for Martin -- section-M list in the research doc): every fault cost (R3),
+-- combustion yearly_maintenance_eur (M), e iV market prices / mileage (M2), F8 CNG WLTP consumption (T5), pre-facelift
+-- trim equipment (S3). Oil spec NULL (not found).
+-- CNG configurations: the kg/100 km figure is stored in fuel_consumption_l100km (no kg column; T5), petrol mode as
+-- secondary_fuel_type 'petrol'; on F8 both secondary columns are NULL (secondary_pair_check). Config tank 10 l = the
+-- petrol tank (T6). The e iV phase has its own body row with tank NULL (T7).
+-- Not set here: the value_retainer judgement tag (M4) -- set by hand after Martin's OK; tag-rule migrations re-run
+-- after the seed (RESEARCH-PROCESS.md, Tags).
+--
+-- Additive INSERTs only. May run via the Supabase MCP after Martin's review.
+
+BEGIN;
+
+DO $$
+DECLARE n int; brand uuid; mid uuid; pf uuid; fl uuid; iv uuid; b3 uuid; b5 uuid;
+        u_mt uuid; u_asg uuid; u_ev uuid;
+BEGIN
+  SELECT id INTO brand FROM public.catalog_brands WHERE name = 'Škoda';
+  SELECT id INTO b3 FROM public.catalog_body_types WHERE name = 'Hatchback 3-door';
+  SELECT id INTO b5 FROM public.catalog_body_types WHERE name = 'Hatchback 5-door';
+  SELECT id INTO u_mt FROM public.transmission_units WHERE code = 'VW MQ100' AND maker = 'Volkswagen Group' AND speeds = 5;
+  SELECT id INTO u_asg FROM public.transmission_units WHERE code = 'VW SQ100';
+  SELECT id INTO u_ev FROM public.transmission_units WHERE code = 'VW 0CZ';
+  IF brand IS NULL OR b3 IS NULL OR b5 IS NULL THEN RAISE EXCEPTION 'Brand Škoda or a hatchback body type missing -- rolled back'; END IF;
+  IF u_mt IS NULL THEN RAISE EXCEPTION 'Run 20261120190500 first: VW MQ100 not completed -- rolled back'; END IF;
+  IF u_asg IS NULL OR u_ev IS NULL THEN RAISE EXCEPTION 'Run 20261120190000 first: VW SQ100 / VW 0CZ missing -- rolled back'; END IF;
+
+  SELECT count(*) INTO n FROM public.catalog_models WHERE brand_id = brand AND lower(replace(name, ' ', '')) = 'citigo';
+  IF n <> 0 THEN RAISE EXCEPTION 'A Škoda Citigo model already exists -- rolled back'; END IF;
+  SELECT count(*) INTO n FROM public.catalog_engines
+   WHERE code IN ('CHYA-Euro5', 'CHYA-Euro6dT', 'CHYB-Euro5', 'CHYB-Euro6dT', 'CPGA-Euro5', 'CPGA', 'CPGA-Euro6dT', 'EBM-32kWh');
+  IF n <> 0 THEN RAISE EXCEPTION 'Found % Citigo engine codes already live -- rolled back', n; END IF;
+  SELECT count(*) INTO n FROM public.catalog_engines
+   WHERE (code = 'CHYA' AND power_kw = 44 AND emission_standard = 'Euro6' AND torque_nm = 95 AND displacement_cc = 999)
+      OR (code = 'CHYB' AND power_kw = 55 AND emission_standard = 'Euro6' AND torque_nm = 95 AND displacement_cc = 999);
+  IF n <> 2 THEN RAISE EXCEPTION 'Expected the two live Euro 6 rows CHYA@44 / CHYB@55 to REUSE, found % -- rolled back', n; END IF;
+
+  -- Model.
+  INSERT INTO public.catalog_models (brand_id, name, segment, origin_country)
+  VALUES (brand, 'Citigo', 'A', 'czech') RETURNING id INTO mid;
+
+  -- Phases. NCAP: 2011 result (VW up! applied to the Citigo) on the Pre-facelift; the 2019 re-rating ("all CITIGOs") on
+  -- the Facelift and the e iV (S1). Towing 0: owner's manual "not approved for towing a trailer" (T1).
+  -- Market (M1): Pre-facelift SK n=25, Facelift CZ n=25 (SK n=5); e iV NULL (M2). Resale (M3).
+  INSERT INTO public.catalog_phases
+    (model_id, generation_code, phase_label, year_from, year_to, display_name, platform_code, chassis_type,
+     safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,
+     towing_capacity_kg, price_range_min_eur, avg_market_price_eur, price_range_max_eur,
+     typical_mileage_range, resale_value_rating)
+  VALUES
+    (mid, 'AA', 'Pre-facelift', 2011, 2017, 'Citigo (AA) Pre-facelift', 'NSF', 'monocoque',
+     5, 2011, 89, 80, 46, 86,
+     0, 2800, 4700, 6300,
+     '26,916 - 231,782 km', 'holds_well')
+  RETURNING id INTO pf;
+  INSERT INTO public.catalog_phases
+    (model_id, generation_code, phase_label, year_from, year_to, display_name, platform_code, chassis_type,
+     safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,
+     towing_capacity_kg, price_range_min_eur, avg_market_price_eur, price_range_max_eur,
+     typical_mileage_range, resale_value_rating)
+  VALUES
+    (mid, 'AA', 'Facelift', 2017, 2019, 'Citigo (AA) Facelift', 'NSF', 'monocoque',
+     3, 2019, 81, 83, 46, 55,
+     0, 5681, 6948, 7765,
+     '30,412 - 185,800 km', 'holds_well')
+  RETURNING id INTO fl;
+  INSERT INTO public.catalog_phases
+    (model_id, generation_code, phase_label, year_from, year_to, display_name, platform_code, chassis_type,
+     safety_rating, ncap_year, ncap_adult_pct, ncap_child_pct, ncap_pedestrian_pct, ncap_safety_assist_pct,
+     towing_capacity_kg, price_range_min_eur, avg_market_price_eur, price_range_max_eur,
+     typical_mileage_range, resale_value_rating)
+  VALUES
+    (mid, 'AA-iV', 'Facelift', 2019, 2020, 'CITIGOe iV (AA)', 'NSF', 'monocoque',
+     3, 2019, 81, 83, 46, 55,
+     0, NULL, NULL, NULL,
+     NULL, 'average')
+  RETURNING id INTO iv;
+
+  -- Bodies. Pre-facelift: ADAC EU weights, height 1 478 (Škoda "unchanged", T3); Facelift: SK brochure 02/2019 (T2, T4);
+  -- e iV: Škoda CZ tech data 11/2019, payload ADAC (T7). 4 seats; ISOFIX 2 rear outer, none front (S4).
+  INSERT INTO public.phase_body_dimensions
+    (phase_id, body_type_id, length_mm, width_mm, height_mm, ground_clearance_mm, curb_weight_kg,
+     boot_capacity_liters, boot_max_liters, gross_vehicle_weight_kg, payload_kg, fuel_tank_capacity_liters,
+     seats_count, isofix_count, isofix_front_passenger, roof_load_kg)
+  VALUES
+    (pf, b3, 3563, 1641, 1478, 136, 929,  251, 951, 1290, 361, 35::numeric, 4, 2, false, 50),
+    (pf, b5, 3563, 1645, 1478, 136, 929,  251, 959, 1290, 361, 35::numeric, 4, 2, false, 50),
+    (fl, b3, 3597, 1641, 1478, 136, 934,  251, 951, 1330, 396, 35::numeric, 4, 2, false, 50),
+    (fl, b5, 3597, 1645, 1478, 136, 934,  251, 959, 1330, 396, 35::numeric, 4, 2, false, 50),
+    (iv, b5, 3597, 1645, 1481, 141, 1235, 250, 923, 1530, 295, NULL::numeric, 4, 2, false, 50);
+
+  -- Combustion engines (7 new). 999 cc L3, timing belt, port injection; oil 3,4 l service fill (T9);
+  -- 15 000 km / 12 months (ADAC); belt 210 000 km, years NULL (R5). Rated 4 (R1).
+  WITH v(code, power_kw, fuel, torque, emission, display_name, pros, cons) AS (VALUES
+    ('CHYA-Euro5'::text, 44::integer, 'petrol'::text, 95::integer, 'Euro5'::text, '1.0 MPI 44kW (Euro 5)'::text,
+     ARRAY['Simple naturally aspirated three-cylinder, no turbo', 'Good reliability record (ADAC: "zuverlässige Technik")']::text[],
+     ARRAY['Slow: 0-100 km/h in 14.4 s', 'Spark plugs and the starter are known breakdown items on early cars']::text[]),
+    ('CHYA-Euro6dT', 44, 'petrol', 95, 'Euro6d-TEMP', '1.0 MPI 44kW (Euro 6d-TEMP)',
+     ARRAY['Simple naturally aspirated three-cylinder, no turbo', 'Good reliability record (ADAC)'],
+     ARRAY['Slow: 0-100 km/h in 14.4 s']),
+    ('CHYB-Euro5', 55, 'petrol', 95, 'Euro5', '1.0 MPI 55kW (Euro 5)',
+     ARRAY['Simple naturally aspirated three-cylinder, no turbo', 'Good reliability record (ADAC)'],
+     ARRAY['Same 95 Nm as the 44 kW -- the extra power only comes at high revs (ADAC)', 'Spark plugs and the starter are known breakdown items on early cars']),
+    ('CHYB-Euro6dT', 55, 'petrol', 95, 'Euro6d-TEMP', '1.0 MPI 55kW (Euro 6d-TEMP)',
+     ARRAY['Simple naturally aspirated three-cylinder, no turbo', 'Good reliability record (ADAC)'],
+     ARRAY['Same 95 Nm as the 44 kW -- the extra power only comes at high revs (ADAC)']),
+    ('CPGA-Euro5', 50, 'cng', 90, 'Euro5', '1.0 MPI G-TEC 50kW CNG (Euro 5)',
+     ARRAY['Low fuel cost on natural gas (ADAC: about 61 EUR fuel a month vs 108-114 EUR petrol)', 'Runs on petrol too (10 l tank)'],
+     ARRAY['Very little torque, slow: 0-100 km/h in 16.3 s (ADAC "sehr drehmomentschwach")', 'CNG tanks under the floor: boot 213 l']),
+    ('CPGA', 50, 'cng', 90, 'Euro6', '1.0 MPI G-TEC 50kW CNG',
+     ARRAY['Low fuel cost on natural gas (ADAC)', 'Runs on petrol too (10 l tank)'],
+     ARRAY['Very little torque, slow: 0-100 km/h in 16.3 s (ADAC)', 'CNG tanks under the floor: boot 213 l']),
+    ('CPGA-Euro6dT', 50, 'cng', 90, 'Euro6d-TEMP', '1.0 MPI G-TEC 50kW CNG (Euro 6d-TEMP)',
+     ARRAY['Low fuel cost on natural gas (ADAC)', 'Runs on petrol too (10 l tank)'],
+     ARRAY['Very little torque, slow: 0-100 km/h in 16.3 s (ADAC)', 'CNG tanks under the floor: boot 213 l'])
+  )
+  INSERT INTO public.catalog_engines
+    (code, display_name, power_kw, fuel_type, torque_nm, displacement_cc, cylinders, emission_standard, timing_type,
+     injection_type, engine_oil_capacity_liters, has_dpf, has_gpf, has_adblue, reliability_rating,
+     oil_change_interval_km, oil_change_interval_months, timing_replacement_km, timing_replacement_years,
+     maintenance_note, pros, cons)
+  SELECT v.code, v.display_name, v.power_kw, v.fuel, v.torque, 999, 'L3', v.emission, 'belt',
+         'port', 3.4::numeric, false, NULL::boolean, false, 4,
+         15000, 12, 210000, NULL::integer,
+         CASE WHEN v.fuel = 'cng'
+              THEN 'Service every 15 000 km / 12 months (ADAC). Timing belt: first inspection at 210 000 km (ADAC), replace on condition. Oil 3.4 l service fill (3.7 l dry). CNG system: tanks and pipes go through the national gas inspection (interval not found in a Škoda document).'
+              ELSE 'Service every 15 000 km / 12 months (ADAC). Timing belt: first inspection at 210 000 km (ADAC), replace on condition. Oil 3.4 l service fill (3.7 l dry).' END,
+         v.pros, v.cons
+    FROM v;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 7 THEN RAISE EXCEPTION 'Expected 7 combustion engines, inserted % -- rolled back', n; END IF;
+
+  -- e iV motor (pure EV: no oil / belt / plugs; yearly maintenance N/A). Battery net 32.3, AC 7.2, DC 40 (Škoda);
+  -- thermal management and heat pump not found (NULL).
+  INSERT INTO public.catalog_engines
+    (code, display_name, power_kw, fuel_type, torque_nm, battery_capacity_net_kwh, max_ac_charging_kw, max_dc_charging_kw,
+     battery_thermal_management, heat_pump, has_dpf, has_gpf, has_adblue, reliability_rating, maintenance_note, pros, cons)
+  VALUES
+    ('EBM-32kWh', 'CITIGOe iV 61kW (32.3 kWh)', 61, 'electric', 212, 32.3::numeric, 7.2::numeric, 40::numeric,
+     NULL, NULL, false, false, false, 4,
+     'No oil, timing belt or spark plugs. Brake fluid, cabin filter and the 12 V battery follow the Škoda service schedule (interval not found in a Škoda document). High-voltage battery warranty 8 years / 160 000 km (ŠA SK price list).',
+     ARRAY['212 Nm from standstill: 0-100 km/h in 12.3 s, quicker than any petrol Citigo', 'Low consumption: 14.8 kWh/100 km WLTP', 'ADAC: "Sehr empfehlenswert ist dagegen die Elektrovariante"']::text[],
+     ARRAY['32.3 kWh usable battery: 252 km WLTP', '7.2 kW AC needs a two-phase supply (ADAC "1-phasig, 2-phasig"); DC 40 kW only']::text[]);
+
+  -- Configurations. Pre-facelift / Facelift 05/17-08/18: NEDC, ADAC base variant (no Green tec, 165/70 R14), 2017-18 MT
+  -- 0-100 / top speed from the Škoda press kit (T8). 09/2018+: WLTP, ADAC value inside the Škoda range, Škoda 0-100 /
+  -- top speed; F10 (55 kW ASG Euro 6d-TEMP, T10 / S5) = SK brochure low end. CNG: kg/100 km (T5), tank 10 l (T6).
+  -- 3-door and 5-door carry the same figures (ADAC identical pairs) except P6 consumption.
+  WITH v(phase, body, code, kw, unit, l100, co2, cycle, curb, acc, vmax, sec_fuel, sec_l100, tank) AS (VALUES
+    ('pf'::text, 3::integer, 'CHYA-Euro5'::text, 44::integer, 'mt'::text, 4.5::numeric, 105::integer, 'NEDC'::text, 929::integer, 14.4::numeric, 161::integer, NULL::text, NULL::numeric, NULL::numeric),
+    ('pf', 5, 'CHYA-Euro5', 44, 'mt', 4.5, 105, 'NEDC', 929, 14.4, 161, NULL, NULL, NULL),
+    ('pf', 3, 'CHYA-Euro5', 44, 'asg', 4.4, 103, 'NEDC', 932, 14.4, 161, NULL, NULL, NULL),
+    ('pf', 5, 'CHYA-Euro5', 44, 'asg', 4.4, 103, 'NEDC', 932, 14.4, 161, NULL, NULL, NULL),
+    ('pf', 3, 'CHYB-Euro5', 55, 'mt', 4.7, 108, 'NEDC', 929, 13.2, 171, NULL, NULL, NULL),
+    ('pf', 5, 'CHYB-Euro5', 55, 'mt', 4.7, 108, 'NEDC', 929, 13.2, 171, NULL, NULL, NULL),
+    ('pf', 3, 'CHYB-Euro5', 55, 'asg', 4.5, 105, 'NEDC', 932, 13.2, 171, NULL, NULL, NULL),
+    ('pf', 5, 'CHYB-Euro5', 55, 'asg', 4.5, 105, 'NEDC', 932, 13.2, 171, NULL, NULL, NULL),
+    ('pf', 3, 'CPGA-Euro5', 50, 'mt', 2.9, 79, 'NEDC', 1031, 16.3, 164, 'petrol', 4.4, 10),
+    ('pf', 5, 'CPGA-Euro5', 50, 'mt', 2.9, 79, 'NEDC', 1031, 16.3, 164, 'petrol', 4.4, 10),
+    ('pf', 3, 'CHYA', 44, 'mt', 4.5, 105, 'NEDC', 929, 14.4, 161, NULL, NULL, NULL),
+    ('pf', 5, 'CHYA', 44, 'mt', 4.4, 101, 'NEDC', 929, 14.4, 161, NULL, NULL, NULL),
+    ('pf', 3, 'CHYA', 44, 'asg', 4.1, 95, 'NEDC', 931, 15.3, 161, NULL, NULL, NULL),
+    ('pf', 5, 'CHYA', 44, 'asg', 4.1, 95, 'NEDC', 931, 15.3, 161, NULL, NULL, NULL),
+    ('pf', 3, 'CHYB', 55, 'mt', 4.4, 101, 'NEDC', 929, 13.2, 171, NULL, NULL, NULL),
+    ('pf', 5, 'CHYB', 55, 'mt', 4.4, 101, 'NEDC', 929, 13.2, 171, NULL, NULL, NULL),
+    ('pf', 3, 'CHYB', 55, 'asg', 4.1, 95, 'NEDC', 931, 13.9, 172, NULL, NULL, NULL),
+    ('pf', 5, 'CHYB', 55, 'asg', 4.1, 95, 'NEDC', 931, 13.9, 172, NULL, NULL, NULL),
+    ('pf', 3, 'CPGA', 50, 'mt', 2.9, 82, 'NEDC', 1031, 16.3, 164, 'petrol', 4.4, 10),
+    ('pf', 5, 'CPGA', 50, 'mt', 2.9, 82, 'NEDC', 1031, 16.3, 164, 'petrol', 4.4, 10),
+    ('fl', 3, 'CHYA', 44, 'mt', 4.4, 101, 'NEDC', 929, 14.4, 162, NULL, NULL, NULL),
+    ('fl', 5, 'CHYA', 44, 'mt', 4.4, 101, 'NEDC', 929, 14.4, 162, NULL, NULL, NULL),
+    ('fl', 3, 'CHYA', 44, 'asg', 4.1, 95, 'NEDC', 931, 15.3, 161, NULL, NULL, NULL),
+    ('fl', 5, 'CHYA', 44, 'asg', 4.1, 95, 'NEDC', 931, 15.3, 161, NULL, NULL, NULL),
+    ('fl', 3, 'CHYB', 55, 'mt', 4.4, 101, 'NEDC', 929, 13.5, 173, NULL, NULL, NULL),
+    ('fl', 5, 'CHYB', 55, 'mt', 4.4, 101, 'NEDC', 929, 13.5, 173, NULL, NULL, NULL),
+    ('fl', 3, 'CHYB', 55, 'asg', 4.2, 97, 'NEDC', 931, 13.9, 172, NULL, NULL, NULL),
+    ('fl', 5, 'CHYB', 55, 'asg', 4.2, 97, 'NEDC', 931, 13.9, 172, NULL, NULL, NULL),
+    ('fl', 3, 'CPGA', 50, 'mt', 2.9, 82, 'NEDC', 1031, 16.3, 164, 'petrol', 4.4, 10),
+    ('fl', 5, 'CPGA', 50, 'mt', 2.9, 82, 'NEDC', 1031, 16.3, 164, 'petrol', 4.4, 10),
+    ('fl', 3, 'CHYA-Euro6dT', 44, 'mt', 5.1, 115, 'WLTP', 934, 14.4, 162, NULL, NULL, NULL),
+    ('fl', 5, 'CHYA-Euro6dT', 44, 'mt', 5.1, 115, 'WLTP', 934, 14.4, 162, NULL, NULL, NULL),
+    ('fl', 3, 'CHYB-Euro6dT', 55, 'mt', 5.1, 115, 'WLTP', 936, 13.5, 173, NULL, NULL, NULL),
+    ('fl', 5, 'CHYB-Euro6dT', 55, 'mt', 5.1, 115, 'WLTP', 936, 13.5, 173, NULL, NULL, NULL),
+    ('fl', 3, 'CHYB-Euro6dT', 55, 'asg', 5.4, 121, 'WLTP', 940, 14.9, 173, NULL, NULL, NULL),
+    ('fl', 5, 'CHYB-Euro6dT', 55, 'asg', 5.4, 121, 'WLTP', 940, 14.9, 173, NULL, NULL, NULL),
+    ('fl', 3, 'CPGA-Euro6dT', 50, 'mt', NULL, 101, 'WLTP', 1033, 16.3, 165, NULL, NULL, 10),
+    ('fl', 5, 'CPGA-Euro6dT', 50, 'mt', NULL, 101, 'WLTP', 1033, 16.3, 165, NULL, NULL, 10)
+  )
+  INSERT INTO public.catalog_vehicle_configurations
+    (phase_id, body_type_id, engine_id, unit_id, drivetrain_id, driven_axle, fuel_consumption_l100km,
+     co2_emissions_g_km, consumption_cycle, curb_weight_kg, acceleration_0_100, top_speed_kmh,
+     secondary_fuel_type, secondary_consumption_l100km, fuel_tank_capacity_liters)
+  SELECT CASE v.phase WHEN 'pf' THEN pf ELSE fl END, CASE v.body WHEN 3 THEN b3 ELSE b5 END, e.id,
+         CASE v.unit WHEN 'mt' THEN u_mt ELSE u_asg END, NULL, 'front', v.l100,
+         v.co2, v.cycle, v.curb, v.acc, v.vmax,
+         v.sec_fuel, v.sec_l100, v.tank
+    FROM v JOIN public.catalog_engines e ON e.code = v.code AND e.power_kw = v.kw;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 38 THEN RAISE EXCEPTION 'Expected 38 combustion configurations, inserted % -- rolled back', n; END IF;
+
+  INSERT INTO public.catalog_vehicle_configurations
+    (phase_id, body_type_id, engine_id, unit_id, drivetrain_id, driven_axle, energy_consumption_kwh100km,
+     co2_emissions_g_km, consumption_cycle, ev_range_km, curb_weight_kg, acceleration_0_100, top_speed_kmh)
+  SELECT iv, b5, e.id, u_ev, NULL, 'front', 14.8::numeric, 0, 'WLTP', 252, 1235, 12.3::numeric, 130
+    FROM public.catalog_engines e WHERE e.code = 'EBM-32kWh' AND e.power_kw = 61;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected 1 e iV configuration, inserted % -- rolled back', n; END IF;
+
+  -- Trims. Pre-facelift: names only (Czech launch report 01.11.2011, S3). Facelift: ŠA SK price list 14.01.2019 (later
+  -- tiers list only what they add). e iV: ŠA SK price list 18.12.2019, one trim.
+  INSERT INTO public.catalog_trims (phase_id, name, tier)
+  VALUES (pf, 'Easy', '1'), (pf, 'Active', '2'), (pf, 'Ambition', '3'), (pf, 'Elegance', '4'),
+         (fl, 'Active', '1'), (fl, 'Ambition', '2'), (fl, 'Style', '3'),
+         (iv, 'iV', '1');
+
+  WITH v(phase, trim_name, feature, is_optional, feature_group, safety_feature_slug) AS (VALUES
+    ('fl'::text, 'Active'::text, 'ESC with ABS, MSR, ASR, EDS and hill-hold assist'::text, false, NULL::text, 'esc'::text),
+    ('fl', 'Active', 'ABS', false, NULL, 'abs'),
+    ('fl', 'Active', 'Driver and front passenger airbags', false, 'airbags', 'airbags'),
+    ('fl', 'Active', 'Front side head-thorax airbags', false, 'airbags', 'airbags'),
+    ('fl', 'Active', 'Tyre pressure monitoring', false, 'wheels', 'tyre_pressure_monitoring'),
+    ('fl', 'Active', 'Hazard lights switch on automatically under emergency braking', false, 'headlights', 'emergency_stop_signal'),
+    ('fl', 'Active', 'Seatbelt warning, front seats', false, 'seats', NULL),
+    ('fl', 'Active', 'Halogen headlights with daytime running lights', false, 'headlights', NULL),
+    ('fl', 'Active', 'Steel wheels 5J x 14" with covers, 165/70 R14', false, 'wheels', NULL),
+    ('fl', 'Active', 'Radio BLUES with CD, Aux-In, SD slot, 2 speakers', false, 'infotainment', NULL),
+    ('fl', 'Active', 'Instrument panel LOW (no rev counter, digital fuel gauge)', false, 'instruments', NULL),
+    ('fl', 'Active', 'Three-spoke PUR steering wheel, height-adjustable', false, 'steering_wheel', NULL),
+    ('fl', 'Active', 'Manual locking, 2 keys', false, 'locking', NULL),
+    ('fl', 'Active', 'Tinted glass; rear wiper with washer', false, 'windows', NULL),
+    ('fl', 'Active', 'Black mirrors and door handles', false, 'mirrors', NULL),
+    ('fl', 'Active', 'Height-adjustable rear head restraints (2)', false, 'seats', NULL),
+    ('fl', 'Active', 'Tyre Fit repair kit', false, 'wheels', NULL),
+    ('fl', 'Active', 'Rear parking sensors', true, 'parking', 'reversing_detection'),
+    ('fl', 'Active', 'Height-adjustable driver seat', true, 'seat_adjustment', NULL),
+    ('fl', 'Active', 'Heated front seats', true, 'seat_comfort', NULL),
+    ('fl', 'Active', 'Manual air conditioning', true, 'climate', NULL),
+    ('fl', 'Active', 'Electric front windows and remote central locking', true, 'windows', NULL),
+    ('fl', 'Active', 'Front fog lights (also with Corner function)', true, 'fog_lights', NULL),
+    ('fl', 'Active', 'LED daytime running lights', true, 'headlights', NULL),
+    ('fl', 'Active', 'Radio SWING, colour display, 6 speakers, USB, Bluetooth', true, 'infotainment', NULL),
+    ('fl', 'Active', 'DAB digital radio', true, 'infotainment', NULL),
+    ('fl', 'Active', 'Panoramic electric sunroof', true, 'windows', NULL),
+    ('fl', 'Active', 'Front passenger airbag deactivation', true, 'airbags', NULL),
+    ('fl', 'Ambition', 'Halogen headlights with LED daytime running lights', false, 'headlights', NULL),
+    ('fl', 'Ambition', 'Electric front windows', false, 'windows', NULL),
+    ('fl', 'Ambition', 'Remote central locking, 1 folding key', false, 'locking', NULL),
+    ('fl', 'Ambition', 'Instrument panel HIGH with rev counter', false, 'instruments', NULL),
+    ('fl', 'Ambition', 'Height-adjustable driver seat', false, 'seat_adjustment', NULL),
+    ('fl', 'Ambition', 'Split folding rear backrest 60:40', false, 'seats', NULL),
+    ('fl', 'Ambition', 'Easy Entry (3-door)', false, 'seats', NULL),
+    ('fl', 'Ambition', 'Body-coloured mirrors and door handles', false, 'mirrors', NULL),
+    ('fl', 'Ambition', 'Dark-tinted tail lights', false, 'headlights', NULL),
+    ('fl', 'Ambition', 'City Safe Drive with emergency braking, rain and light sensor', true, 'light_rain_sensors', 'aeb'),
+    ('fl', 'Ambition', 'Cruise control with trip computer', true, 'cruise', NULL),
+    ('fl', 'Ambition', 'Climatronic automatic air conditioning', true, 'climate', NULL),
+    ('fl', 'Ambition', 'Leather multifunction steering wheel', true, 'steering_wheel', NULL),
+    ('fl', 'Ambition', 'Electrically adjustable and heated mirrors', true, 'mirrors', NULL),
+    ('fl', 'Ambition', 'Smartphone holder with apps', true, 'smartphone', NULL),
+    ('fl', 'Ambition', 'Rear parking sensors', true, 'parking', 'reversing_detection'),
+    ('fl', 'Ambition', 'Heated front seats', true, 'seat_comfort', NULL),
+    ('fl', 'Style', 'APUS alloy wheels 5J x 14", 175/65 R14', false, 'wheels', NULL),
+    ('fl', 'Style', 'Manual air conditioning with pollen filter', false, 'climate', NULL),
+    ('fl', 'Style', 'Front fog lights', false, 'fog_lights', NULL),
+    ('fl', 'Style', 'Electrically adjustable and heated mirrors', false, 'mirrors', NULL),
+    ('fl', 'Style', 'Trip computer', false, 'instruments', NULL),
+    ('fl', 'Style', 'City Safe Drive with emergency braking, rain and light sensor', true, 'light_rain_sensors', 'aeb'),
+    ('fl', 'Style', 'Climatronic automatic air conditioning', true, 'climate', NULL),
+    ('fl', 'Style', 'Cruise control', true, 'cruise', NULL),
+    ('fl', 'Style', '15" and 16" alloy wheels (CONAN, CRUX, SERPENS, SCORPIUS)', true, 'wheels', NULL),
+    ('fl', 'Style', 'Rear parking sensors', true, 'parking', 'reversing_detection'),
+    ('fl', 'Style', 'Heated front seats', true, 'seat_comfort', NULL),
+    ('iv', 'iV', 'ESC with ABS, MSR, ASR, EDL and hill-hold assist', false, NULL, 'esc'),
+    ('iv', 'iV', 'ABS', false, NULL, 'abs'),
+    ('iv', 'iV', 'Driver and front passenger airbags, front side airbags and head airbags', false, 'airbags', 'airbags'),
+    ('iv', 'iV', 'Seatbelt warning, all seats', false, 'seats', 'seatbelt_reminders'),
+    ('iv', 'iV', 'Tyre pressure monitoring', false, 'wheels', 'tyre_pressure_monitoring'),
+    ('iv', 'iV', 'Lane Assist', false, NULL, 'emergency_lane_keeping'),
+    ('iv', 'iV', 'Rear parking sensors', false, 'parking', 'reversing_detection'),
+    ('iv', 'iV', 'Rain and light sensor', false, 'light_rain_sensors', NULL),
+    ('iv', 'iV', 'Climatronic automatic air conditioning', false, 'climate', NULL),
+    ('iv', 'iV', 'Cruise control', false, 'cruise', NULL),
+    ('iv', 'iV', 'Height-adjustable, heated front seats', false, 'seat_comfort', NULL),
+    ('iv', 'iV', 'Leather multifunction steering wheel, height-adjustable', false, 'steering_wheel', NULL),
+    ('iv', 'iV', 'Radio SWING, Aux-In, SD slot, 6 speakers, DAB', false, 'infotainment', NULL),
+    ('iv', 'iV', 'Phone holder and multimedia holder', false, 'smartphone', NULL),
+    ('iv', 'iV', 'Halogen headlights with LED daytime running lights, front fog lights', false, 'headlights', NULL),
+    ('iv', 'iV', 'SCORPIUS 6J x 16" black alloy wheels, 185/50 R16', false, 'wheels', NULL),
+    ('iv', 'iV', 'Electric front windows; SunSet dark rear glass', false, 'windows', NULL),
+    ('iv', 'iV', 'Remote central locking', false, 'locking', NULL),
+    ('iv', 'iV', 'Maxi DOT trip computer display', false, 'instruments', NULL),
+    ('iv', 'iV', 'Split folding rear backrest 60:40', false, 'seats', NULL),
+    ('iv', 'iV', 'CCS (Combo 2) charging socket for AC / DC and Type 2 cable', false, NULL, NULL),
+    ('iv', 'iV', 'Brake energy recovery', false, NULL, NULL)
+  )
+  INSERT INTO public.catalog_trim_features (trim_id, feature, is_optional, feature_group, safety_feature_slug)
+  SELECT t.id, v.feature, v.is_optional::boolean, v.feature_group::text, v.safety_feature_slug::text
+    FROM v JOIN public.catalog_trims t
+      ON t.phase_id = CASE v.phase WHEN 'fl' THEN fl ELSE iv END AND t.name = v.trim_name;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 78 THEN RAISE EXCEPTION 'Expected 78 trim features, inserted % -- rolled back', n; END IF;
+
+  -- Engine faults (R1, R4; costs NULL, R3). Units span phases, so every fault carries build years. Only on the new
+  -- Citigo rows, not on the shared CHYA@44 / CHYB@55 (M5).
+  INSERT INTO public.catalog_component_faults
+    (component_type, engine_id, fault, severity, annual_probability, affected_year_from, affected_year_to, pre_purchase_check)
+  SELECT 'engine', e.id, f.fault, f.sev, f.p, f.y1, f.y2, f.chk
+    FROM public.catalog_engines e
+    JOIN (VALUES
+      ('CHYA-Euro5'::text, 'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, coils checked.'::text, 'minor'::text, 0.02::numeric, 2012::smallint, 2016::smallint, 'Ask when the spark plugs were last replaced; check for misfire at idle.'::text),
+      ('CHYB-Euro5', 'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, coils checked.', 'minor', 0.02, 2012, 2016, 'Ask when the spark plugs were last replaced; check for misfire at idle.'),
+      ('CPGA-Euro5', 'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, coils checked.', 'minor', 0.02, 2012, 2016, 'Ask when the spark plugs were last replaced; check for misfire at idle.'),
+      ('CPGA', 'Spark plugs fail -- misfire, rough running or a breakdown (ADAC breakdown statistics 2012-2016); new plugs, coils checked.', 'minor', 0.02, 2015, 2016, 'Ask when the spark plugs were last replaced; check for misfire at idle.'),
+      ('CHYA-Euro5', 'Starter motor fails -- the engine will not crank (ADAC breakdown statistics, 2012 cars).', 'moderate', 0.005, 2012, 2012, NULL),
+      ('CHYB-Euro5', 'Starter motor fails -- the engine will not crank (ADAC breakdown statistics, 2012 cars).', 'moderate', 0.005, 2012, 2012, NULL),
+      ('CPGA-Euro5', 'Starter motor fails -- the engine will not crank (ADAC breakdown statistics, 2012 cars).', 'moderate', 0.005, 2012, 2012, NULL),
+      ('CHYA-Euro5', 'Exhaust system defects on early cars (ADAC: "anfällige Abgasanlage (nur frühe Exemplare)").', 'minor', 0.005, 2012, 2014, 'Check the exhaust for rust and leaks.'),
+      ('CHYB-Euro5', 'Exhaust system defects on early cars (ADAC: "anfällige Abgasanlage (nur frühe Exemplare)").', 'minor', 0.005, 2012, 2014, 'Check the exhaust for rust and leaks.'),
+      ('CPGA-Euro5', 'Exhaust system defects on early cars (ADAC: "anfällige Abgasanlage (nur frühe Exemplare)").', 'minor', 0.005, 2013, 2014, 'Check the exhaust for rust and leaks.'),
+      ('EBM-32kWh', 'High-voltage battery controller (J497) fails -- "Electrical system fault, stop the vehicle" and the car is immobilised; the controller (sometimes wiring or modules) is replaced under the 8-year battery warranty, often weeks off the road (e-up! / Mii / Citigo e owners, 2020).', 'critical', 0.005, 2020, 2020, 'Ask for the battery health (SoH) report and any battery work done under warranty.')
+    ) AS f(code, fault, sev, p, y1, y2, chk) ON f.code = e.code;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 11 THEN RAISE EXCEPTION 'Expected 11 engine faults, inserted % -- rolled back', n; END IF;
+
+  -- Gearbox faults (ASG, R2). The SQ100 row is new and Citigo / up! / Mii only.
+  INSERT INTO public.catalog_component_faults
+    (component_type, unit_id, fault, severity, annual_probability, affected_year_from, affected_year_to, pre_purchase_check)
+  VALUES
+    ('transmission', u_asg,
+     'ASG gear actuator, control unit or software fault -- gear warning light, the car loses drive or falls out of gear; first a software update, then the gear actuator (fault P060C) or the gearbox control unit (BRISKODA owners, 2014-2015 cars).',
+     'critical', 0.02, 2012, 2018, 'Drive it from cold through all gears and in reverse; read the gearbox fault memory; ask whether the ASG software update was done.'),
+    ('transmission', u_asg,
+     'ASG clutch and flywheel worn -- loss of drive with the engine warning light; clutch, flywheel and parts replaced.',
+     'moderate', 0.02, 2012, 2018, 'Check for slipping or judder when moving off uphill.');
+
+  -- Vehicle faults (non-recall). Probabilities R4.
+  INSERT INTO public.catalog_component_faults
+    (component_type, phase_id, category, fault, severity, annual_probability, affected_year_from, affected_year_to, pre_purchase_check)
+  VALUES
+    ('vehicle', pf, 'brakes', 'Mechanical parking brake fails -- cable or mechanism; a breakdown item in the ADAC statistics (2014-2016 cars).', 'minor', 0.02, 2014, 2016, 'Check the handbrake holds on a slope.'),
+    ('vehicle', fl, 'brakes', 'Mechanical parking brake fails -- cable or mechanism (ADAC breakdown list: 2017, 2019 cars).', 'minor', 0.02, 2017, 2019, 'Check the handbrake holds on a slope.'),
+    ('vehicle', pf, 'brakes', 'Brake pads and rear drums wear -- reduced braking at the technical inspection (TÜV: "funktionseingeschränkte Bremsen"; ADAC breakdowns: pads 2013-2018, drums 2015).', 'minor', 0.2, 2013, 2017, 'Check the last brake service and the inspection report.'),
+    ('vehicle', fl, 'brakes', 'Brake pads wear -- reduced braking at the technical inspection (ADAC breakdowns: pads up to 2018).', 'minor', 0.2, 2017, 2018, 'Check the last brake service and the inspection report.'),
+    ('vehicle', pf, 'electrical', 'Wiring harness fault (ADAC breakdown statistics, 2012 cars).', 'moderate', 0.005, 2012, 2012, NULL),
+    ('vehicle', pf, 'electrical', 'Lighting defects at the technical inspection -- bulbs, headlight aim (TÜV: "Lichtmängel ... des öfteren").', 'minor', 0.2, NULL, NULL, 'Check every light works.'),
+    ('vehicle', fl, 'electrical', 'Lighting defects at the technical inspection -- bulbs, headlight aim (TÜV).', 'minor', 0.2, NULL, NULL, 'Check every light works.'),
+    ('vehicle', pf, 'interior', 'Water in the footwells -- the drains of the gulley below the windscreen block with leaves; clear the drain holes and dry the carpets (BRISKODA owners).', 'minor', 0.005, NULL, NULL, 'Lift the floor mats and check for damp carpet or a musty smell.'),
+    ('vehicle', fl, 'interior', 'Water in the footwells -- the drains of the gulley below the windscreen block with leaves; clear the drain holes and dry the carpets (BRISKODA owners).', 'minor', 0.005, NULL, NULL, 'Lift the floor mats and check for damp carpet or a musty smell.');
+
+  -- Recalls (fixed free by the campaign: cost / probability N/A; VIN check per R6). One row per campaign.
+  INSERT INTO public.catalog_component_faults
+    (component_type, phase_id, category, fault, severity, affected_year_from, affected_year_to, pre_purchase_check)
+  VALUES
+    ('vehicle', pf, 'electrical', 'Recall: Citigo built 14.01.2013-19.03.2013 (ADAC, 05/2013) -- the airbag control unit (1S0 959 655 B) does not diagnose the side crash sensors, so a side-airbag fault would not be shown; software reflashed.', 'moderate', 2013, 2013, 'Ask a Škoda dealer to confirm the airbag control unit campaign is closed for this VIN.'),
+    ('vehicle', pf, 'interior', 'Recall 69KH: Citigo built 24.09.2012-27.06.2014 (EU Safety Gate 32/2024) -- the propellant of the Takata driver airbag may deteriorate and the inflator can throw fragments when it fires; driver airbag replaced.', 'critical', 2012, 2014, 'Ask a Škoda dealer to confirm campaign 69KH is closed for this VIN.'),
+    ('vehicle', pf, 'interior', 'Recall 69PB: Citigo built 14.05.2014-18.08.2016 (EU Safety Gate 9/2026; ADAC 09/2025) -- the driver airbag inflator may rupture and release metal fragments; driver airbag replaced.', 'critical', 2014, 2016, 'Ask a Škoda dealer to confirm campaign 69PB is closed for this VIN.'),
+    ('vehicle', pf, 'interior', 'Recall 69PC: Citigo built 23.05.2016-07.12.2017 (EU Safety Gate 25/2026) -- same driver airbag inflator defect as 69PB, later build period; driver airbag replaced.', 'critical', 2016, 2017, 'Ask a Škoda dealer to confirm campaign 69PC is closed for this VIN.'),
+    ('vehicle', fl, 'interior', 'Recall 69PC: Citigo built 23.05.2016-07.12.2017 (EU Safety Gate 25/2026) -- the driver airbag inflator may rupture and release metal fragments; driver airbag replaced.', 'critical', 2017, 2017, 'Ask a Škoda dealer to confirm campaign 69PC is closed for this VIN.'),
+    ('vehicle', pf, 'interior', 'Recall: Citigo built 25.11.2015-14.04.2016 (EU Safety Gate A12/1023/16) -- the child-lock lever can break, so a rear door could be opened from inside; lever replaced.', 'moderate', 2015, 2016, 'Ask a Škoda dealer to confirm the child-lock campaign is closed for this VIN; check the child locks work.'),
+    ('vehicle', pf, 'body_rust', 'Recall: Citigo with panoramic sunroof built 21.01.2016-19.02.2016 (EU Safety Gate A12/1476/16) -- the front panel of the sunroof may come unglued and fly off; panel replaced.', 'moderate', 2016, 2016, 'On cars with a sunroof, ask a Škoda dealer to confirm the sunroof-panel campaign is closed for this VIN.'),
+    ('vehicle', pf, 'interior', 'Recall: Citigo built 29.03.2017-24.04.2017 (EU Safety Gate A12/0163/18; ADAC 01/2018) -- the towing eye in the tool kit may not be welded correctly and can break under load; towing eye replaced.', 'moderate', 2017, 2017, 'Ask a Škoda dealer to confirm the towing-eye campaign is closed for this VIN.'),
+    ('vehicle', iv, 'electrical', 'Recall 93J5: CITIGOe iV built 11.05.2020-24.06.2020 (EU Safety Gate A12/00136/21) -- damaged high-voltage battery cells may short-circuit, with a fire risk; battery replaced.', 'critical', 2020, 2020, 'Ask a Škoda dealer to confirm campaign 93J5 is closed for this VIN.');
+
+  -- Post-checks.
+  SELECT count(*) INTO n FROM public.catalog_vehicle_configurations WHERE phase_id IN (pf, fl, iv);
+  IF n <> 39 THEN RAISE EXCEPTION 'Post-check: expected 39 Citigo configurations, found % -- rolled back', n; END IF;
+  SELECT count(*) INTO n FROM public.catalog_component_faults f
+   WHERE f.phase_id IN (pf, fl, iv) OR f.unit_id = u_asg
+      OR f.engine_id IN (SELECT id FROM public.catalog_engines
+                          WHERE code IN ('CHYA-Euro5', 'CHYA-Euro6dT', 'CHYB-Euro5', 'CHYB-Euro6dT', 'CPGA-Euro5', 'CPGA', 'CPGA-Euro6dT', 'EBM-32kWh'));
+  IF n <> 31 THEN RAISE EXCEPTION 'Post-check: expected 31 Citigo faults, found % -- rolled back', n; END IF;
+END $$;
+
+COMMIT;

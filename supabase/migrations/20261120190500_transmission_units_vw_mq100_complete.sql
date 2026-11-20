@@ -1,0 +1,42 @@
+-- Completes the live 'VW MQ100' stub (manual, maker / speeds / alt_codes / rating all NULL, 0 configurations, read via
+-- MCP 2026-11-20) so the Škoda Citigo (AA) can use it -- prerequisite of 20261120191000_seed_skoda_citigo_aa.sql.
+--
+-- WHY (Martin, 2026-11-19, decision C5 in docs/intake/research/skoda-citigo.md): Škoda SSP 093 "The manufacturer's
+-- identification MQ100-5F refers to a new mechanical 0CF five-speed manual gearbox"; "The model Škoda Citigo is the
+-- first model of the Škoda brand fitted with the 0CF gearbox". Same naming as 'VW MQ200-6F' (alt_codes 02U). Rating 4
+-- (R2): no recurring fault verified. "filled for life" (SSP 093).
+-- After this, the Volkswagen Group manual-5 group is 02J / 02K / MQ100 / MQ200 -- reviewed DISTINCT (each is a separate
+-- gearbox with its own VW code letters; 0CF / MQ100 is named by Škoda as a new gearbox family for the Citigo) and recorded
+-- in scripts/known-distinct-reference-groups.json in the same commit.
+--
+-- UPDATE of existing reference data: MARTIN RUNS THIS (CLAUDE.md -- never via MCP). Fresh SQL editor tab.
+
+BEGIN;
+
+DO $$
+DECLARE n int;
+BEGIN
+  -- Guard: the stub is still untouched and unused.
+  SELECT count(*) INTO n FROM public.transmission_units
+   WHERE code = 'VW MQ100' AND family = 'manual' AND maker IS NULL AND speeds IS NULL
+     AND alt_codes IS NULL AND reliability_rating IS NULL;
+  IF n <> 1 THEN RAISE EXCEPTION 'VW MQ100 is not the untouched stub any more (% matching rows) -- rolled back, re-check', n; END IF;
+  SELECT count(*) INTO n FROM public.transmission_units
+   WHERE code <> 'VW MQ100' AND coalesce(alt_codes, '{}') && ARRAY['MQ100', '0CF']::text[];
+  IF n <> 0 THEN RAISE EXCEPTION 'MQ100 / 0CF already an alt code of another row -- rolled back'; END IF;
+
+  UPDATE public.transmission_units
+     SET maker = 'Volkswagen Group',
+         speeds = 5,
+         alt_codes = ARRAY['MQ100', '0CF']::text[],
+         reliability_rating = 4,
+         reliability_note = 'Five-speed manual 0CF (Škoda SSP 093: MQ100-5F), developed for the NSF small cars -- Škoda Citigo, VW up!, SEAT Mii 1.0 MPI 44 / 55 kW and 1.0 CNG 50 kW (2011 - 2019). The manual gearbox weighs about 27 kg. No recurring gearbox fault was verified in ADAC data or the owner forums read.',
+         maintenance_note = 'Filled for life (Škoda SSP 093): no gearbox-oil service. The clutch is a wear part.',
+         pros = ARRAY['Light and compact (about 27 kg)', 'Simple cable-shift manual']::text[],
+         cons = ARRAY['Five gears only']::text[]
+   WHERE code = 'VW MQ100';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected to update 1 row, updated % -- rolled back', n; END IF;
+END $$;
+
+COMMIT;

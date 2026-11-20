@@ -618,3 +618,83 @@ Left out: Takata 69DU (R6).
   `value_retainer` (R8), then the seed.
 - Reference migrations still to write before the seed: `VW MQ100` UPDATE, `VW SQ100` INSERT, `VW 0CZ` INSERT.
 - Section-M exceptions: F8 primary consumption (T5), pre-facelift trim equipment (S3).
+
+## 26. Martin's pass-4 decisions (2026-11-20)
+
+R1, R2 as recommended. R3: dealer / UK prices stay out of the DB, **costs NULL** until Martin's SK / CZ independent
+figures. R4: probabilities mapped onto the values already live (rare 0,005, occasional 0,02, common / wear 0,2) so the
+Citigo buffer stays comparable — wiring 0,005, starter 0,005, exhaust 0,005, water ingress 0,005, J497 0,005; spark plugs,
+parking brake, ASG actuator, ASG clutch 0,02; brake pads and TÜV lighting 0,2. R5: belt **210 000 km, years NULL** —
+"first inspection, replace on condition" in the maintenance note. R6: 69DU out; 69KH / 69PB / 69PC (and every other
+campaign row) carry a **VIN recall check** as pre_purchase_check. R7 follow-up. R8 decided below (a model / phase tag).
+
+---
+
+# Pass 5 — market (2026-11-20)
+
+Listings read 2026-11-20; CZK at **24,469** (ECB reference rate 2026-11-20). Phase from the build date (sauto
+`manufacturing_date`, else first registration; ADS text "r.v."). Sauto gives many builds as "YYYY-01" (year only): a 2017
+car without a month is left out (11 cars), as are LPG retrofits (5), 4 "2022" CNG ads (no Citigo was built in 2022), one
+"1.0 TSI" (no such Citigo), one duplicate, parts / damaged / price-on-request ads. Cut 10 % at each end. Countries apart.
+
+| phase | SK (autobazar.eu SK regions + auto.bazos.sk) | CZ (sauto.cz API) | DE reference (mobile.de, damaged hidden) |
+|---|---|---|---|
+| Pre-facelift | **n = 25 → 2 800 / 4 700 / 6 300 €**, 26 916 – 231 782 km | n = 80 → 3 678 / 5 311 / 6 943 €, 38 169 – 232 300 km | EZ 2012–2016: 491 hits; first page 3 950 – 9 745 € |
+| Facelift | n = 5 (below 10) | **n = 25 → 5 681 / 6 948 / 7 765 €**, 30 412 – 185 800 km | EZ 2018–2019 petrol: 211 hits; first page 4 980 – 13 990 € |
+| e iV | n = 4: 10 999 / 14 900 / 13 900 / 13 100 € | n = 5: 10 013 – 14 263 € (median 12 256) | electric: 12 hits, 8 500 – 16 490 € |
+
+Listing ids (price, km; "cut" = trimmed):
+- **SK Pre-facelift:** ab:AeWNQVvlMYA (1 650, 334 500, cut), bz:196478421 (2 000, ?, cut), bz:196790153 (2 600, 196 000, cut),
+  bz:197177565 (2 800, 231 782), ab:AeO2dlE8HkG (3 350, 145 724), bz:195901973 (3 500, 210 000), bz:197225152 (3 999, 122 000),
+  ab:AeYzSmqazfL (4 000, 120 309), bz:197622871 (4 150, 162 713), bz:197234023 (4 499, 101 000), bz:196229441 (4 599, 162 812),
+  ab:AmuKdsh6RYM (4 690, 155 110), ab:AmISvZENoWQ (4 700, 127 189), bz:197277104 (4 900, 80 000), ab:Ae7zr1kc-eY (4 990, 171 000),
+  bz:197491330 (5 000, 120 600), bz:197560690 (5 190, ?), bz:195845474 (5 500, 105 061), ab:Aek7KqwWzc7 (5 600, 26 916),
+  bz:197550797 (6 000, ?), ab:Ae2AEuI1bWh (6 100, 89 614), bz:197517103 (6 300, ?), ab:AmsDQtCXAcN (6 490, 69 148, cut),
+  ab:AmsU2OMGi6R (6 550, 180 783, cut), ab:Ae6Y74qaCxJ (6 600, 72 950, cut). Merged duplicates (same car on both sites):
+  bz:197575848 = ab:AmISvZENoWQ, bz:197180815 = ab:AmsDQtCXAcN, bz:197364531 = ab:AmuKdsh6RYM, bz:197456156 = ab:Aek7KqwWzc7,
+  bz:196876889 = ab:Ae7zr1kc-eY. Excluded: ab:AmTOEarIQgi3 (LPG retrofit).
+- **SK Facelift:** ab:Ae0b7Mmi6sj (5 600, 98 500; = bz:197694004), ab:AePLh76RYFk (5 999, 83 000), ab:AeOFQXQz2-x (6 600, 72 027),
+  bz:197686816 (6 200, 109 000), bz:197553071 (3 000, 208 000, CNG).
+- **SK e iV:** ab:AeBkGH0boDo (10 999, 164 920; = bz:196667654), ab:AeELTGosXIe (14 900, 18 150; = bz:197114792), bz:197114626
+  (13 900, ?), bz:197327766 (13 100, 90 000).
+- **CZ Pre-facelift (sauto ids, € at 24,469):** cut low 211424250, 209153301, 211341105, 211240223, 211459416, 211460301, 205368816,
+  209627412; kept 211298523 (3 678, 136 158) … 211080285 (6 943, 54 700) — 64 ids: 211298523 211383462 211387074 211148595 210812804
+  210465059 211385211 211438077 211470636 211411758 210332819 209707818 211108074 211483380 209175966 211218996 210927582 210909195
+  211123221 211241565 209564700 169485241 211420047 211336803 210515885 211377762 211090578 211249185 211320510 211460028 211425744
+  211272450 211461048 210947103 210831317 211478100 211405755 211333170 208430387 211442976 211479609 211392720 211384317 211358766
+  211081665 211077222 210557636 210717761 211153914 211446618 209256351 211398828 211367808 211343118 211220775 211172793 210703898
+  211312434 210423932 211448049 211135620 211190859 211283238 211080285; cut high 210829595, 211130736, 211414908, 211351632,
+  210833456, 210887291, 211324827, 210947319.
+- **CZ Facelift:** cut 210012753, 210998772, 210287762; kept 209583570 (5 681, 185 800), 211036326, 211200306, 211337058, 211201716,
+  211052610, 211191480, 210569462, 210848336, 211355586, 211120617, 211426359, 211276950, 211465332, 210370013, 211445040, 211475034,
+  211132929, 211103199 (7 765, 50 835); cut 210940668, 211071318, 210421571.
+- **CZ e iV:** 211407690 (10 013, 146 861; duplicate 211312767), 211463937 (11 443), 211344759 (12 256), 211226019 (12 260),
+  211059126 (14 263).
+- Left out (2017 without month): 211384821 211169202 210315701 211407765 211396116 211338210 211334994 211252020 211227120 211090935
+  210948180. Excluded: 211435587 211087008 211042071 211178829 (LPG), 211365864 211365861 211365858 211134483 ("2022" CNG),
+  210491882 ("1.0 TSI"), 211312767 (duplicate).
+
+## 27. Decisions for Martin (pass 5)
+
+| # | topic | recommendation |
+|---|---|---|
+| M1 | market columns | Pre-facelift **SK** 2 800 / 4 700 / 6 300 €, 26 916 – 231 782 km; Facelift **CZ** 5 681 / 6 948 / 7 765 €, 30 412 – 185 800 km (SK n = 5) |
+| M2 | e iV market | fewer than 10 listings in SK (4) and in CZ (5) → **NULL + section-M exception**, or your figure (M) — e.g. SK + CZ together n = 9, 10 999 – 14 900 € |
+| M3 | resale_value_rating | Pre-facelift and Facelift **holds_well** (ADAC "wertstabil"; SK 2012–2016 cars still at a median 4 700 € against SK list prices of 7 990 – 12 690 € in 01/2019); e iV **average** (SK list 21 190 € / action 19 990 € in 12/2019 → 13 100 – 14 900 € asked in SK after 6 years) |
+| M4 | value_retainer tag (R8) | **yes on Pre-facelift and Facelift** (M3) — set by hand after the seed, as a judgement tag |
+| M5 | Citigo engine faults on the two **shared** rows `CHYA@44` / `CHYB@55` (Fabia NJ, Polo AW also use them) | spark plugs (2012–2016) put **only on the new Citigo rows** — on the shared rows it would also show on the Fabia / Polo. The Euro 6 Citigos (2015–2016) then miss it; your call |
+
+## 28. Seed files (for review — nothing run)
+
+| file | what | how it runs |
+|---|---|---|
+| `supabase/migrations/20261120190000_transmission_units_citigo_sq100_0cz.sql` | NEW `VW SQ100` (ASG) and `VW 0CZ` (e iV) | additive INSERT — MCP after your review |
+| `supabase/migrations/20261120190500_transmission_units_vw_mq100_complete.sql` | completes the `VW MQ100` stub (maker, speeds 5, alt_codes, rating, notes) | **UPDATE — you run it** |
+| `supabase/migrations/20261120191000_seed_skoda_citigo_aa.sql` | model, 3 phases, 5 bodies, 8 engines, 39 configurations, 8 trims / 78 features, 31 faults | additive INSERT — MCP after your review; needs both files above first |
+
+`scripts/known-distinct-reference-groups.json` gets the two groups the new rows create (VW Group manual 5:
+02J / 02K / MQ100 / MQ200; VW Group single_speed 1: 0CZ / 0MH / MEB 2024). Side finding: the live groups VW Group dct_wet 6
+(DQ250 / DQ400e), dct_wet 7 (DQ381 / DQ500) and the manual-5 group with MQ200 were already missing from that baseline.
+
+Still NULL for you (required fields): fault costs (R3), combustion `yearly_maintenance_eur` (M), e iV market (M2), F8 CNG
+WLTP consumption (T5), pre-facelift trim equipment (S3).

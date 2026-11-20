@@ -1,0 +1,53 @@
+-- Two new transmission_units reference rows for the Škoda Citigo (AA), a prerequisite of
+-- 20261120191000_seed_skoda_citigo_aa.sql (CLAUDE.md rule 2b: the car import never creates gearbox rows).
+--
+-- WHY (Martin, 2026-11-19 / 20, decisions C5, C6, R2 in docs/intake/research/skoda-citigo.md):
+--   * 'VW SQ100' -- the 5-speed ASG automated manual of the NSF small cars (Citigo / up! / Mii, 44 and 55 kW petrol,
+--     2012 - 08/2018). Škoda SSP 093: "The gearbox is also produced in the new robotised version SQ100-5F -
+--     automated five-speed manual transmission AMT ... identical in its design to the manual 0CF gearbox, however with
+--     automatic shifting and clutch control"; gearbox letters 0CT (Škoda workshop manual "Automatic gearbox 0CT",
+--     Citigo 2012 ->). Rating 3 (R2): four owners in one BRISKODA thread (2014 / 2015 cars) report loss of drive /
+--     falling out of gear, fixed by software, gear actuator (P060C), control unit or clutch; ADAC: "ruckartiges Anfahren
+--     und sehr langsame Gangwechsel".
+--   * 'VW 0CZ' -- the single-speed reduction gear of the e-up! family; VW workshop manual "e-up! 2014 ->, e-up! 2017 ->,
+--     e-up! 2020 -> 1-speed gearbox 0CZ - Edition 04.2022". The Škoda CITIGOe iV (2020) is the e-up! 2020 twin (ADAC:
+--     "Reduktionsgetriebe, Anzahl Gänge 1"; Škoda CZ: "Převodovka jednostupňová"). Rating 5: no fault found.
+-- Near-duplicate check (scripts/audit-reference-duplicates.mjs logic, run by hand via MCP 2026-11-20 -- no .env.local
+-- in this checkout): no live Volkswagen Group 'amt' row; 'VW 0CZ' joins the Volkswagen Group single_speed 1 group
+-- (VW 0MH, generic:Single-speed EV (MEB 2024)) -- DISTINCT: a different platform and drive (NSF e-up! front-wheel drive,
+-- 61 kW / 212 Nm, vs MEB rear-wheel drive), and VW names it 0CZ, not 0MH. Group added to
+-- scripts/known-distinct-reference-groups.json in the same commit.
+--
+-- Additive INSERT of reference data. May run via the Supabase MCP after Martin's review.
+
+BEGIN;
+
+DO $$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.transmission_units
+   WHERE code IN ('VW SQ100', 'VW 0CZ')
+      OR coalesce(alt_codes, '{}') && ARRAY['SQ100', '0CT', '0CZ']::text[];
+  IF n <> 0 THEN RAISE EXCEPTION 'A Citigo gearbox code already exists (% rows) -- rolled back', n; END IF;
+
+  INSERT INTO public.transmission_units
+    (code, alt_codes, family, maker, speeds, reliability_rating, reliability_note, maintenance_note, pros, cons,
+     service_interval_km, service_interval_years)
+  VALUES
+    ('VW SQ100', ARRAY['SQ100', '0CT']::text[], 'amt', 'Volkswagen Group', 5, 3,
+     'Automated version of the 0CF five-speed manual (Škoda SSP 093: SQ100-5F) with electromechanical clutch and gear actuators, in the Škoda Citigo / VW up! / SEAT Mii 1.0 MPI 44 and 55 kW (2012 - 2018). Owners report the car losing drive or falling out of gear with the gear warning lit; the usual fixes are a software update, the gear actuator, the control unit (in a Škoda campaign) or a new clutch and flywheel. Shifts are slow and moving off is jerky (ADAC).',
+     'Filled for life, no gearbox-oil service. The clutch is a wear part. On any gear warning ask for the gearbox software update first; there is no P position -- park in N with the handbrake.',
+     ARRAY['No clutch pedal in town traffic', 'Light: under 30 kg (Škoda)']::text[],
+     ARRAY['Jerky moving off and very slow gear changes (ADAC)', 'Loss-of-drive faults reported by owners: actuator, control unit or clutch', 'No P position']::text[],
+     NULL, NULL),
+    ('VW 0CZ', ARRAY['0CZ']::text[], 'single_speed', 'Volkswagen Group', 1, 5,
+     'Single-speed reduction gear and differential of the e-up! family (VW workshop manual "1-speed gearbox 0CZ", e-up! 2014 / 2017 / 2020), also in the Škoda CITIGOe iV and SEAT Mii electric (2020). Final drive 5.176 (Škoda CZ). No fault pattern or recall for the gearbox itself was found.',
+     'One fixed gear: no clutch, filter or torque converter. No gearbox-oil change found in the Škoda documents.',
+     ARRAY['No clutch, torque converter or gear changes -- nothing that wears like a conventional gearbox']::text[],
+     ARRAY['Code confirmed for the VW e-up!; Škoda does not publish it for the CITIGOe iV']::text[],
+     NULL, NULL);
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 2 THEN RAISE EXCEPTION 'Expected to insert 2 gearbox rows, inserted % -- rolled back', n; END IF;
+END $$;
+
+COMMIT;
