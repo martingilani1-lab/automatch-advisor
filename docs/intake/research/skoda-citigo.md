@@ -921,3 +921,21 @@ the second-best band. Rating of `EBM-32kWh@61` stays 4.
 | E43 | EV Clinic, "32000€ Battery repaired for 500€ - VW eUP", 09.01.2024 https://evclinic.eu/2024/01/09/32000e-battery-repaired-for-500e-vw-eup/ | "on a 2015 VW eUp"; "the battery error was an interlock issue"; "the issue was not with the battery but with the 'service' interlock switch" |
 
 **For Martin:** independent SK / CZ costs for rows 1, 2, 6; confirm the proposed brake costs 3–5 for the e iV.
+
+## 38. Tag rules re-run (2026-11-20, via MCP)
+
+The current tag-rule files (20261102233000, 20261103090000, 20261104203000, 20261112140000, 20261120120000,
+20261120140500, 20261120170500 — read from disk, all `INSERT … ON CONFLICT DO NOTHING`) were previewed in one
+transaction ending in a RAISE (rolled back), then run. Preview and live result are identical: **+55 configuration tags,
+all on the Citigo** (catalog 3 260 → 3 315; phase tags unchanged at 93); no tag above the 25 % cap. `npm test` 149/149.
+
+| tag | Citigo configurations |
+|---|---|
+| city_commuter | 39 (all: segment A, ≤ 4 250 mm, petrol / CNG; the e iV via the A / B electric rule) |
+| ultra_efficient | 15 — NEDC ≤ 4,2 l: 44 / 55 kW ASG (8: P7, P9, F2, F4 × 2 bodies), **CNG 2,9 kg read as litres (6: P5, P10, F5)**, e iV 14,8 kWh WLTP (1) |
+| green_zone | 1 (e iV) |
+| phase tags | none (ISOFIX 2, boot 251 l: no isofix_3x / family / stroller) |
+
+**Flag:** the six CNG `ultra_efficient` rows come from the open schema follow-up (section 34: CNG kg stored in
+`fuel_consumption_l100km`, the rule reads it as litres). They stay until Martin decides; removing them is a DELETE he
+runs. Still manual: `value_retainer` on the Pre-facelift and Facelift phases (M4).
