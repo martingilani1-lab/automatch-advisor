@@ -486,3 +486,135 @@ the slug carries them; flag if the seed needs a group on every row (FIELD-LEVELS
   12 V battery / charging faults.
 - Section-M exceptions so far: F8 primary consumption (T5), pre-facelift trims (S3, if approved).
 - Pass-1 list now: P1–P10, F1–F8, **F10** (55 kW ASG Euro 6d-TEMP), and the e iV as its own phase (former F9).
+
+## 19. Martin's pass-3 decisions (2026-11-20)
+
+| # | decision | note |
+|---|---|---|
+| S1 | Pre-facelift 2011 5★; Facelift and e iV **2019 3★**, ncap_year 2019 (latest Euro NCAP rating naming the variant, as the Zoe facelift 2021 re-test) | R: same structure as 2011; the drop comes from newer rules (safety assist 86 → 55 %; ADAC: no AEB on the e-up!) |
+| S2 | e iV phase: generation_code **`AA-iV`**, phase_label `Facelift`, display "CITIGOe iV (AA)", **2019–2020** | no third phase_label value |
+| S3 | Pre-facelift: **trim names only** from the Czech launch report, no prices / equipment until an official ŠA list turns up | auto.cz 01.11.2011 (E31): "Zpočátku bude Citigo nabízeno pouze ve vyšších výbavách Ambition a Elegance, později nabídku rozšíří jednodušší verze Easy a Active." → Easy 1, Active 2, Ambition 3, Elegance 4 |
+| S4 | isofix_count 2, isofix_front_passenger false, all phases | Martin cites the manual's ISOFIX table (front passenger "X X X") — not opened here; E29 / E30 / ADAC agree |
+| S5 | F10 **5,4 l / 121 g** (base-wheel low end) | no ADAC page exists for any 09/2018+ ASG (all 294 pages checked), so the brochure low end stands |
+| S6 | `seatbelt_reminders` on the e iV only | slug exists in `safety_features` (read 2026-11-20) |
+
+| ref | source | quote |
+|---|---|---|
+| E31 | auto.cz, "Škoda Citigo: Ceny na českém trhu", 01.11.2011 https://www.auto.cz/skoda-citigo-ceny-na-ceskem-trhu-62758 | quoted above (journalist report of the ŠA CZ launch prices) |
+
+---
+
+# Pass 4 — reliability + service (2026-11-20)
+
+Sources: ADAC Gebrauchtwageninfo Citigo (E32, ADAC's own breakdown statistics, TÜV summary, recalls, model history),
+recall texts on all 294 ADAC variant pages, car-recalls.eu (EU Safety Gate mirror, campaign codes), BRISKODA owner
+threads (read in the browser pane — the site blocks plain fetches), GoingElectric. Perplexity: 1 × `perplexity_research`
+(faults, all components) → 5 of 8. No DB writes.
+
+## 20. Decisions for Martin (pass 4 gate)
+
+| # | topic | finding | recommendation |
+|---|---|---|---|
+| R1 | engine ratings | ADAC: "zuverlässige Technik"; Pannenstatistik 2022 per 1 000 cars (EZ 2012 … 2019): 24,5 / 19,1 / 18,2 / 14,0 / 8,7 / 7,6 / 3,4 / 2,4 — in ADAC's 2nd–3rd band of 5; breakdown items spark plugs 2012–2016, starter 2012 (E32) | all 9 combustion rows **4**; `EBM-32kWh@61` **4** (one recall fixed by campaign; HV-controller J497 failures are a 2020 owner-forum lead, I) |
+| R2 | gearbox ratings | **ASG (VW SQ100 / 0CT): 4 owners in one BRISKODA thread** (2014 / 2015 cars, 2018–2020): loss of drive, falls out of gear, gear warning; fixes: software update, gear actuator (fault P060C), control unit (under a Škoda campaign), clutch + flywheel (E33). ADAC: "ruckartiges Anfahren und sehr langsame Gangwechsel" (E32). 0CF manual: no recurring fault verified (BRISKODA 289842 lead, 403). 0CZ: none found | **SQ100 3**, **MQ100 (0CF) 4**, **0CZ 5** |
+| R3 | fault costs | only dealer / UK figures: ASG actuator "£182+vat for part, plus £460 labour", clutch + flywheel "£1,150" (E33); ADAC dealer list (DE): clutch 890, starter 460, alternator 720, front discs + pads 370, timing belt 300 € (E32) | **independent SK / CZ figures from you (M)**; until then the dealer figures stay in R, never stored |
+| R4 | annual probabilities (no source gives a rate) | — | proposed below per fault, marked *proposed* — wear items 1/N where the interval is known, possible faults by the rare / occasional / common words in RESEARCH-PROCESS |
+| R5 | timing belt | live `CHYA` / `CHYB` rows: 120 000 km / 8 years (no source recorded); ADAC GW: "Zahnriemen … bei km/Monate 210000/-" (E32) | new rows **210 000 km, years NULL** (ADAC); flag the live 120 000 / 8 for a source check (not changed here) |
+| R6 | Takata recall 69DU | ADAC: "Parallelimporte aus 'Heißländern' (kein SAD-Import betroffen)" — SK / CZ factory-delivered cars are not in scope | **leave out**, note in R (alternative: one row with the limitation in its text) |
+| R7 | live faults on the reused rows | `CHYA@44` / `CHYB@55` carry 3 unsourced faults each (ignition coil, throttle body carbon, engine mounts — no years, cost or probability) that the Citigo Euro 6 rows will show | not touched in this import; follow-up (source or remove) |
+| R8 | judgement tag | ADAC: "wertstabil" (E32) | `value_retainer` — **decide in pass 5** against the market data |
+
+## 21. Data (pass 4)
+
+### 21a. Engines — service (D2)
+
+| rows | oil | timing belt | rating | maintenance_note | pros / cons | evidence |
+|---|---|---|---|---|---|---|
+| 6 new petrol rows (`CHYA-Euro5/6dT@44`, `CHYB-Euro5/6dT@55`) | 3,4 l (T9); 15 000 km / 12 months (ADAC "Wartung 1 … 15000/12"); oil spec NULL | 210 000 km (R5) | 4 | fixed service every 15 000 km / 12 months; timing belt 210 000 km (ADAC); spark plugs a known breakdown item 2012–2016 | pros: simple naturally aspirated 3-cylinder, no turbo; good reliability record (ADAC). cons: needs revs — 75 PS version gains only at high rpm, same 95 Nm as the 60 PS (ADAC); 3-cylinder vibration (live rows) | E32 |
+| 3 CNG rows (`CPGA*`) | 3,4 l; 15 000 / 12; | 210 000 km | 4 | as petrol + CNG system: tank / pipes per the national gas inspection (interval NULL — not found) | pros: low fuel cost (ADAC: 61 € vs 108–114 €/month fuel). cons: "sehr drehmomentschwach", weak performance (ADAC); boot 213 l (tank under the floor) | E32 |
+| `EBM-32kWh@61` | N/A | N/A | 4 | no oil / belt / plugs; brake fluid, cabin filter, 12 V battery per service schedule — **interval not found** (NULL) | pros: strong performance for the class, low consumption (ADAC "Sehr empfehlenswert ist dagegen die Elektrovariante"). cons: 32,3 kWh limits range; 7,2 kW AC needs a 2-phase supply (ADAC "AC-Ladefunktion 1-phasig,2-phasig"; UK owners stuck at 3,6 kW, E35) | E32, E2 |
+
+yearly_maintenance_eur (combustion, required): **M** — independent SK / CZ figure from you (ADAC dealer DE: Wartung 1/2 = 130 / 210 €).
+
+### 21b. Gearboxes (E)
+
+| unit | rating | reliability_note | maintenance_note | pros / cons | evidence |
+|---|---|---|---|---|---|
+| VW MQ100 (0CF), 5MT | 4 | no recurring fault verified | filled for life (SSP 093 "filled for life") | pros: light ("27 kg", press kit). cons: — | E7, E3 |
+| VW SQ100 (0CT), 5-speed ASG | 3 | electromechanical actuators on the 0CF base; owners report loss of drive / falling out of gear, fixed by software, gear actuator, control unit or clutch (E33) | filled for life; clutch is a wear part; service interval **N/A** (no fluid service); software update first on any gear warning | pros: no clutch pedal, light (< 30 kg). cons: jerky starts, very slow shifts (ADAC); no "P" position — park in N with the handbrake (press kit) | E32, E33, E3 |
+| VW 0CZ, single speed (e iV) | 5 | no fault found | filled for life (NULL — not confirmed) | — | E16 |
+
+### 21c. Faults (I) — engine / gearbox faults carry build years (rule: units span phases)
+
+| target | fault | years | severity | category | annual_probability | evidence |
+|---|---|---|---|---|---|---|
+| all 6 petrol + 3 CNG rows | Spark plugs — misfire / breakdown; replace plugs (and check coils) | 2012–2016 | minor | — | 0,02 *proposed* (occasional) | E32 "Zündkerze (2012-2016)" |
+| `CHYA-Euro5@44`, `CHYB-Euro5@55`, `CPGA-Euro5@50` | Starter motor failure — car won't start | 2012 | moderate | — | 0,01 *proposed* | E32 "Anlasser (2012)" |
+| same Euro 5 rows | Exhaust system defects on early cars (TÜV / ADAC) | 2012–2014 | minor | — | 0,01 *proposed* | E32 "anfällige Abgasanlage (nur frühe Exemplare)" |
+| VW SQ100 (ASG) | Gear actuator / control unit / software fault — gear warning, loss of drive, falls out of gear; software update first, then actuator or TCU | 2012–2018 | critical (drive lost in traffic) | — | 0,03 *proposed* (occasional; 4 owners in one thread) | E33 |
+| VW SQ100 (ASG) | Clutch and flywheel worn — loss of drive with engine light | 2012–2018 | moderate | — | 0,02 *proposed* | E33 "a bill for £1,150 for a new clutch, flywheel" |
+| `EBM-32kWh@61` | HV battery controller (J497) failure — "Elektrosystem. Fahrzeug anhalten!", car immobilised; controller (sometimes wiring / modules) replaced, weeks off the road; under the 8-year battery warranty | 2020 | critical | — | 0,01 *proposed* (rare; e-up! / Mii cases, Finland) | E34; E13b "Záruka 8 rokov/160 000 km … na vysokonapäťový akumulátor" |
+| vehicle, Pre-facelift | Mechanical parking brake — cable / mechanism fails (breakdown item) | 2014–2016 | minor | brakes | 0,02 *proposed* | E32 "Feststellbremse mechanisch (2014-2016)" |
+| vehicle, Facelift | same (ADAC breakdown list on the facelift pages: "Feststellbremse mechanisch 2017, 2019") | 2017–2019 | minor | brakes | 0,02 *proposed* | E1 295452 |
+| vehicle, Pre-facelift | Brake pads / rear drums — reduced braking at TÜV, breakdowns | 2013–2017 | minor | brakes | wear: interval NULL → 0,2 *proposed* (pads ~5 years) or your figure | E32 "Bremsbelag (2013-2018), Bremstrommel vorne/hinten (2015)"; "funktionseingeschränkte Bremsen" |
+| vehicle, Facelift | Brake pads (same part) | 2017–2018 | minor | brakes | as above | E32 |
+| vehicle, Pre-facelift | Wiring harness fault | 2012 | moderate | electrical | 0,005 *proposed* (rare) | E32 "Kabelbaum (2012)" |
+| vehicle, Pre-facelift | Lighting defects at TÜV (bulbs, headlight aim) | — | minor | electrical | 0,1 *proposed* | E32 "Licht­mängel … des öfteren" |
+| vehicle, Pre-facelift + Facelift | Water in the footwells — blocked scuttle (windscreen-gulley) drains; clear the drain holes, dry the carpets | — | minor | interior | 0,01 *proposed* | E36 (2 owners, 2013 car + one later) |
+
+**Recalls** (vehicle faults, text starts "Recall:", cost / probability N/A, all fixed free by the campaign):
+
+| phase | recall | built | code / alert | evidence |
+|---|---|---|---|---|
+| Pre-facelift | Recall: side-crash-sensor diagnosis disabled in the airbag control unit (1S0 959 655 B) — software reflashed | 14.01.2013 – 19.03.2013 | code NULL (ADAC 5/2013) | E32, E1 |
+| Pre-facelift | Recall: Takata driver airbag propellant may deteriorate, inflator fragments — driver airbag replaced | 24.09.2012 – 27.06.2014 | **69KH**, Safety Gate A12/02080/24 | E37 |
+| Pre-facelift | Recall: driver airbag inflator may rupture, metal fragments — driver airbag replaced | 14.05.2014 – 18.08.2016 | **69PB** (Safety Gate 9/2026; ADAC 09/2025) | E37, E1 |
+| Pre-facelift + Facelift | Recall: same defect, extended production period — driver airbag replaced | 23.05.2016 – 07.12.2017 | **69PC** (Safety Gate 25/2026) | E37 |
+| Pre-facelift | Recall: child-lock lever may break — rear door can open from inside | 25.11.2015 – 14.04.2016 | code NULL, A12/1023/16 | E37 |
+| Pre-facelift | Recall: panoramic-roof front panel may detach (cars with sunroof) | 21.01.2016 – 19.02.2016 | code NULL, A12/1476/16 | E37, E1 |
+| Pre-facelift | Recall: towing eye in the tool kit not welded correctly — towing eye replaced | 29.03.2017 – 24.04.2017 | code NULL, A12/0163/18 (ADAC: 01.10.2015 – 29.05.2017) | E37, E32 |
+| e iV | Recall: damaged HV battery cells may short-circuit, fire risk — battery replaced | 11.05.2020 – 24.06.2020 | **93J5**, A12/00136/21 | E37 |
+
+Left out: Takata 69DU (R6).
+
+### 21d. Car-level pros / cons (K)
+
+- pros: good safety equipment for the class (2011 result); generous front space; reliable (ADAC, TÜV "überdurchschnittlich oft mängelfrei"); compact, easy to see out of; e iV fun and frugal.
+- cons: tighter rear seats, average boot, 4 seats only; no towing; ASG automatic jerky and slow; CNG version weak; e iV: no automatic emergency braking (ADAC "Ein automatischer Notbremsassistent … ist nicht verfügbar").
+
+## 22. Evidence added (pass 4)
+
+| ref | source | quote |
+|---|---|---|
+| E32 | ADAC Gebrauchtwageninfo "Skoda Citigo (2012-2020)" https://assets.adac.de/Autodatenbank/GWInfo/gw0311-skoda-citigo-2012-2020-bericht.pdf | "zuverlässige Technik, wertstabil"; "anfällige Abgasanlage (nur frühe Exemplare), träge Automatikgetriebe, schwacher Erdgasmotor"; "Häufige Bauteilfehler Anlasser (2012), Bremsbelag (2013-2018), Bremstrommel vorne/hinten (2015), Feststellbremse mechanisch (2014-2016), Kabelbaum (2012), Zündkerze (2012-2016)"; "Zahnriemen 300 … 210000/-"; "Kupplung 890"; "Wartung 1 130 … 15000/12" |
+| E33 | BRISKODA, "ASG Citigo help please!", 2018-09-20 – 2020-10-31 (browser pane) https://www.briskoda.net/forums/topic/455758-asg-citigo-help-please/ | 2014 Elegance: "broken down on 3 separate occasions"; "fault code P060C and need the physical adjustor replaced, £182+vat for part, plus £460 labour"; 2015 SE: "there was no drive"; "a bill for £1,150 for a new clutch, flywheel"; another: "it falls out of gear … they replaced the control unit for the gearbox, without charge as it was a Skoda 'recall'"; 2014: "updated the software. It went wrong again" |
+| E34 | GoingElectric, "VW e-up 2020 … Fehler: Elektrosystem. Fahrzeug anhalten!", posts 07–08.10.2020 https://www.goingelectric.de/forum/viewtopic.php?t=56469&start=340 | "We have at least 6 known cases of this battery death in Finland." "The typical issue is with the J497 controller inside the battery and several cars have been successfully fixed by replacing just that" |
+| E35 | BRISKODA, "Any Citigo-e IV user", 2020-09 – 2021-01 (browser pane) https://www.briskoda.net/forums/topic/483719-any-citigo-e-iv-user/ | "home charging being limited to 3.6kW (16A)"; "the same 3.6KW limit even though I definitely have a 7.2KW cable" — UK single-phase supply; not stored as a fault (SK / CZ wallboxes are 2-/3-phase) |
+| E36 | BRISKODA, "Love my Citigo... but water, water everywhere!", 2017-09 – 2020-01 (browser pane) https://www.briskoda.net/forums/topic/437938-love-my-citigo-but-water-water-everywhere/ | 2013 Elegance: "mat and carpet completely sodden"; "Unblocked plenum chamber drainage holes and so far so good"; second owner 2019: "Car getting soaked" |
+| E37 | car-recalls.eu (EU Safety Gate mirror), Citigo recalls https://car-recalls.eu/?s=citigo | "manufactured between 24 September 2012 and 27 June 2014. Skoda recall code: 69KH"; "manufactured between 14 May 2014 and 18 August 2016 … vehicles manufactured from 23 May 2016 to 7 December 2017. The manufacturer uses the code 69PC"; "manufactured between 11 May and 24 June 2020. Skoda recall code: 93J5"; child lock "25. 11. 2015 to 14. 4. 2016"; sunroof "21 January and 19 February 2016"; towing eye "29. 3. 2017 – 24. 4. 2017" |
+
+## 23. R — gaps (pass 4)
+
+| item | note |
+|---|---|
+| repair costs | all fault costs need your SK / CZ figure (R3); dealer / UK figures in E32, E33 |
+| probabilities | all *proposed* — no source states a rate |
+| oil spec, CNG tank inspection interval, e iV service interval | not found in a Škoda document |
+| 0CF selection fault | BRISKODA 289842 (2013, 2 owners: 1st / reverse hard to select) not opened (403) — not used |
+| CNG regulator | Motor-Talk single owner (Mii 2015), disputed — not used |
+| 12 V battery (e iV) | GoingElectric / Reddit leads, not verified — not used |
+| live CHYA / CHYB | R5 (belt 120 000 / 8), R7 (unsourced faults) |
+
+## 24. Perplexity log (continued)
+
+| # | tool | topic | outcome |
+|---|---|---|---|
+| 5 | `perplexity_research` | faults — engine, ASG, 0CF, e iV, body | leads list; verified by opening: E33–E36 (BRISKODA via browser pane, GoingElectric); rest unused |
+
+## 25. Hand-over (pass 5 + seed session)
+
+- On Martin's OK of R1–R8 and his cost figures: pass 5 = market (SK autobazar.eu `/vysledky/osobne-vozidla/skoda/citigo/`,
+  CZ sauto.cz `manufacturer_model_seo=skoda%3Acitigo`, bazos; per phase, e iV apart; record every listing id), then
+  `value_retainer` (R8), then the seed.
+- Reference migrations still to write before the seed: `VW MQ100` UPDATE, `VW SQ100` INSERT, `VW 0CZ` INSERT.
+- Section-M exceptions: F8 primary consumption (T5), pre-facelift trim equipment (S3).
