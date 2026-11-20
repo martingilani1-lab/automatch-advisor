@@ -116,3 +116,26 @@ describe("optional vignette", () => {
     expect(off.incomplete).toBe(false);
   });
 });
+
+// Plug-in and range-extender hybrids draw two energies over the same km (Martin, 2026-11-20).
+describe("calcTco -- two energies", () => {
+  const full = (r: ReturnType<typeof calcTco>) => r.lines.find((l) => l.key === "fuel");
+  it("prices a PHEV's petrol AND its electricity", () => {
+    // Golf 8 eHybrid WLTP 1.2 l + 14.8 kWh, ×1.15 real-world -> 1.4 l + 17 kWh.
+    const r = calcTco({ ...car, consumptionPer100: 1.4, extraEnergy: { fuelType: "electric", consumptionPer100: 17 } }, 15000);
+    expect(full(r)?.yearly).toBeCloseTo(150 * (1.4 * 1.85 + 17 * 0.25)); // 388.5 + 637.5
+    expect(full(r)?.label).toBe("Fuel & electricity");
+    expect(full(r)?.detail).toContain("assumes regular charging");
+  });
+  it("prices an EREV's electricity AND its range-extender petrol", () => {
+    const r = calcTco({ ...car, fuelType: "electric", consumptionPer100: 13.2, extraEnergy: { fuelType: "petrol", consumptionPer100: 0.7 } }, 15000);
+    expect(full(r)?.yearly).toBeCloseTo(150 * (13.2 * 0.25 + 0.7 * 1.85));
+  });
+  it("keeps a single-energy car (and a bi-fuel LPG car) on one price", () => {
+    expect(full(calcTco({ ...car, fuelType: "lpg", consumptionPer100: 10.6 }, 15000))?.yearly).toBeCloseTo(150 * 10.6 * 0.8);
+    expect(full(calcTco(car, 15000))?.label).toBe("Fuel");
+  });
+  it("shows no data when the primary figure is missing, even with a second energy", () => {
+    expect(full(calcTco({ ...car, consumptionPer100: null, extraEnergy: { fuelType: "electric", consumptionPer100: 17 } }, 15000))?.yearly).toBeNull();
+  });
+});

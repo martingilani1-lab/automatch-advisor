@@ -118,6 +118,14 @@ export interface TcoInput {
   fuelType: string;
   // REAL-world consumption per 100 km in the fuel's unit (l, kg or kWh).
   consumptionPer100: number | null;
+  // A second energy the car draws ON TOP of the primary one over the same km -- a plug-in or
+  // range-extender hybrid, whose official figure is a weighted pair (Golf 8 eHybrid WLTP:
+  // 1.2 l petrol + 14.8 kWh; i3 REx NEDC: 11.5 kWh + 0.6 l). Pricing only one half made a PHEV
+  // look like a 1.2 l car with free electricity, and an EREV like a pure EV (Martin,
+  // 2026-11-20). NOT for a bi-fuel LPG/CNG car: its secondary figure is the OTHER mode's
+  // consumption (petrol-only running), an alternative to the primary, never an addition.
+  // Real-world, same unit rules as consumptionPer100. null/absent = single-energy car.
+  extraEnergy?: { fuelType: string; consumptionPer100: number } | null;
   powerKw: number;
   engineReliabilityRating: number | null;
   // Engine routine servicing per year (oil, filters, plugs) -- catalog_engines yearly_maintenance.
@@ -208,7 +216,17 @@ export function calcTco(
   const fuelPrice = costs.fuelPriceEur[fuelKey];
   const unit = fuelKey === "electric" ? "kWh" : fuelKey === "cng" ? "kg" : "l";
 
-  const fuel = car.consumptionPer100 != null ? (annualKm / 100) * car.consumptionPer100 * fuelPrice : null;
+  const energyKey = (f: string) => (f.toLowerCase() in costs.fuelPriceEur ? f.toLowerCase() : FALLBACK_FUEL);
+  const unitOf = (k: string) => (k === "electric" ? "kWh" : k === "cng" ? "kg" : "l");
+  const extra = car.extraEnergy ?? null;
+  const extraKey = extra ? energyKey(extra.fuelType) : null;
+  const extraPrice = extraKey ? costs.fuelPriceEur[extraKey] : 0;
+  // Both halves of a weighted PHEV/EREV figure are drawn over the same km, so both are priced.
+  // Missing primary figure -> the whole line is "no data" (a half-priced hybrid would look
+  // cheaper than it is).
+  const fuel = car.consumptionPer100 != null
+    ? (annualKm / 100) * (car.consumptionPer100 * fuelPrice + (extra ? extra.consumptionPer100 * extraPrice : 0))
+    : null;
 
   const belt = car.timingBelt ? proratedYearly(car.timingBelt, annualKm) ?? 0 : 0;
   const engine = car.engineYearlyServiceEur != null ? car.engineYearlyServiceEur + belt : null;
@@ -253,11 +271,15 @@ export function calcTco(
   const lines: TcoLine[] = [
     {
       key: "fuel",
-      label: "Fuel",
+      label: extra ? "Fuel & electricity" : "Fuel",
       yearly: fuel,
-      detail: car.consumptionPer100 != null
-        ? `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`
-        : "No consumption data",
+      detail: car.consumptionPer100 == null
+        ? "No consumption data"
+        : extra && extraKey
+          ? `${car.consumptionPer100} ${unit} + ${extra.consumptionPer100} ${unitOf(extraKey)} per 100 km real-world`
+            + ` × €${fuelPrice.toFixed(2)}/${unit} and €${extraPrice.toFixed(2)}/${unitOf(extraKey)}`
+            + " (official weighted figure -- assumes regular charging)"
+          : `${car.consumptionPer100} ${unit}/100 km real-world × €${fuelPrice.toFixed(2)}/${unit}`,
     },
     // A pure EV has no engine servicing (no oil, filters, plugs or belt) -- the line is left
     // out rather than shown as "no data", which would also mark the whole total incomplete.
@@ -354,6 +376,20 @@ export function tcoOptions(
       .map((x) => (electric ? x.energyConsumptionKwh100km : x.fuelConsumptionL100km))
       .filter((v): v is number => v != null);
     const official = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    // Second energy of a plug-in / range-extender hybrid (see TcoInput.extraEnergy). Where the
+    // DB keeps it differs by direction: a PHEV (petrol engine) has its kWh in
+    // energy_consumption_kwh100km; an EREV (electric engine) has its generator's petrol in
+    // secondary_consumption_l100km. A bi-fuel LPG/CNG car also fills secondary_*, but that is
+    // its petrol-MODE figure, so it is excluded by hybrid_type, not by which column is set.
+    const plugIn = e.hybridType === "PHEV" || e.hybridType === "EREV";
+    const avg = (xs: (number | null)[]) => {
+      const v = xs.filter((x): x is number => x != null);
+      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+    };
+    const extraOfficial = !plugIn ? null
+      : electric ? avg(list.map((x) => x.secondaryConsumptionL100km))
+        : avg(list.map((x) => x.energyConsumptionKwh100km));
+    const extraFuel = electric ? (c.secondaryFuelType ?? "petrol") : "electric";
     const m = e.maintenance;
     const isBelt = e.timingType === "belt";
     return {
@@ -365,6 +401,9 @@ export function tcoOptions(
         manufactureYear,
         fuelType: e.fuelType,
         consumptionPer100: realWorldConsumption(official),
+        extraEnergy: extraOfficial != null
+          ? { fuelType: extraFuel, consumptionPer100: realWorldConsumption(extraOfficial) as number }
+          : null,
         powerKw: e.powerKw,
         engineReliabilityRating: e.reliabilityRating,
         engineYearlyServiceEur: mid(m.yearlyMaintenanceEurMin, m.yearlyMaintenanceEurMax),
