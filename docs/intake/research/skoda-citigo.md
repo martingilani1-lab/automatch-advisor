@@ -851,3 +851,24 @@ features, **31 faults** (13 engine, 3 gearbox, 15 vehicle). Supersedes the block
    gearbox rows) and run `npm test`.
 2. Re-run the tag-rule migrations (preview first).
 3. Set `value_retainer` on the Pre-facelift and Facelift phases (M4).
+
+## 36. What actually ran, and the top-up (2026-11-20)
+
+Read back via MCP: the live Citigo rows are the **09adba7 seed trio** (`20261120190000` / `20261120190500` /
+`20261120191000`) — 3 phases, 39 configurations, 8 trims / 78 features, 31 faults without costs (spark plugs on four
+engine rows, nine recall rows), e iV market NULL, engines at 15 000 km / 12 months with no yearly maintenance, MQ100
+with the extra pro "Simple cable-shift manual". `20261120210000` (270a7b0) never ran; its header now says so, and the
+trio's headers say they ran.
+
+**Top-up for Martin to run:** `supabase/migrations/20261120230000_skoda_citigo_aa_topup.sql` (one transaction, row-count
+guard on every statement, expects the 31-fault live state):
+
+- **A. INSERT 10 faults:** CNG-tank corrosion × 3 (each CPGA row), front pipe + catalytic converter × 3, ASG
+  gear-selector module, spark plugs as a Pre-facelift vehicle row, rear drum shoes × 2.
+- **B. UPDATE:** e iV market (M2); 7 combustion engines (30 000 km / 12 months, yearly 100–140 / CNG 140–190 €, note);
+  EBM note; SQ100 note / cons; MQ100 pros; fault costs and texts (starter, rear silencer, J497, ASG actuator, ASG
+  clutch, parking brake, front pads + discs, wiring, lighting, water); Takata and 93J5 pre-purchase checks.
+- **C. DELETE 4:** the spark-plug engine rows (M5).
+- Result: 37 faults. **Kept on purpose** (differs from `20261120210000`): Takata as three rows (69KH / 69PB / 69PC) and
+  the four other live recall rows (airbag ECU 05/2013, child lock 2015–16, sunroof panel 2016, towing eye 2017) —
+  delete those only on Martin's word.
