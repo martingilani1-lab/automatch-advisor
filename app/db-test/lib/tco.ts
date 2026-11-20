@@ -149,7 +149,8 @@ export interface TcoInput {
   // 2026-11-20). NOT for a bi-fuel LPG/CNG car: its secondary figure is the OTHER mode's
   // consumption (petrol-only running), an alternative to the primary, never an addition.
   // Real-world, same unit rules as consumptionPer100. null/absent = single-energy car.
-  // basis = the short assumption shown in the line's detail ("typical private-owner charging").
+  // basis = the short assumption shown in the line's detail. For a PHEV it also says a daily
+  // home charger lowers the figure -- a note instead of a charging choice (Martin, 2026-11-20).
   extraEnergy?: { fuelType: string; consumptionPer100: number; basis: string } | null;
   powerKw: number;
   engineReliabilityRating: number | null;
@@ -430,7 +431,7 @@ export function tcoOptions(
         consumptionPer100: phev ? phev.petrol : realWorldConsumption(official),
         extraEnergy: extraOfficial == null ? null
           : phev
-            ? { fuelType: extraFuel, consumptionPer100: phev.kwh as number, basis: "typical private owner: ~half the km on electricity" }
+            ? { fuelType: extraFuel, consumptionPer100: phev.kwh as number, basis: "typical private owner: ~half the km on electricity -- with a home charger used daily it can be noticeably lower" }
             : { fuelType: extraFuel, consumptionPer100: realWorldConsumption(extraOfficial) as number, basis: "range extender runs only once the battery is empty" },
         powerKw: e.powerKw,
         engineReliabilityRating: e.reliabilityRating,
