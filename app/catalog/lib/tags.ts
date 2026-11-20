@@ -24,10 +24,14 @@ export const COLOR_CATEGORY_LABELS: Record<ColorCategory, string> = {
 };
 
 // ---- Slugs per tier (type-level, so a model-only tag can't be put on a configuration) -----
-export type ModelOnlyTagSlug = "stroller_friendly" | "isofix_3x" | "value_retainer" | "cargo_van" | "representative" | "head_turner";
+export type ModelOnlyTagSlug = "stroller_friendly" | "isofix_3x" | "value_retainer" | "cargo_van" | "representative";
 export type ConfigurationOnlyTagSlug =
   | "city_commuter" | "highway_cruiser" | "seven_seater" | "bulletproof_reliability" | "ultra_efficient"
-  | "green_zone" | "heavy_tower" | "roadtrip_camper" | "winter_ready" | "true_offroad" | "hot_hatch" | "sleeper";
+  | "green_zone" | "heavy_tower" | "roadtrip_camper" | "winter_ready" | "true_offroad" | "hot_hatch" | "sleeper"
+  // head_turner moved here from model level 2026-11-20 (20261120140000): a body decides it, not the phase.
+  | "head_turner"
+  // camper added 2026-11-20 (20261120170500): an MPV / van body with >= 3 000 l of load space.
+  | "camper";
 export type SharedTagSlug = "family_ideal" | "value_choice" | "workhorse" | "drivers_choice" | "sport" | "comfort_cruiser";
 
 export type TagSlug = ModelOnlyTagSlug | ConfigurationOnlyTagSlug | SharedTagSlug;
@@ -62,7 +66,9 @@ export const TAG_DEFINITIONS: { readonly [S in TagSlug]: TagDefinition<S> } = {
 
   workhorse: def("workhorse", "Workhorse", "both", "utility", 10),
   heavy_tower: def("heavy_tower", "Heavy tower", "configuration", "utility", 20),
-  roadtrip_camper: def("roadtrip_camper", "Roadtrip/Camper", "configuration", "utility", 30),
+  // Label "Road trip" since 20261120170000 (slug unchanged); camping is the separate camper tag.
+  roadtrip_camper: def("roadtrip_camper", "Road trip", "configuration", "utility", 30),
+  camper: def("camper", "Camper", "configuration", "utility", 35),
   winter_ready: def("winter_ready", "Winter ready (AWD)", "configuration", "utility", 40),
   true_offroad: def("true_offroad", "True offroad", "configuration", "utility", 50),
   cargo_van: def("cargo_van", "Cargo van", "model", "utility", 60),
@@ -74,10 +80,16 @@ export const TAG_DEFINITIONS: { readonly [S in TagSlug]: TagDefinition<S> } = {
 
   representative: def("representative", "Representative", "model", "premium", 10),
   comfort_cruiser: def("comfort_cruiser", "Comfort cruiser", "both", "premium", 20),
-  head_turner: def("head_turner", "Head-turner", "model", "premium", 30),
+  head_turner: def("head_turner", "Head-turner", "configuration", "premium", 30),
 };
 
 export const ALL_TAG_SLUGS = Object.keys(TAG_DEFINITIONS) as TagSlug[];
+
+// Tags with no rule behind them yet (Martin, 2026-11-20): no tag rows exist, and a future tag filter
+// must not offer them until a price-over-age rule exists (docs/STATUS.md). Nothing reads tags as a
+// filter today -- this is the list that filter has to honour.
+export const HIDDEN_FROM_FILTERS: readonly TagSlug[] = ["value_retainer", "value_choice"];
+export const FILTERABLE_TAG_SLUGS = ALL_TAG_SLUGS.filter((s) => !HIDDEN_FROM_FILTERS.includes(s));
 export const isTagSlug = (s: string): s is TagSlug => s in TAG_DEFINITIONS;
 export const isModelLevel = (s: TagSlug): s is ModelLevelTagSlug => TAG_DEFINITIONS[s].tier !== "configuration";
 export const isConfigurationLevel = (s: TagSlug): s is ConfigurationLevelTagSlug => TAG_DEFINITIONS[s].tier !== "model";
